@@ -1,30 +1,62 @@
-{% extends 'budgetapp/base.html' %}
+{% extends "budgetapp/base.html" %}
 
 {% block content %}
 <h1>Budget for {{ budget.month|date:"F Y" }}</h1>
 
 <div class="row mt-4">
     <div class="col-md-6">
-        <div class="card">
+        <div class="card mb-4">
             <div class="card-header">
-                <h3 class="mb-0">Add New Expense</h3>
+                <h3 class="mb-0">Income Details</h3>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" class="income-form">
                     {% csrf_token %}
                     <div class="mb-3">
+                        <label for="income" class="form-label">Monthly Income</label>
+                        <input type="number" step="0.01" name="income" id="income" 
+                               value="{{ budget.income }}" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="currency" class="form-label">Currency</label>
+                        <select name="currency" id="currency" class="form-select">
+                            {% for code, name in currency_choices %}
+                                <option value="{{ code }}" {% if budget.currency == code %}selected{% endif %}>
+                                    {{ name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" name="form_type" value="income" 
+                            class="btn btn-primary">Update Income</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0" id="expense-form-title">Add New Expense</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" id="expense-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="expense_id" id="expense_id">
+                    <div class="mb-3">
                         {{ form.name.label_tag }}
-                        {{ form.name|addclass:"form-control" }}
+                        {{ form.name }}
                     </div>
                     <div class="mb-3">
                         {{ form.amount.label_tag }}
-                        {{ form.amount|addclass:"form-control" }}
+                        {{ form.amount }}
                     </div>
                     <div class="mb-3 form-check">
                         {{ form.is_recurring }}
                         {{ form.is_recurring.label_tag }}
                     </div>
-                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                    <button type="submit" name="form_type" value="expense" 
+                            class="btn btn-primary" id="expense-submit-btn">Add Expense</button>
+                    <button type="button" class="btn btn-secondary d-none" 
+                            id="cancel-edit-btn">Cancel</button>
                 </form>
             </div>
         </div>
@@ -33,28 +65,48 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h3 class="mb-0">Expenses</h3>
+                <h3 class="mb-0">Budget Summary</h3>
             </div>
             <div class="card-body">
+                <div class="mb-4">
+                    <h4>Income: {{ budget.currency }} {{ budget.income }}</h4>
+                    <h4>Remaining: {{ budget.currency }} {{ budget.get_remaining_budget }}</h4>
+                </div>
+                <h3>Expenses</h3>
                 <table class="table">
                     <thead>
                         <tr>
                             <th>Name</th>
                             <th>Amount</th>
                             <th>Recurring</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for expense in expenses %}
-                        <tr>
+                        <tr data-expense-id="{{ expense.id }}">
                             <td>{{ expense.name }}</td>
-                            <td>${{ expense.amount }}</td>
+                            <td>{{ budget.currency }} {{ expense.amount }}</td>
                             <td>
                                 {% if expense.is_recurring %}
                                 <span class="badge bg-success">Yes</span>
                                 {% else %}
                                 <span class="badge bg-secondary">No</span>
                                 {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary edit-expense" 
+                                        data-expense-id="{{ expense.id }}"
+                                        data-expense-name="{{ expense.name }}"
+                                        data-expense-amount="{{ expense.amount }}"
+                                        data-expense-recurring="{{ expense.is_recurring|lower }}">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-expense" 
+                                        data-expense-id="{{ expense.id }}"
+                                        data-expense-name="{{ expense.name }}">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -64,4 +116,87 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete expense "<span id="delete-expense-name"></span>"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" id="delete-form" class="inline-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="delete_expense">
+                    <input type="hidden" name="expense_id" id="delete-expense-id">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Edit Expense
+    $('.edit-expense').click(function() {
+        const expenseId = $(this).data('expense-id');
+        const name = $(this).data('expense-name');
+        const amount = $(this).data('expense-amount');
+        const recurring = $(this).data('expense-recurring') === 'true';
+
+        // Fill the form
+        $('#expense_id').val(expenseId);
+        $('#id_name').val(name);
+        $('#id_amount').val(amount);
+        $('#id_is_recurring').prop('checked', recurring);
+
+        // Update UI
+        $('#expense-form-title').text('Edit Expense');
+        $('#expense-submit-btn').text('Update Expense');
+        $('#cancel-edit-btn').removeClass('d-none');
+        
+        // Scroll to form
+        $('html, body').animate({
+            scrollTop: $("#expense-form").offset().top - 100
+        }, 500);
+    });
+
+    // Cancel Edit
+    $('#cancel-edit-btn').click(function() {
+        resetForm();
+    });
+
+    // Delete Expense
+    $('.delete-expense').click(function() {
+        const expenseId = $(this).data('expense-id');
+        const expenseName = $(this).data('expense-name');
+        
+        $('#delete-expense-id').val(expenseId);
+        $('#delete-expense-name').text(expenseName);
+        
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    });
+
+    function resetForm() {
+        // Reset form
+        $('#expense-form')[0].reset();
+        $('#expense_id').val('');
+        
+        // Reset UI
+        $('#expense-form-title').text('Add New Expense');
+        $('#expense-submit-btn').text('Add Expense');
+        $('#cancel-edit-btn').addClass('d-none');
+    }
+});
+</script>
 {% endblock %} 

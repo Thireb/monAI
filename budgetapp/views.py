@@ -41,17 +41,40 @@ def budget_detail(request, year, month):
     budget = get_object_or_404(Budget, month=budget_date)
     
     if request.method == 'POST':
-        form = ExpenseForm(request.POST)
-        if form.is_valid():
-            expense = form.save(commit=False)
-            expense.budget = budget
-            expense.save()
-            return redirect('budget_detail', year=year, month=month)
+        form_type = request.POST.get('form_type')
+        
+        if form_type == 'income':
+            income = request.POST.get('income')
+            currency = request.POST.get('currency')
+            if income:
+                budget.income = income
+                budget.currency = currency
+                budget.save()
+        elif form_type == 'expense':
+            expense_id = request.POST.get('expense_id')
+            if expense_id:  # Edit existing expense
+                expense = get_object_or_404(Expense, id=expense_id, budget=budget)
+                form = ExpenseForm(request.POST, instance=expense)
+            else:  # New expense
+                form = ExpenseForm(request.POST)
+            
+            if form.is_valid():
+                expense = form.save(commit=False)
+                expense.budget = budget
+                expense.save()
+        elif form_type == 'delete_expense':
+            expense_id = request.POST.get('expense_id')
+            if expense_id:
+                expense = get_object_or_404(Expense, id=expense_id, budget=budget)
+                expense.delete()
+        
+        return redirect('budget_detail', year=year, month=month)
     else:
         form = ExpenseForm()
 
     return render(request, 'budgetapp/budget_detail.html', {
         'budget': budget,
         'form': form,
-        'expenses': budget.expenses.all()
+        'expenses': budget.expenses.all(),
+        'currency_choices': Budget.get_currency_choices()
     }) 
