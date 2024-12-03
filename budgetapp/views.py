@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
+from django.contrib import messages
 from .models import Budget, Expense, SubExpense
 from .forms import ExpenseForm, SubExpenseForm
 import calendar
@@ -14,28 +15,47 @@ class HomeView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get current month and previous 11 months
         current_date = timezone.now().date().replace(day=1)
-        months = []
-        for i in range(12):
-            month_date = current_date - relativedelta(months=i)
-            budget, created = Budget.objects.get_or_create(month=month_date)
-            if created:
-                # Copy recurring expenses from previous month
-                prev_month = month_date - relativedelta(months=1)
-                prev_budget = Budget.objects.filter(month=prev_month).first()
-                if prev_budget:
-                    recurring_expenses = prev_budget.expenses.filter(is_recurring=True)
-                    for expense in recurring_expenses:
-                        Expense.objects.create(
-                            budget=budget,
-                            name=expense.name,
-                            amount=expense.amount,
-                            is_recurring=True
-                        )
-            months.append(budget)
-        context['months'] = months
+        
+        # Get only manually created budgets
+        context['budgets'] = Budget.objects.all().order_by('-month')
+        
+        # Get next month for the create button
+        last_budget = Budget.objects.order_by('-month').first()
+        if last_budget:
+            next_month = (last_budget.month + relativedelta(months=1)).replace(day=1)
+        else:
+            next_month = current_date
+            
+        context['next_month'] = next_month
         return context
+
+def create_next_budget(request):
+    if request.method == 'POST':
+        last_budget = Budget.objects.order_by('-month').first()
+        if last_budget:
+            next_month = (last_budget.month + relativedelta(months=1)).replace(day=1)
+        else:
+            next_month = timezone.now().date().replace(day=1)
+
+        # Create new budget
+        budget = Budget.objects.create(month=next_month)
+
+        # Copy recurring expenses from previous month if it exists
+        if last_budget:
+            recurring_expenses = last_budget.expenses.filter(is_recurring=True)
+            for expense in recurring_expenses:
+                Expense.objects.create(
+                    budget=budget,
+                    name=expense.name,
+                    amount=expense.amount,
+                    is_recurring=True
+                )
+            
+        messages.success(request, f'Budget for {next_month.strftime("%B %Y")} has been created!')
+        return redirect('home')
+    
+    return redirect('home')
 
 def budget_detail(request, year, month):
     budget_date = timezone.datetime(year=year, month=month, day=1).date()

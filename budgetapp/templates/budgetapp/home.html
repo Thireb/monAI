@@ -1,9 +1,29 @@
 {% extends "budgetapp/base.html" %}
 
 {% block content %}
-<h1>Monthly Budgets</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Monthly Budgets</h1>
+    <form method="post" action="{% url 'create_next_budget' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i>
+            Create {{ next_month|date:"F Y" }} Budget
+        </button>
+    </form>
+</div>
+
+{% if messages %}
+<div class="messages mb-4">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <div class="row mt-4">
-    {% for budget in months %}
+    {% for budget in budgets %}
     <div class="col-md-3 mb-3">
         <a href="{% url 'budget_detail' year=budget.month.year month=budget.month.month %}" 
            class="btn btn-primary btn-lg w-100">
@@ -20,7 +40,7 @@
             <i class="bi bi-clock-history"></i> Recent Updates
         </h3>
         <div class="timeline">
-            {% for budget in months %}
+            {% for budget in budgets %}
                 {% if budget.was_edited %}
                     <div class="card mb-3">
                         <div class="card-body">
