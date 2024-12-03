@@ -1,0 +1,15 @@
+{% extends 'budgetapp/base.html' %}
+
+{% block content %}
+<h1>Monthly Budgets</h1>
+<div class="row mt-4">
+    {% for budget in months %}
+    <div class="col-md-3 mb-3">
+        <a href="{% url 'budget_detail' year=budget.month.year month=budget.month.month %}" 
+           class="btn btn-primary btn-lg w-100">
+            {{ budget.month|date:"F Y" }}
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %} 

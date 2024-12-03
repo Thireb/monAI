@@ -1,0 +1,67 @@
+{% extends 'budgetapp/base.html' %}
+
+{% block content %}
+<h1>Budget for {{ budget.month|date:"F Y" }}</h1>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">Add New Expense</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ form.name.label_tag }}
+                        {{ form.name|addclass:"form-control" }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.amount.label_tag }}
+                        {{ form.amount|addclass:"form-control" }}
+                    </div>
+                    <div class="mb-3 form-check">
+                        {{ form.is_recurring }}
+                        {{ form.is_recurring.label_tag }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">Expenses</h3>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Amount</th>
+                            <th>Recurring</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td>{{ expense.name }}</td>
+                            <td>${{ expense.amount }}</td>
+                            <td>
+                                {% if expense.is_recurring %}
+                                <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
