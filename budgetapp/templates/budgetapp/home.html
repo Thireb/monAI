@@ -15,8 +15,9 @@
 {% if messages %}
 <div class="messages mb-4">
     {% for message in messages %}
-    <div class="alert alert-{{ message.tags }}">
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
         {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     {% endfor %}
 </div>
@@ -25,10 +26,26 @@
 <div class="row mt-4">
     {% for budget in budgets %}
     <div class="col-md-3 mb-3">
-        <a href="{% url 'budget_detail' year=budget.month.year month=budget.month.month %}" 
-           class="btn btn-primary btn-lg w-100">
-            {{ budget.month|date:"F Y" }}
-        </a>
+        <div class="budget-item" data-budget-id="{{ budget.month|date:'Y-m' }}">
+            {% now "Y-m" as current_month %}
+            {% with budget_month=budget.month|date:"Y-m" %}
+            <a href="{% url 'budget_detail' year=budget.month.year month=budget.month.month %}" 
+               class="btn btn-lg w-100 budget-button 
+                      {% if budget_month == current_month %}
+                          btn-primary
+                      {% elif budget_month < current_month %}
+                          btn-danger
+                      {% else %}
+                          btn-success
+                      {% endif %}">
+                {{ budget.month|date:"F Y" }}
+            </a>
+            {% endwith %}
+            <div class="swipe-hint">
+                <i class="bi bi-arrow-left"></i> Drag left to delete
+            </div>
+            <div class="swipe-progress"></div>
+        </div>
     </div>
     {% endfor %}
 </div>
@@ -74,4 +91,166 @@
         </div>
     </div>
 </div>
-{% endblock content %} 
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const budgetItems = document.querySelectorAll('.budget-item');
+    
+    budgetItems.forEach(item => {
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+        const deleteThreshold = 0.7; // 70% of width needed to trigger delete
+        const button = item.querySelector('.budget-button');
+        const progressBar = item.querySelector('.swipe-progress');
+        
+        function handleStart(e) {
+            if (e.type.includes('mouse') && e.button !== 0) return; // Only handle left click
+            startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            currentX = startX;
+            isDragging = true;
+            item.classList.remove('delete-ready');
+            item.classList.add('swiping');
+            button.style.transition = 'none';
+            e.preventDefault(); // Prevent text selection
+        }
+        
+        function handleMove(e) {
+            if (!isDragging) return;
+            
+            currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const diff = startX - currentX;
+            const buttonWidth = button.offsetWidth;
+            
+            if (diff > 0) { // Only allow left swipe
+                const percentage = Math.min(diff / buttonWidth, 1);
+                item.style.setProperty('--swipe-amount', -diff);
+                progressBar.style.width = `${percentage * 100}%`;
+                
+                if (percentage >= deleteThreshold) {
+                    item.classList.add('delete-ready');
+                } else {
+                    item.classList.remove('delete-ready');
+                }
+                
+                e.preventDefault();
+            }
+        }
+        
+        function handleEnd() {
+            if (!isDragging) return;
+            isDragging = false;
+            item.classList.remove('swiping');
+            button.style.transition = 'transform 0.2s ease';
+            
+            if (item.classList.contains('delete-ready')) {
+                showDeleteConfirmation(item);
+            } else {
+                resetItem();
+            }
+        }
+        
+        function resetItem() {
+            item.style.setProperty('--swipe-amount', 0);
+            progressBar.style.width = '0';
+            item.classList.remove('delete-ready', 'swiping');
+        }
+        
+        async function showDeleteConfirmation(item) {
+            const budgetId = item.dataset.budgetId;
+            const result = await Swal.fire({
+                title: 'Delete Budget?',
+                text: "This action cannot be undone!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            });
+            
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/budget/delete/${budgetId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        // Remove the budget card with animation
+                        item.closest('.col-md-3').style.opacity = '0';
+                        setTimeout(() => {
+                            item.closest('.col-md-3').remove();
+                            
+                            // After removing, fetch the next available month
+                            fetch('/get-next-month/')
+                                .then(response => response.json())
+                                .then(data => {
+                                    const createButton = document.querySelector('form[action="/create-next-budget/"] button');
+                                    if (createButton) {
+                                        createButton.innerHTML = `<i class="bi bi-plus-circle"></i> Create ${data.next_month} Budget`;
+                                    }
+                                });
+                        }, 300);
+
+                        // Fetch and update Recent Updates section
+                        fetch(window.location.href)
+                            .then(response => response.text())
+                            .then(html => {
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(html, 'text/html');
+                                const newTimeline = doc.querySelector('.timeline');
+                                const currentTimeline = document.querySelector('.timeline');
+                                if (newTimeline && currentTimeline) {
+                                    currentTimeline.style.opacity = '0';
+                                    setTimeout(() => {
+                                        currentTimeline.innerHTML = newTimeline.innerHTML;
+                                        currentTimeline.style.opacity = '1';
+                                    }, 300);
+                                }
+                            });
+
+                        Swal.fire('Deleted!', 'Budget has been deleted.', 'success');
+                    }
+                } catch (error) {
+                    Swal.fire('Error!', 'Something went wrong.', 'error');
+                }
+            } else {
+                resetItem();
+            }
+        }
+        
+        // Mouse events with capture phase to prevent text selection
+        item.addEventListener('mousedown', handleStart, true);
+        document.addEventListener('mousemove', handleMove, true);
+        document.addEventListener('mouseup', handleEnd, true);
+        
+        // Touch events
+        item.addEventListener('touchstart', handleStart, { passive: false });
+        item.addEventListener('touchmove', handleMove, { passive: false });
+        item.addEventListener('touchend', handleEnd);
+        
+        // Prevent click when swiping
+        button.addEventListener('click', (e) => {
+            if (item.classList.contains('swiping') || item.classList.contains('delete-ready')) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+
+// Auto dismiss alerts after 3 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, 3000);
+    });
+});
+</script>
+{% endblock extra_js %} 
