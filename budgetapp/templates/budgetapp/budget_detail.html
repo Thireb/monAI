@@ -73,45 +73,76 @@
                     <h4>Remaining: {{ budget.currency }} {{ budget.get_remaining_budget }}</h4>
                 </div>
                 <h3>Expenses</h3>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Amount</th>
-                            <th>Recurring</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for expense in expenses %}
-                        <tr data-expense-id="{{ expense.id }}">
-                            <td>{{ expense.name }}</td>
-                            <td>{{ budget.currency }} {{ expense.amount }}</td>
-                            <td>
-                                {% if expense.is_recurring %}
-                                <span class="badge bg-success">Yes</span>
-                                {% else %}
-                                <span class="badge bg-secondary">No</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-primary edit-expense" 
-                                        data-expense-id="{{ expense.id }}"
-                                        data-expense-name="{{ expense.name }}"
-                                        data-expense-amount="{{ expense.amount }}"
-                                        data-expense-recurring="{{ expense.is_recurring|lower }}">
-                                    <i class="bi bi-pencil"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-danger delete-expense" 
-                                        data-expense-id="{{ expense.id }}"
-                                        data-expense-name="{{ expense.name }}">
-                                    <i class="bi bi-trash"></i> Delete
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th class="col-name">Name</th>
+                                <th class="col-amount">Amount</th>
+                                <th class="col-recurring">Recurring</th>
+                                <th class="col-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in expenses %}
+                            <tr data-expense-id="{{ expense.id }}">
+                                <td>
+                                    {{ expense.name }}
+                                    {% if expense.sub_expenses.exists %}
+                                    <div class="ms-3 mt-2 small">
+                                        <ul class="list-unstyled text-muted">
+                                            {% for sub_expense in expense.sub_expenses.all %}
+                                            <li>
+                                                <i class="bi bi-dot"></i>
+                                                {{ sub_expense.name }} - 
+                                                {{ budget.currency }} {{ sub_expense.amount }}
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ budget.currency }} {{ expense.amount }}
+                                    {% if expense.sub_expenses.exists %}
+                                    <div class="ms-3 mt-2 small text-muted">
+                                        <i class="bi bi-arrow-return-right"></i>
+                                        Remaining: {{ budget.currency }} {{ expense.get_remaining_amount }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if expense.is_recurring %}
+                                    <span class="badge bg-success">Yes</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'expense_detail' expense_id=expense.id %}" 
+                                           class="btn btn-sm btn-info">
+                                            <i class="bi bi-list-ul"></i> Breakdown
+                                        </a>
+                                        <button class="btn btn-sm btn-primary edit-expense" 
+                                                data-expense-id="{{ expense.id }}"
+                                                data-expense-name="{{ expense.name }}"
+                                                data-expense-amount="{{ expense.amount }}"
+                                                data-expense-recurring="{{ expense.is_recurring|lower }}">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-danger delete-expense" 
+                                                data-expense-id="{{ expense.id }}"
+                                                data-expense-name="{{ expense.name }}">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -199,4 +230,4 @@ $(document).ready(function() {
     }
 });
 </script>
-{% endblock %} 
+{% endblock extra_js %} 

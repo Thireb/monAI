@@ -1,0 +1,141 @@
+{% extends "budgetapp/base.html" %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'budget_detail' year=expense.budget.month.year month=expense.budget.month.month %}">
+                    {{ expense.budget.month|date:"F Y" }}
+                </a>
+            </li>
+            <li class="breadcrumb-item active">{{ expense.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">{{ expense.name }} - Breakdown</h3>
+                </div>
+                <div class="card-body">
+                    <h4>Total Amount: {{ expense.budget.currency }} {{ expense.amount }}</h4>
+                    <h4>Remaining: {{ expense.budget.currency }} {{ expense.get_remaining_amount }}</h4>
+                    
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="sub_expense">
+                        <div class="mb-3">
+                            {{ form.name.label_tag }}
+                            {{ form.name }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.amount.label_tag }}
+                            {{ form.amount }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Sub-Expense</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">Sub-Expenses</h3>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sub_expense in sub_expenses %}
+                            <tr>
+                                <td>{{ sub_expense.name }}</td>
+                                <td>{{ expense.budget.currency }} {{ sub_expense.amount }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary edit-sub-expense" 
+                                            data-sub-expense-id="{{ sub_expense.id }}"
+                                            data-sub-expense-name="{{ sub_expense.name }}"
+                                            data-sub-expense-amount="{{ sub_expense.amount }}">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </button>
+                                    <form method="post" class="inline-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="form_type" value="delete_sub_expense">
+                                        <input type="hidden" name="sub_expense_id" value="{{ sub_expense.id }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Sub-Expense Modal -->
+<div class="modal fade" id="editSubExpenseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Sub-Expense</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="edit_sub_expense">
+                    <input type="hidden" name="sub_expense_id" id="edit-sub-expense-id">
+                    <div class="mb-3">
+                        <label for="edit-sub-expense-name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="edit-sub-expense-name" name="name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-sub-expense-amount" class="form-label">Amount</label>
+                        <input type="number" step="0.01" class="form-control" id="edit-sub-expense-amount" name="amount">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Edit Sub-Expense
+    $('.edit-sub-expense').click(function() {
+        const subExpenseId = $(this).data('sub-expense-id');
+        const name = $(this).data('sub-expense-name');
+        const amount = $(this).data('sub-expense-amount');
+        
+        // Fill the modal form
+        $('#edit-sub-expense-id').val(subExpenseId);
+        $('#edit-sub-expense-name').val(name);
+        $('#edit-sub-expense-amount').val(amount);
+        
+        // Show modal
+        const editModal = new bootstrap.Modal(document.getElementById('editSubExpenseModal'));
+        editModal.show();
+    });
+});
+</script>
+{% endblock extra_js %} 

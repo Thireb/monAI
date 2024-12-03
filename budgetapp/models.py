@@ -15,6 +15,10 @@ class Budget(models.Model):
     def __str__(self):
         return self.month.strftime("%B %Y")
 
+    def was_edited(self):
+        """Return True if the budget was edited after creation"""
+        return self.updated_at > self.created_at
+
     def get_remaining_budget(self):
         total_expenses = self.expenses.aggregate(
             total=models.Sum('amount'))['total'] or Decimal('0')
@@ -43,6 +47,21 @@ class Expense(models.Model):
     name = models.CharField(max_length=200)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     is_recurring = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.amount}"
+
+    def get_remaining_amount(self):
+        total_sub_expenses = self.sub_expenses.aggregate(
+            total=models.Sum('amount'))['total'] or Decimal('0')
+        return self.amount - total_sub_expenses
+
+class SubExpense(models.Model):
+    expense = models.ForeignKey(Expense, on_delete=models.CASCADE, related_name='sub_expenses')
+    name = models.CharField(max_length=200)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

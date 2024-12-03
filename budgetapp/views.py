@@ -2,9 +2,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
-from .models import Budget, Expense
-from .forms import ExpenseForm
+from .models import Budget, Expense, SubExpense
+from .forms import ExpenseForm, SubExpenseForm
 import calendar
+from decimal import Decimal
 
 class HomeView(ListView):
     model = Budget
@@ -77,4 +78,46 @@ def budget_detail(request, year, month):
         'form': form,
         'expenses': budget.expenses.all(),
         'currency_choices': Budget.get_currency_choices()
+    }) 
+
+def expense_detail(request, expense_id):
+    expense = get_object_or_404(Expense, id=expense_id)
+    
+    if request.method == 'POST':
+        form_type = request.POST.get('form_type')
+        
+        if form_type == 'sub_expense':
+            form = SubExpenseForm(request.POST)
+            if form.is_valid():
+                sub_expense = form.save(commit=False)
+                sub_expense.expense = expense
+                # Validate that sub_expense amount doesn't exceed remaining amount
+                if sub_expense.amount <= expense.get_remaining_amount():
+                    sub_expense.save()
+        elif form_type == 'edit_sub_expense':
+            sub_expense_id = request.POST.get('sub_expense_id')
+            if sub_expense_id:
+                sub_expense = get_object_or_404(SubExpense, id=sub_expense_id, expense=expense)
+                # Calculate the maximum allowed amount for this edit
+                max_amount = expense.get_remaining_amount() + sub_expense.amount
+                new_amount = Decimal(request.POST.get('amount', 0))
+                
+                if new_amount <= max_amount:
+                    sub_expense.name = request.POST.get('name')
+                    sub_expense.amount = new_amount
+                    sub_expense.save()
+        elif form_type == 'delete_sub_expense':
+            sub_expense_id = request.POST.get('sub_expense_id')
+            if sub_expense_id:
+                sub_expense = get_object_or_404(SubExpense, id=sub_expense_id, expense=expense)
+                sub_expense.delete()
+        
+        return redirect('expense_detail', expense_id=expense_id)
+    else:
+        form = SubExpenseForm()
+
+    return render(request, 'budgetapp/expense_detail.html', {
+        'expense': expense,
+        'form': form,
+        'sub_expenses': expense.sub_expenses.all(),
     }) 

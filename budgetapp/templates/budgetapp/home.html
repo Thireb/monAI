@@ -1,4 +1,4 @@
-{% extends 'budgetapp/base.html' %}
+{% extends "budgetapp/base.html" %}
 
 {% block content %}
 <h1>Monthly Budgets</h1>
@@ -12,4 +12,46 @@
     </div>
     {% endfor %}
 </div>
-{% endblock %} 
+
+<div class="row mt-5">
+    <div class="col-md-8 mx-auto">
+        <hr>
+        <h3 class="text-center mb-4">
+            <i class="bi bi-clock-history"></i> Recent Updates
+        </h3>
+        <div class="timeline">
+            {% for budget in months %}
+                {% if budget.was_edited %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                {{ budget.month|date:"F Y" }}
+                                <small class="text-muted float-end">
+                                    {{ budget.updated_at|date:"M d, Y g:i A" }}
+                                </small>
+                            </h5>
+                            <ul class="list-unstyled">
+                                {% for expense in budget.expenses.all|slice:":3" %}
+                                    <li>
+                                        <i class="bi bi-dot"></i>
+                                        {{ expense.name }} - {{ budget.currency }} {{ expense.amount }}
+                                        {% if expense.is_recurring %}
+                                            <span class="badge bg-success">Recurring</span>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                                {% if budget.expenses.count > 3 %}
+                                    <li class="text-muted">
+                                        <i class="bi bi-three-dots"></i> 
+                                        And {{ budget.expenses.count|add:"-3" }} more expenses...
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock content %} 
