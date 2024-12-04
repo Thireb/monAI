@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from datetime import timedelta
 from django.db import transaction
+from decimal import Decimal
 
 class HomeView(ListView):
     model = Budget
