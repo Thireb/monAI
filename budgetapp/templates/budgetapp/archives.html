@@ -1,6 +1,8 @@
 {% extends "budgetapp/base.html" %}
+{% load budget_filters %}
 
 {% block content %}
+{% csrf_token %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between mb-4">
         <h2>Archived Budgets</h2>
@@ -21,14 +23,23 @@
                     <div class="col-md-3 col-sm-6 mb-3">
                         <div class="card">
                             <div class="card-body">
-                                <h5 class="card-title">{{ archive.budget.get_month_display }}</h5>
+                                <h5 class="card-title">{{ archive.budget.month|date:"F Y" }}</h5>
                                 <p class="card-text">
-                                    Total Spent: {{ archive.budget.total_expenses|floatformat:2 }}
+                                    Total Spent: {{ archive.budget.currency }} {{ archive.budget.expenses.all|sum_expenses|floatformat:2 }}
+                                    <br>
+                                    <small class="text-muted">
+                                        Archived: {{ archive.archived_date|date:"M d, Y" }}
+                                    </small>
                                 </p>
-                                <a href="{% url 'budget_detail' archive.budget.year archive.budget.month %}" 
+                                <a href="{% url 'budget_detail' year=archive.budget.month.year month=archive.budget.month.month %}" 
                                    class="btn btn-sm btn-primary">
                                     View Details
                                 </a>
+                                <button class="btn btn-sm btn-danger ms-2 delete-archive-btn"
+                                        data-year-month="{{ archive.budget.month|date:'Y-m' }}"
+                                        data-delete-url="{% url 'delete_archived_budget' year_month=archive.budget.month|date:'Y-m' %}">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -40,7 +51,58 @@
     {% else %}
         <div class="alert alert-info">
             No archived budgets found.
+            {% if user.is_staff %}
+            <small class="d-block mt-2">
+                Debug info: Check if ArchivedBudget table has entries and if Budget records exist.
+            </small>
+            {% endif %}
         </div>
     {% endif %}
 </div>
-{% endblock content %} 
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-archive-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const yearMonth = this.dataset.yearMonth;
+            const deleteUrl = this.dataset.deleteUrl;
+            
+            const result = await Swal.fire({
+                title: 'Delete Archived Budget?',
+                text: "This action cannot be undone!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            });
+            
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(deleteUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        Swal.fire('Deleted!', 'Archived budget has been deleted.', 'success')
+                            .then(() => {
+                                window.location.reload();
+                            });
+                    } else {
+                        const data = await response.json();
+                        Swal.fire('Error!', data.message || 'Something went wrong.', 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error!', 'Something went wrong.', 'error');
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock extra_js %} 

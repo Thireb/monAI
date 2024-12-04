@@ -225,11 +225,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     
                     if (response.ok) {
-                        item.closest('.col-md-3').style.opacity = '0';
-                        setTimeout(() => {
-                            item.closest('.col-md-3').remove();
-                        }, 300);
-                        Swal.fire('Archived!', 'Budget has been archived.', 'success');
+                        const data = await response.json();
+                        if (data.status === 'warning') {
+                            Swal.fire('Already Archived', 'This budget is already in archives.', 'warning');
+                            resetItem();
+                            return;
+                        }
+                        Swal.fire('Archived!', 'Budget has been archived.', 'success')
+                        .then(() => {
+                            window.location.reload();  // Refresh the page to update the view
+                        });
                     }
                 } catch (error) {
                     Swal.fire('Error!', 'Something went wrong.', 'error');

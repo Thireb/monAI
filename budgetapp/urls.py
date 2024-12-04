@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import HomeView, budget_detail, expense_detail, create_next_budget, delete_budget, get_next_month, archive_budget, view_archives
+from .views import HomeView, budget_detail, expense_detail, create_next_budget, delete_budget, get_next_month, archive_budget, view_archives, delete_archived_budget
 
 urlpatterns = [
     path('', HomeView.as_view(), name='home'),
@@ -10,4 +10,5 @@ urlpatterns = [
     path('get-next-month/', get_next_month, name='get_next_month'),
     path('budget/archive/<str:year_month>/', archive_budget, name='archive_budget'),
     path('archives/', view_archives, name='view_archives'),
+    path('archives/delete/<str:year_month>/', delete_archived_budget, name='delete_archived_budget'),
 ] 

@@ -21,31 +21,51 @@ class HomeView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        current_date = timezone.now().date().replace(day=1)
+        # Get active budgets sorted by month
+        active_budgets = Budget.objects.filter(is_archived=False).order_by('month')
+        first_budget = active_budgets.first()
+        last_budget = active_budgets.last()
+        
+        if not first_budget:
+            # No active budgets, use earliest archived budget's month or system date
+            archived_budget = Budget.objects.filter(is_archived=True).order_by('month').first()
+            current_date = archived_budget.month if archived_budget else timezone.now().date().replace(day=1)
+        else:
+            current_date = last_budget.month + relativedelta(months=1)
         
         # Get existing budgets
-        budgets = Budget.objects.all().order_by('-month')
+        budgets = Budget.objects.filter(is_archived=False).order_by('-month')
         context['budgets'] = budgets
 
         # Get active deletion logs and clean up expired ones
         BudgetDeletionLog.objects.filter(expires_at__lte=timezone.now()).delete()
         context['deletion_logs'] = BudgetDeletionLog.objects.all()
         
-        # Get next month for create button
-        existing_months = set(budget.month for budget in budgets)
-        next_month = current_date
-        while next_month in existing_months:
-            next_month = (next_month + relativedelta(months=1)).replace(day=1)
+        # Check if we have an active budget for current month
+        has_active_current_month = Budget.objects.filter(
+            is_archived=False,
+            month__year=current_date.year,
+            month__month=current_date.month
+        ).count() > 0
+        
+        if not has_active_current_month:
+            next_month = current_date
+        else:
+            next_month = (current_date + relativedelta(months=1)).replace(day=1)
+        
         context['next_month'] = next_month
 
+        # Get months for budget logs
+        active_budget_months = set(budget.month for budget in budgets)
+        
         # Get logs only for existing budgets
         context['budget_logs'] = BudgetLog.objects.filter(
-            month__in=existing_months
+            month__in=active_budget_months
         ).order_by('-timestamp')
         
         # Paginate budget logs
         logs = BudgetLog.objects.filter(
-            month__in=existing_months
+            month__in=active_budget_months
         ).order_by('-timestamp')
         paginator = Paginator(logs, 5)
         page = self.request.GET.get('page')
@@ -200,28 +220,52 @@ def delete_budget(request, year_month):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 def get_next_month(request):
-    current_date = timezone.now().date().replace(day=1)
-    last_budget = Budget.objects.order_by('-month').first()
+    # Get active budgets sorted by month
+    active_budgets = Budget.objects.filter(is_archived=False).order_by('month')
+    first_budget = active_budgets.first()
+    last_budget = active_budgets.last()
     
-    if last_budget:
-        next_month = (last_budget.month + relativedelta(months=1)).replace(day=1)
+    if not first_budget:
+        # No active budgets, use earliest archived budget's month or system date
+        archived_budget = Budget.objects.filter(is_archived=True).order_by('month').first()
+        current_date = archived_budget.month if archived_budget else timezone.now().date().replace(day=1)
     else:
-        next_month = current_date
-        
+        current_date = last_budget.month + relativedelta(months=1)
+    
     return JsonResponse({
-        'next_month': next_month.strftime('%B %Y')
+        'next_month': current_date.strftime('%B %Y')
     })
 
 def archive_budget(request, year_month):
     if request.method == 'POST':
-        year, month = year_month.split('-')
-        budget = get_object_or_404(Budget, year=year, month=month)
+        year, month = map(int, year_month.split('-'))
+        budget = get_object_or_404(Budget, month__year=year, month__month=month)
         
-        # Create archive entry
-        ArchivedBudget.objects.create(budget=budget)
+        # Check if budget is already archived
+        if ArchivedBudget.objects.filter(budget=budget).exists():
+            messages.warning(request, f'Budget for {budget.month.strftime("%B %Y")} is already archived')
+            return JsonResponse({'status': 'warning', 'message': 'Already archived'})
         
-        messages.success(request, f'Budget for {year}-{month} has been archived')
-        return JsonResponse({'status': 'success'})
+        try:
+            # Create archive entry
+            ArchivedBudget.objects.create(budget=budget)
+            
+            # Log the archival
+            BudgetLog.objects.create(
+                month=budget.month,
+                action='update',
+                details=f"Budget for {budget.month.strftime('%B %Y')} was archived"
+            )
+            
+            # Remove budget from home page list by setting an archived flag
+            budget.is_archived = True
+            budget.save()
+            
+            messages.success(request, f'Budget for {budget.month.strftime("%B %Y")} has been archived')
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            messages.error(request, f'Error archiving budget: {str(e)}')
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error'}, status=400)
 
 def view_archives(request):
@@ -230,7 +274,7 @@ def view_archives(request):
     # Group archives by year
     archives_by_year = {}
     for archive in archived_budgets:
-        year = archive.budget.year
+        year = archive.budget.month.year
         if year not in archives_by_year:
             archives_by_year[year] = []
         archives_by_year[year].append(archive)
@@ -239,3 +283,32 @@ def view_archives(request):
         'archives_by_year': archives_by_year
     }
     return render(request, 'budgetapp/archives.html', context)
+
+@require_POST
+def delete_archived_budget(request, year_month):
+    try:
+        year, month = map(int, year_month.split('-'))
+        archived_budget = get_object_or_404(
+            ArchivedBudget.objects.select_related('budget'),
+            budget__month__year=year,
+            budget__month__month=month
+        )
+        
+        # Store month info before deletion for message
+        month_str = archived_budget.budget.month.strftime('%B %Y')
+        
+        # Delete both the archive entry and the budget
+        try:
+            budget = archived_budget.budget
+            archived_budget.delete()  # Delete the archive entry first
+            budget.delete()  # Then delete the budget
+        except Exception as delete_error:
+            raise
+        
+        messages.success(request, f'Archived budget for {month_str} has been deleted')
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error deleting archived budget: {str(e)}'
+        }, status=400)
