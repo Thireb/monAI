@@ -275,7 +275,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             const timelineItem = titleElement?.closest('.card');
                             if (timelineItem) {
                                 const newCard = document.createElement('div');
-                                newCard.className = 'card mb-3 fade-in';
+                                newCard.className = 'card mb-3 fade-in auto-dismiss-card';
+                                const dismissTime = 30;  // seconds
                                 newCard.innerHTML = `
                                     <div class="card-body">
                                         <h5 class="card-title">
@@ -286,6 +287,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                         </h5>
                                         <p class="text-danger">
                                             <i class="bi bi-trash"></i> Budget was deleted
+                                            <small class="text-muted d-block mt-1">
+                                                This notification will disappear in <span class="dismiss-countdown">${dismissTime}</span> seconds
+                                            </small>
                                         </p>
                                     </div>
                                 `;
@@ -293,9 +297,24 @@ document.addEventListener('DOMContentLoaded', function() {
                                 timelineItem.style.opacity = '0';
                                 setTimeout(() => {
                                     timelineItem.replaceWith(newCard);
+                                    newCard.style.opacity = '1';
+                                    
+                                    // Update countdown every second
+                                    const countdownElement = newCard.querySelector('.dismiss-countdown');
+                                    let timeLeft = dismissTime;
+                                    const countdownInterval = setInterval(() => {
+                                        timeLeft--;
+                                        countdownElement.textContent = timeLeft;
+                                        if (timeLeft <= 0) clearInterval(countdownInterval);
+                                    }, 1000);
+                                    
+                                    // Auto dismiss after 30 seconds
                                     setTimeout(() => {
-                                        newCard.style.opacity = '1';
-                                    }, 50);
+                                        newCard.style.opacity = '0';
+                                        setTimeout(() => {
+                                            newCard.remove();
+                                        }, 300);
+                                    }, 30000);
                                 }, 300);
                             }
                             

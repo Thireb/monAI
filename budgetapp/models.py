@@ -114,3 +114,14 @@ class ArchivedBudget(models.Model):
 
     def __str__(self):
         return f"Archive: {self.budget.month.strftime('%Y-%m')}" 
+
+class BudgetDeletionLog(models.Model):
+    month = models.DateField()
+    deleted_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    
+    class Meta:
+        ordering = ['-deleted_at']
+    
+    def __str__(self):
+        return f"Budget for {self.month.strftime('%B %Y')} deleted on {self.deleted_at.strftime('%Y-%m-%d %H:%M')}"

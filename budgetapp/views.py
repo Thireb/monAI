@@ -3,7 +3,7 @@ from django.views.generic import ListView
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from django.contrib import messages
-from .models import Budget, Expense, SubExpense, BudgetLog, ArchivedBudget
+from .models import Budget, Expense, SubExpense, BudgetLog, ArchivedBudget, BudgetDeletionLog
 from .forms import ExpenseForm, SubExpenseForm
 import calendar
 from decimal import Decimal
@@ -11,6 +11,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.db.models import Q
+from datetime import timedelta
 
 class HomeView(ListView):
     model = Budget
@@ -26,6 +27,10 @@ class HomeView(ListView):
         budgets = Budget.objects.all().order_by('-month')
         context['budgets'] = budgets
 
+        # Get active deletion logs and clean up expired ones
+        BudgetDeletionLog.objects.filter(expires_at__lte=timezone.now()).delete()
+        context['deletion_logs'] = BudgetDeletionLog.objects.all()
+        
         # Get next month for create button
         existing_months = set(budget.month for budget in budgets)
         next_month = current_date
@@ -176,6 +181,13 @@ def delete_budget(request, year_month):
     try:
         year, month = map(int, year_month.split('-'))
         budget = get_object_or_404(Budget, month__year=year, month__month=month)
+        
+        # Create deletion log that expires in 24 hours
+        BudgetDeletionLog.objects.create(
+            month=budget.month,
+            expires_at=timezone.now() + timedelta(hours=24)
+        )
+        
         # Log the deletion before deleting the budget
         BudgetLog.objects.create(
             month=budget.month,
