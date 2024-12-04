@@ -1,3 +1,4 @@
+from budgetapp.models import Budget
 from rest_framework import viewsets
 from .serializers import BudgetSerializer, ExpenseSerializer
 
