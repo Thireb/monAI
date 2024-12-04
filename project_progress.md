@@ -7,6 +7,7 @@
 - Changed budget summary to show "Total Spent" instead of "Income"
 - Added budget archiving functionality with swipe gesture
 - Added archive view with year-based categorization
+- Added automatic archiving of previous year's budgets using Celery
 
 ## Current Features
 1. Budget Management
@@ -16,6 +17,7 @@
    - Archive budgets with swipe gesture
    - Currency selection
    - Automatic next month suggestion
+   - Automatic archiving of old budgets
 
 2. Expense Tracking
    - Add/Edit/Delete expenses
@@ -33,11 +35,13 @@
    - Success/Error messages
    - Auto-dismissing alerts
 
-2. Archive Management
+4. Archive Management
    - Archive budgets with right swipe
    - View archived budgets by year
    - Quick access to archived budget details
    - Maintain all budget data in archives
+   - Delete archived budgets
+   - Automatic archiving of previous year's budgets
 
 ## Pending Improvements
 1. Income Management
@@ -86,6 +90,10 @@
    - Added year-based archive view
    - Added archive cards with budget details
 
+6. budgetapp/tasks.py
+   - Added Celery tasks for automatic archiving
+   - Added periodic task configuration
+
 ## Notes for Next Session
 - Consider adding expense categories
 - Consider adding data visualization
@@ -103,12 +111,21 @@
    - Updated view to calculate total expenses
    - Enhanced budget summary display
 
+3. 2024-03-xx: Archive System Implementation
+   - Added manual and automatic archiving functionality
+   - Integrated Celery for scheduled tasks
+   - Added archive management interface
+   - Implemented archive deletion feature
+
 ## Environment
 - Django 4.x
 - Python 3.x
 - Bootstrap 5
 - jQuery
 - SweetAlert2 for confirmations
+- Redis for message broker
+- Celery for task scheduling
+- django-celery-beat for periodic tasks
 
 ## API Endpoints
 - GET /: Home view
@@ -117,8 +134,13 @@
 - GET/POST /expense/<id>/: Expense detail view
 - POST /budget/delete/<year-month>/: Delete budget
 - GET /get-next-month/: Get next available month
+- POST /budget/archive/<year-month>/: Archive budget
+- GET /archives/: View archived budgets
+- POST /archives/delete/<year-month>/: Delete archived budget
 
 ## Database Migrations Status
 - ✓ Initial migrations
 - ✓ Added SubExpense model
-- ✓ Added BudgetLog model 
+- ✓ Added BudgetLog model
+- ✓ Added ArchivedBudget model
+- ✓ Added Celery Beat schedule tables

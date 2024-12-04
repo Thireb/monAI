@@ -12,6 +12,7 @@ from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.db.models import Q
 from datetime import timedelta
+from django.db import transaction
 
 class HomeView(ListView):
     model = Budget
@@ -21,6 +22,20 @@ class HomeView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Auto-archive old budgets
+        current_date = timezone.now().date()
+        old_budgets = Budget.objects.filter(
+            is_archived=False,
+            month__year__lt=current_date.year
+        )
+        
+        with transaction.atomic():
+            for budget in old_budgets:
+                if not ArchivedBudget.objects.filter(budget=budget).exists():
+                    ArchivedBudget.objects.create(budget=budget)
+                    budget.is_archived = True
+                    budget.save()
+        
         # Get active budgets sorted by month
         active_budgets = Budget.objects.filter(is_archived=False).order_by('month')
         first_budget = active_budgets.first()

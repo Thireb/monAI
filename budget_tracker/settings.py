@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "budgetapp",
+    "django_celery_beat.apps.BeatConfig",
 ]
 
 MIDDLEWARE = [
@@ -142,3 +143,9 @@ LOGGING = {
         },
     },
 }
+
+# Celery Configuration
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+CELERY_TIMEZONE = "Asia/Karachi"
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
