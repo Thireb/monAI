@@ -1,0 +1,51 @@
+.budget-item {
+    position: relative;
+    overflow: hidden;
+}
+
+.budget-button {
+    position: relative;
+    transform: translateX(0);
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.swipe-hint {
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.swipe-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    background-color: rgba(0, 123, 255, 0.2);  /* Blue for archive */
+    transition: width 0.2s;
+}
+
+.swipe-progress.delete {
+    background-color: rgba(220, 53, 69, 0.2);  /* Red for delete */
+}
+
+.archive-ready .budget-button {
+    transform: translateX(100%);
+    background-color: #0d6efd !important;  /* Bootstrap primary blue */
+}
+
+.delete-ready .budget-button {
+    transform: translateX(-100%);
+    background-color: #dc3545 !important;  /* Bootstrap danger red */
+}
+
+.fade-in {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Add jQuery-like contains selector functionality */
+.timeline .card {
+    transition: opacity 0.3s ease-in-out;
+} 

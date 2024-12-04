@@ -22,7 +22,7 @@
 {% if messages %}
 <div class="messages mb-4">
     {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show auto-dismiss" role="alert">
         {{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
@@ -52,7 +52,9 @@
             </a>
             {% endwith %}
             <div class="swipe-hint">
-                <i class="bi bi-arrow-left"></i> Drag left to delete
+                <i class="bi bi-arrow-left"></i> Swipe left to delete
+                <br>
+                <i class="bi bi-arrow-right"></i> Swipe right to archive
             </div>
             <div class="swipe-progress"></div>
         </div>
@@ -105,6 +107,17 @@
 
 {% block extra_js %}
 <script>
+// Add contains selector functionality
+function findCardByTitle(searchText) {
+    const titles = document.querySelectorAll('.timeline .card-title');
+    for (let title of titles) {
+        if (title.textContent.includes(searchText)) {
+            return title;
+        }
+    }
+    return null;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const budgetItems = document.querySelectorAll('.budget-item');
     
@@ -112,19 +125,19 @@ document.addEventListener('DOMContentLoaded', function() {
         let startX = 0;
         let currentX = 0;
         let isDragging = false;
-        const deleteThreshold = 0.7; // 70% of width needed to trigger delete
+        const threshold = 0.7; // 70% of width needed to trigger action
         const button = item.querySelector('.budget-button');
         const progressBar = item.querySelector('.swipe-progress');
         
         function handleStart(e) {
-            if (e.type.includes('mouse') && e.button !== 0) return; // Only handle left click
+            if (e.type.includes('mouse') && e.button !== 0) return;
             startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
             currentX = startX;
             isDragging = true;
-            item.classList.remove('delete-ready');
+            item.classList.remove('delete-ready', 'archive-ready');
             item.classList.add('swiping');
             button.style.transition = 'none';
-            e.preventDefault(); // Prevent text selection
+            e.preventDefault();
         }
         
         function handleMove(e) {
@@ -133,20 +146,25 @@ document.addEventListener('DOMContentLoaded', function() {
             currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
             const diff = startX - currentX;
             const buttonWidth = button.offsetWidth;
+            const percentage = Math.abs(diff) / buttonWidth;
             
-            if (diff > 0) { // Only allow left swipe
-                const percentage = Math.min(diff / buttonWidth, 1);
-                item.style.setProperty('--swipe-amount', -diff);
-                progressBar.style.width = `${percentage * 100}%`;
-                
-                if (percentage >= deleteThreshold) {
+            item.style.setProperty('--swipe-amount', diff);
+            progressBar.style.width = `${percentage * 100}%`;
+            progressBar.classList.toggle('delete', diff > 0);
+            
+            if (percentage >= threshold) {
+                if (diff > 0) {
                     item.classList.add('delete-ready');
+                    item.classList.remove('archive-ready');
                 } else {
+                    item.classList.add('archive-ready');
                     item.classList.remove('delete-ready');
                 }
-                
-                e.preventDefault();
+            } else {
+                item.classList.remove('delete-ready', 'archive-ready');
             }
+            
+            e.preventDefault();
         }
         
         function handleEnd() {
@@ -157,6 +175,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (item.classList.contains('delete-ready')) {
                 showDeleteConfirmation(item);
+            } else if (item.classList.contains('archive-ready')) {
+                showArchiveConfirmation(item);
             } else {
                 resetItem();
             }
@@ -165,11 +185,54 @@ document.addEventListener('DOMContentLoaded', function() {
         function resetItem() {
             item.style.setProperty('--swipe-amount', 0);
             progressBar.style.width = '0';
-            item.classList.remove('delete-ready', 'swiping');
+            item.classList.remove('delete-ready', 'archive-ready', 'swiping');
+        }
+        
+        async function showArchiveConfirmation(item) {
+            const yearMonth = item.dataset.yearMonth;
+            const archiveUrl = item.dataset.archiveUrl;
+            
+            const result = await Swal.fire({
+                title: 'Archive Budget?',
+                text: "You can access this budget later in the archives.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0d6efd',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, archive it!'
+            });
+            
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(archiveUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        item.closest('.col-md-3').style.opacity = '0';
+                        setTimeout(() => {
+                            item.closest('.col-md-3').remove();
+                        }, 300);
+                        Swal.fire('Archived!', 'Budget has been archived.', 'success');
+                    }
+                } catch (error) {
+                    Swal.fire('Error!', 'Something went wrong.', 'error');
+                }
+            } else {
+                resetItem();
+            }
         }
         
         async function showDeleteConfirmation(item) {
-            const budgetId = item.dataset.budgetId;
+            const yearMonth = item.dataset.yearMonth;
+            const deleteUrl = item.dataset.deleteUrl;
+            
+            // Format the month name for display
+            const displayMonth = new Date(yearMonth + '-01').toLocaleString('default', { month: 'long', year: 'numeric' });
+            
             const result = await Swal.fire({
                 title: 'Delete Budget?',
                 text: "This action cannot be undone!",
@@ -182,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`/budget/delete/${budgetId}/`, {
+                    const response = await fetch(deleteUrl, {
                         method: 'POST',
                         headers: {
                             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
@@ -190,12 +253,39 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     
                     if (response.ok) {
-                        // Remove the budget card with animation
                         item.closest('.col-md-3').style.opacity = '0';
                         setTimeout(() => {
                             item.closest('.col-md-3').remove();
                             
-                            // After removing, fetch the next available month
+                            // Update Recent Updates section
+                            const titleElement = findCardByTitle(displayMonth);
+                            const timelineItem = titleElement?.closest('.card');
+                            if (timelineItem) {
+                                const newCard = document.createElement('div');
+                                newCard.className = 'card mb-3 fade-in';
+                                newCard.innerHTML = `
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            ${displayMonth}
+                                            <small class="text-muted float-end">
+                                                ${new Date().toLocaleString()}
+                                            </small>
+                                        </h5>
+                                        <p class="text-danger">
+                                            <i class="bi bi-trash"></i> Budget was deleted
+                                        </p>
+                                    </div>
+                                `;
+                                
+                                timelineItem.style.opacity = '0';
+                                setTimeout(() => {
+                                    timelineItem.replaceWith(newCard);
+                                    setTimeout(() => {
+                                        newCard.style.opacity = '1';
+                                    }, 50);
+                                }, 300);
+                            }
+                            
                             fetch('/get-next-month/')
                                 .then(response => response.json())
                                 .then(data => {
@@ -205,24 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     }
                                 });
                         }, 300);
-
-                        // Fetch and update Recent Updates section
-                        fetch(window.location.href)
-                            .then(response => response.text())
-                            .then(html => {
-                                const parser = new DOMParser();
-                                const doc = parser.parseFromString(html, 'text/html');
-                                const newTimeline = doc.querySelector('.timeline');
-                                const currentTimeline = document.querySelector('.timeline');
-                                if (newTimeline && currentTimeline) {
-                                    currentTimeline.style.opacity = '0';
-                                    setTimeout(() => {
-                                        currentTimeline.innerHTML = newTimeline.innerHTML;
-                                        currentTimeline.style.opacity = '1';
-                                    }, 300);
-                                }
-                            });
-
+                        
                         Swal.fire('Deleted!', 'Budget has been deleted.', 'success');
                     }
                 } catch (error) {
@@ -233,33 +306,33 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Mouse events with capture phase to prevent text selection
+        // Add event listeners
         item.addEventListener('mousedown', handleStart, true);
         document.addEventListener('mousemove', handleMove, true);
         document.addEventListener('mouseup', handleEnd, true);
         
-        // Touch events
         item.addEventListener('touchstart', handleStart, { passive: false });
         item.addEventListener('touchmove', handleMove, { passive: false });
         item.addEventListener('touchend', handleEnd);
         
-        // Prevent click when swiping
         button.addEventListener('click', (e) => {
-            if (item.classList.contains('swiping') || item.classList.contains('delete-ready')) {
+            if (item.classList.contains('swiping') || 
+                item.classList.contains('delete-ready') || 
+                item.classList.contains('archive-ready')) {
                 e.preventDefault();
             }
         });
     });
 });
 
-// Auto dismiss alerts after 3 seconds
+// Auto dismiss alerts
 document.addEventListener('DOMContentLoaded', function() {
-    const alerts = document.querySelectorAll('.alert');
+    const alerts = document.querySelectorAll('.alert.auto-dismiss');
     alerts.forEach(alert => {
         setTimeout(() => {
             const bsAlert = new bootstrap.Alert(alert);
             bsAlert.close();
-        }, 3000);
+        }, 3000);  // Will dismiss after 3 seconds
     });
 });
 </script>
