@@ -5,12 +5,15 @@
 - Made income modal non-dismissible for initial setup
 - Added "Back to Home" option in initial income setup
 - Changed budget summary to show "Total Spent" instead of "Income"
+- Added budget archiving functionality with swipe gesture
+- Added archive view with year-based categorization
 
 ## Current Features
 1. Budget Management
    - Create monthly budgets
    - Set/Update monthly income
    - Delete budgets with swipe gesture
+   - Archive budgets with swipe gesture
    - Currency selection
    - Automatic next month suggestion
 
@@ -24,10 +27,17 @@
 3. UI/UX
    - Bootstrap-based responsive design
    - Interactive swipe-to-delete
+   - Interactive swipe-to-archive
    - Modal confirmations
    - Recent updates timeline
    - Success/Error messages
    - Auto-dismissing alerts
+
+2. Archive Management
+   - Archive budgets with right swipe
+   - View archived budgets by year
+   - Quick access to archived budget details
+   - Maintain all budget data in archives
 
 ## Pending Improvements
 1. Income Management
@@ -51,6 +61,7 @@
 - Expense
 - SubExpense
 - BudgetLog
+- ArchivedBudget
 
 ### Key Files Modified
 1. budgetapp/templates/budgetapp/budget_detail.html
@@ -60,9 +71,20 @@
 2. budgetapp/views.py
    - Added total_expenses calculation
    - Enhanced income handling
+   - Added archive_budget view
+   - Added view_archives view
 
 3. budgetapp/models.py
    - Added caching for budget calculations
+   - Added ArchivedBudget model
+
+4. budgetapp/templates/budgetapp/home.html
+   - Added archive swipe gesture
+   - Added archive view button
+
+5. budgetapp/templates/budgetapp/archives.html
+   - Added year-based archive view
+   - Added archive cards with budget details
 
 ## Notes for Next Session
 - Consider adding expense categories
