@@ -52,9 +52,12 @@
             </a>
             {% endwith %}
             <div class="swipe-hint">
-                <i class="bi bi-arrow-left"></i> Swipe left to delete
-                <br>
-                <i class="bi bi-arrow-right"></i> Swipe right to archive
+                <span class="delete-hint">
+                    <i class="bi bi-arrow-left"></i> Delete
+                </span>
+                <span class="archive-hint">
+                    Archive <i class="bi bi-arrow-right"></i>
+                </span>
             </div>
             <div class="swipe-progress"></div>
         </div>
@@ -148,9 +151,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const buttonWidth = button.offsetWidth;
             const percentage = Math.abs(diff) / buttonWidth;
             
-            item.style.setProperty('--swipe-amount', diff);
+            const direction = diff > 0 ? -1 : 1;
+            button.style.transform = `translateX(${direction * percentage * 100}%)`;
+            
             progressBar.style.width = `${percentage * 100}%`;
-            progressBar.classList.toggle('delete', diff > 0);
+            if (diff > 0) {
+                progressBar.style.left = '0';
+                progressBar.style.right = 'auto';
+                progressBar.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
+            } else {
+                progressBar.style.right = '0';
+                progressBar.style.left = 'auto';
+                progressBar.style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
+            }
             
             if (percentage >= threshold) {
                 if (diff > 0) {
@@ -183,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         function resetItem() {
-            item.style.setProperty('--swipe-amount', 0);
+            button.style.transform = 'translateX(0)';
             progressBar.style.width = '0';
             item.classList.remove('delete-ready', 'archive-ready', 'swiping');
         }

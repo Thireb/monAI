@@ -12,32 +12,61 @@
 .swipe-hint {
     font-size: 0.8rem;
     color: #6c757d;
-    text-align: center;
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
+    width: 100%;
+    position: relative;
+    height: 25px;
+}
+
+.delete-hint {
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    position: absolute;
+    left: 25%;
+    transform: translateX(-50%);
+}
+
+.archive-hint {
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    position: absolute;
+    right: 25%;
+    transform: translateX(50%);
+}
+
+.budget-item.swiping .delete-hint {
+    opacity: 0;
+}
+
+.budget-item.swiping .archive-hint {
+    opacity: 0;
+}
+
+.delete-hint i {
+    margin-right: 3px;
+}
+
+.archive-hint i {
+    margin-left: 3px;
 }
 
 .swipe-progress {
     position: absolute;
     top: 0;
-    left: 0;
     height: 100%;
     width: 0;
-    background-color: rgba(0, 123, 255, 0.2);  /* Blue for archive */
     transition: width 0.2s;
-}
-
-.swipe-progress.delete {
-    background-color: rgba(220, 53, 69, 0.2);  /* Red for delete */
+    pointer-events: none;
 }
 
 .archive-ready .budget-button {
     transform: translateX(100%);
-    background-color: #0d6efd !important;  /* Bootstrap primary blue */
+    background-color: #0d6efd !important;
 }
 
 .delete-ready .budget-button {
     transform: translateX(-100%);
-    background-color: #dc3545 !important;  /* Bootstrap danger red */
+    background-color: #dc3545 !important;
 }
 
 .fade-in {
@@ -45,7 +74,12 @@
     transition: opacity 0.3s ease-in-out;
 }
 
-/* Add jQuery-like contains selector functionality */
 .timeline .card {
     transition: opacity 0.3s ease-in-out;
-} 
+}
+  
+  .budget-item.swiping:not(.delete-ready) .swipe-progress {
+      left: auto;
+      right: 0;
+      background-color: rgba(0, 123, 255, 0.2);
+  } 
