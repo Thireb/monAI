@@ -12,6 +12,13 @@
     </form>
 </div>
 
+<div class="d-flex justify-content-between mb-3">
+    <h2>Your Budgets</h2>
+    <a href="{% url 'view_archives' %}" class="btn btn-secondary">
+        <i class="fas fa-archive"></i> View Archives
+    </a>
+</div>
+
 {% if messages %}
 <div class="messages mb-4">
     {% for message in messages %}
@@ -26,7 +33,10 @@
 <div class="row mt-4">
     {% for budget in budgets %}
     <div class="col-md-3 mb-3">
-        <div class="budget-item" data-budget-id="{{ budget.month|date:'Y-m' }}">
+        <div class="budget-item" 
+             data-year-month="{{ budget.month|date:'Y-m' }}"
+             data-delete-url="{% url 'delete_budget' year_month=budget.month|date:'Y-m' %}"
+             data-archive-url="{% url 'archive_budget' year_month=budget.month|date:'Y-m' %}">
             {% now "Y-m" as current_month %}
             {% with budget_month=budget.month|date:"Y-m" %}
             <a href="{% url 'budget_detail' year=budget.month.year month=budget.month.month %}" 

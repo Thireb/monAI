@@ -1,0 +1,46 @@
+{% extends "budgetapp/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between mb-4">
+        <h2>Archived Budgets</h2>
+        <a href="{% url 'home' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
+
+    {% if archives_by_year %}
+        {% for year, archives in archives_by_year.items %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h3 class="mb-0">{{ year }}</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for archive in archives %}
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ archive.budget.get_month_display }}</h5>
+                                <p class="card-text">
+                                    Total Spent: {{ archive.budget.total_expenses|floatformat:2 }}
+                                </p>
+                                <a href="{% url 'budget_detail' archive.budget.year archive.budget.month %}" 
+                                   class="btn btn-sm btn-primary">
+                                    View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            No archived budgets found.
+        </div>
+    {% endif %}
+</div>
+{% endblock content %} 

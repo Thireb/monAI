@@ -3,13 +3,14 @@ from django.views.generic import ListView
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from django.contrib import messages
-from .models import Budget, Expense, SubExpense, BudgetLog
+from .models import Budget, Expense, SubExpense, BudgetLog, ArchivedBudget
 from .forms import ExpenseForm, SubExpenseForm
 import calendar
 from decimal import Decimal
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
+from django.db.models import Q
 
 class HomeView(ListView):
     model = Budget
@@ -198,3 +199,31 @@ def get_next_month(request):
     return JsonResponse({
         'next_month': next_month.strftime('%B %Y')
     })
+
+def archive_budget(request, year_month):
+    if request.method == 'POST':
+        year, month = year_month.split('-')
+        budget = get_object_or_404(Budget, year=year, month=month)
+        
+        # Create archive entry
+        ArchivedBudget.objects.create(budget=budget)
+        
+        messages.success(request, f'Budget for {year}-{month} has been archived')
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'}, status=400)
+
+def view_archives(request):
+    archived_budgets = ArchivedBudget.objects.all().select_related('budget')
+    
+    # Group archives by year
+    archives_by_year = {}
+    for archive in archived_budgets:
+        year = archive.budget.year
+        if year not in archives_by_year:
+            archives_by_year[year] = []
+        archives_by_year[year].append(archive)
+    
+    context = {
+        'archives_by_year': archives_by_year
+    }
+    return render(request, 'budgetapp/archives.html', context)

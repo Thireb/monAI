@@ -104,3 +104,13 @@ class BudgetLog(models.Model):
 
     def __str__(self):
         return f"{self.get_action_display()} - {self.month.strftime('%B %Y')}" 
+
+class ArchivedBudget(models.Model):
+    budget = models.OneToOneField('Budget', on_delete=models.CASCADE)
+    archived_date = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-budget__month']
+
+    def __str__(self):
+        return f"Archive: {self.budget.month.strftime('%Y-%m')}" 
