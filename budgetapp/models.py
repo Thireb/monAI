@@ -1,8 +1,6 @@
 from django.db import models
 from django.utils import timezone
 from decimal import Decimal
-from django.contrib.auth import get_user_model
-from typing import Optional
 from django.core.cache import cache
 
 class Budget(models.Model):

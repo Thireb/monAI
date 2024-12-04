@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "budgetapp",
     "django_celery_beat.apps.BeatConfig",
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
