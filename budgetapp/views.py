@@ -117,11 +117,15 @@ def budget_detail(request, year, month):
     else:
         form = ExpenseForm()
 
+    # Calculate total expenses using the model's method
+    total_expenses = sum(expense.amount for expense in budget.expenses.all())
+
     return render(request, 'budgetapp/budget_detail.html', {
         'budget': budget,
         'form': form,
         'expenses': budget.expenses.all(),
-        'currency_choices': Budget.get_currency_choices()
+        'currency_choices': Budget.get_currency_choices(),
+        'total_expenses': total_expenses,
     }) 
 
 def expense_detail(request, expense_id):
