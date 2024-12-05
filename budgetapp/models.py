@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from decimal import Decimal
 from django.core.cache import cache
+from django.utils.text import slugify
 
 class Budget(models.Model):
     """
@@ -60,6 +61,26 @@ class Budget(models.Model):
         ]
         return currencies
 
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    icon = models.CharField(max_length=50, blank=True, help_text="Font Awesome icon class")
+    color = models.CharField(max_length=7, default="#000000", help_text="Hex color code")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = 'Categories'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
 class Expense(models.Model):
     budget = models.ForeignKey(Budget, on_delete=models.CASCADE, related_name='expenses')
     name = models.CharField(max_length=200)
@@ -67,6 +88,13 @@ class Expense(models.Model):
     is_recurring = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    category = models.ForeignKey(
+        Category, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='expenses'
+    )
 
     def __str__(self):
         return f"{self.name} - {self.amount}"
@@ -124,3 +152,19 @@ class BudgetDeletionLog(models.Model):
     
     def __str__(self):
         return f"Budget for {self.month.strftime('%B %Y')} deleted on {self.deleted_at.strftime('%Y-%m-%d %H:%M')}"
+
+class IncomeHistory(models.Model):
+    budget = models.ForeignKey(Budget, on_delete=models.CASCADE, related_name='income_history')
+    old_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    new_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    old_currency = models.CharField(max_length=3)
+    new_currency = models.CharField(max_length=3)
+    changed_at = models.DateTimeField(auto_now_add=True)
+    reason = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-changed_at']
+        verbose_name_plural = 'Income histories'
+
+    def __str__(self):
+        return f"Income change for {self.budget.month.strftime('%B %Y')}"

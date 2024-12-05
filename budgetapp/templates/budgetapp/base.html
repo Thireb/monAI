@@ -12,10 +12,11 @@
         .inline-form {
             display: inline;
         }
-        .col-name { width: 30%; }
-        .col-amount { width: 20%; }
+        .col-name { width: 25%; }
+        .col-amount { width: 15%; }
+        .col-category { width: 20%; }
         .col-recurring { width: 15%; }
-        .col-actions { width: 35%; }
+        .col-actions { width: 25%; }
         
         .budget-log {
             font-size: 0.9rem;
@@ -112,12 +113,336 @@
         .timeline {
             transition: opacity 0.3s ease;
         }
+        
+        /* Custom navbar button styles */
+        .nav-link.btn-outline-light {
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 0.4rem 1rem;
+        }
+        
+        .nav-link.btn-outline-light:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: #fff;
+            color: #fff;
+        }
+        
+        /* Theme toggle styles */
+        #theme-toggle {
+            background: transparent;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        #theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        #theme-toggle i {
+            font-size: 1.1rem;
+            margin-right: 6px;
+        }
+        
+        [data-theme="dark"] #theme-toggle {
+            color: #ffd700;
+        }
+        
+        [data-theme="dark"] #theme-toggle:hover {
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        [data-theme="light"] #theme-toggle {
+            color: #f8f9fa;
+        }
+        
+        /* Dark mode styles */
+        [data-theme="dark"] {
+            --bg-primary: #121212;
+            --bg-secondary: #1e1e1e;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #2d2d2d;
+        }
+
+        [data-theme="dark"] body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .card {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .card-header {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-bottom-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .table {
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .table td, 
+        [data-theme="dark"] .table th {
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .modal-content {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .modal-header {
+            border-bottom-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .modal-footer {
+            border-top-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            background-color: var(--bg-primary);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .text-muted {
+            color: var(--text-secondary) !important;
+        }
+
+        /* Form field styles */
+        .form-control::placeholder,
+        .form-select::placeholder {
+            color: #6c757d;
+            opacity: 0.7;
+        }
+        
+        [data-theme="dark"] .form-control::placeholder,
+        [data-theme="dark"] .form-select::placeholder {
+            color: #adb5bd;
+            opacity: 0.7;
+        }
+        
+        .form-text {
+            color: #6c757d;
+            font-size: 0.875em;
+            margin-top: 0.25rem;
+        }
+        
+        [data-theme="dark"] .form-text {
+            color: #adb5bd;
+        }
+        
+        .form-label {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        [data-theme="dark"] .form-label {
+            color: var(--text-primary);
+        }
+        
+        /* Add these optimized styles */
+        /* Progress bar styles */
+        .progress-thin {
+            height: 5px;
+        }
+        
+        .progress-bar-category {
+            transition: width 0.3s ease;
+        }
+        
+        /* Category styles */
+        .category-icon {
+            font-size: 1.5rem;
+            width: 2rem;
+            text-align: center;
+        }
+        
+        .category-stats {
+            flex: 1;
+            margin-left: 1rem;
+        }
+        
+        /* Optimize table styles */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Optimize form styles */
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Cache commonly used colors */
+        :root {
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #0dcaf0;
+            --action-hover-bg: rgba(0, 0, 0, 0.05);
+            --dark-action-hover-bg: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Category progress styles */
+        .category-progress {
+            height: 5px;
+        }
+        
+        .category-progress-bar {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        /* Add these optimized styles */
+        /* Action button styles */
+        .btn-group {
+            gap: 0.25rem;
+        }
+        
+        .btn-group .btn {
+            border-radius: 4px !important;
+            padding: 0.375rem 0.75rem;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-group .btn i {
+            font-size: 1rem;
+        }
+        
+        .btn-outline-info:hover {
+            background-color: var(--info-color);
+            color: #fff;
+        }
+        
+        .btn-outline-danger:hover {
+            background-color: var(--danger-color);
+            color: #fff;
+        }
+        
+        [data-theme="dark"] .btn-outline-info {
+            color: var(--info-color);
+            border-color: var(--info-color);
+        }
+        
+        [data-theme="dark"] .btn-outline-danger {
+            color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+        
+        [data-theme="dark"] .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        /* Action buttons system */
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .action-btn:hover {
+            filter: brightness(0.9);
+        }
+        
+        .action-btn i {
+            font-size: 1.1rem;
+        }
+        
+        /* Action types */
+        .action-btn.action-view {
+            color: var(--info-color);
+            background-color: rgba(13, 202, 240, 0.25);
+        }
+        
+        .action-btn.action-edit {
+            color: var(--primary-color);
+            background-color: rgba(13, 110, 253, 0.25);
+        }
+        
+        .action-btn.action-delete {
+            color: var(--danger-color);
+            background-color: rgba(220, 53, 69, 0.25);
+        }
+        
+        /* Dark mode adjustments */
+        [data-theme="dark"] .action-btn.action-view {
+            color: var(--info-color);
+            background-color: rgba(13, 202, 240, 0.3);
+        }
+        
+        [data-theme="dark"] .action-btn.action-edit {
+            color: var(--primary-color);
+            background-color: rgba(13, 110, 253, 0.3);
+        }
+        
+        [data-theme="dark"] .action-btn.action-delete {
+            color: var(--danger-color);
+            background-color: rgba(220, 53, 69, 0.3);
+        }
+        
+        /* Tooltip styles */
+        .action-btn::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.25rem 0.5rem;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+        
+        .action-btn:hover::after {
+            opacity: 1;
+            visibility: visible;
+            bottom: calc(100% + 5px);
+        }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">Budget Tracker</a>
+            <ul class="navbar-nav ml-auto d-flex align-items-center gap-4 me-3">
+                <li class="nav-item">
+                    <a class="nav-link btn btn-outline-light btn-sm d-flex align-items-center gap-2" href="{% url 'category_list' %}">
+                        <i class="fas fa-tags"></i>
+                        <span>Categories</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <button id="theme-toggle" class="nav-link d-flex align-items-center">
+                        <i class="fas fa-moon"></i>
+                        <span id="theme-text">Dark Mode</span>
+                    </button>
+                </li>
+            </ul>
         </div>
     </nav>
     <div class="container mt-4">
@@ -128,5 +453,36 @@
     <script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     {% block extra_js %}{% endblock extra_js %}
+    <script>
+    // Dark mode functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeText = document.getElementById('theme-text');
+        const themeIcon = themeToggle.querySelector('i');
+        
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeUI(savedTheme === 'dark');
+        }
+        
+        // Theme toggle handler
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const isDark = currentTheme === 'dark';
+            const theme = isDark ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            updateThemeUI(!isDark);
+        });
+        
+        function updateThemeUI(isDark) {
+            themeText.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+            themeIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        }
+    });
+    </script>
 </body>
 </html> 

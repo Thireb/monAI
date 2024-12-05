@@ -3,14 +3,18 @@ from django.views.generic import ListView
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from django.contrib import messages
-from .models import Budget, Expense, SubExpense, BudgetLog, ArchivedBudget, BudgetDeletionLog
-from .forms import ExpenseForm, SubExpenseForm
+from .models import Budget, Expense, SubExpense, BudgetLog, ArchivedBudget, BudgetDeletionLog, Category, IncomeHistory
+from .forms import ExpenseForm, SubExpenseForm, CategoryForm
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from datetime import timedelta
 from django.db import transaction
 from decimal import Decimal
+from django.db.models import Sum, F, Value, DecimalField
+from django.db.models.functions import Coalesce
+from django.views.decorators.http import require_http_methods
+from django.core.cache import cache
 
 class HomeView(ListView):
     model = Budget
@@ -120,6 +124,7 @@ def create_next_budget(request):
     
     return redirect('home')
 
+@require_http_methods(["GET", "POST"])
 def budget_detail(request, year, month):
     budget_date = timezone.datetime(year=year, month=month, day=1).date()
     budget = get_object_or_404(Budget, month=budget_date)
@@ -128,44 +133,59 @@ def budget_detail(request, year, month):
         form_type = request.POST.get('form_type')
         
         if form_type == 'income':
-            income = request.POST.get('income')
-            currency = request.POST.get('currency')
-            if income:
-                budget.income = income
-                budget.currency = currency
-                budget.save()
+            return handle_income_update(request, budget)
         elif form_type == 'expense':
-            expense_id = request.POST.get('expense_id')
-            if expense_id:  # Edit existing expense
-                expense = get_object_or_404(Expense, id=expense_id, budget=budget)
-                form = ExpenseForm(request.POST, instance=expense)
-            else:  # New expense
-                form = ExpenseForm(request.POST)
-            
-            if form.is_valid():
-                expense = form.save(commit=False)
-                expense.budget = budget
-                expense.save()
+            return handle_expense_update(request, budget)
         elif form_type == 'delete_expense':
-            expense_id = request.POST.get('expense_id')
-            if expense_id:
-                expense = get_object_or_404(Expense, id=expense_id, budget=budget)
-                expense.delete()
+            return handle_expense_delete(request, budget)
         
         return redirect('budget_detail', year=year, month=month)
-    else:
-        form = ExpenseForm()
 
-    # Calculate total expenses using the model's method
-    total_expenses = sum(expense.amount for expense in budget.expenses.all())
-
-    return render(request, 'budgetapp/budget_detail.html', {
+    # Get expenses with related categories in a single query
+    expenses = budget.expenses.select_related('category').prefetch_related(
+        'sub_expenses',
+        'category'
+    )
+    
+    # Calculate totals using database aggregation
+    total_expenses = expenses.aggregate(
+        total=Coalesce(Sum('amount'), Value(0), output_field=DecimalField())
+    )['total']
+    
+    # Calculate category statistics
+    expenses_by_category = calculate_category_stats(expenses, total_expenses)
+    
+    context = {
         'budget': budget,
-        'form': form,
-        'expenses': budget.expenses.all(),
+        'form': ExpenseForm(),
+        'expenses': expenses,
         'currency_choices': Budget.get_currency_choices(),
         'total_expenses': total_expenses,
-    }) 
+        'expenses_by_category': expenses_by_category,
+        'categories': Category.objects.all(),
+        'income_history': budget.income_history.all()[:5]
+    }
+    
+    return render(request, 'budgetapp/budget_detail.html', context)
+
+def calculate_category_stats(expenses, total_expenses):
+    stats = {}
+    for expense in expenses:
+        category_name = expense.category.name if expense.category else 'Uncategorized'
+        if category_name not in stats:
+            stats[category_name] = {
+                'amount': Decimal('0'),
+                'color': expense.category.color if expense.category else '#95A5A6',
+                'icon': expense.category.icon if expense.category else 'fa-question-circle'
+            }
+        stats[category_name]['amount'] += expense.amount
+
+    # Calculate percentages
+    if total_expenses:
+        for category in stats.values():
+            category['percentage'] = (category['amount'] / total_expenses * 100)
+    
+    return stats
 
 def expense_detail(request, expense_id):
     expense = get_object_or_404(Expense, id=expense_id)
@@ -325,3 +345,110 @@ def delete_archived_budget(request, year_month):
             'status': 'error',
             'message': f'Error deleting archived budget: {str(e)}'
         }, status=400)
+
+def category_list(request):
+    categories = Category.objects.all()
+    form = CategoryForm()
+    
+    if request.method == 'POST':
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Category created successfully!')
+            return redirect('category_list')
+    
+    return render(request, 'budgetapp/category_list.html', {
+        'categories': categories,
+        'form': form
+    })
+
+def category_edit(request, slug):
+    category = get_object_or_404(Category, slug=slug)
+    if request.method == 'POST':
+        form = CategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Category updated successfully!')
+            return redirect('category_list')
+    else:
+        form = CategoryForm(instance=category)
+    
+    return render(request, 'budgetapp/category_edit.html', {
+        'form': form,
+        'category': category
+    })
+
+@require_POST
+def category_delete(request, slug):
+    category = get_object_or_404(Category, slug=slug)
+    try:
+        category.delete()
+        messages.success(request, 'Category deleted successfully!')
+    except Exception as e:
+        messages.error(request, f'Error deleting category: {str(e)}')
+    return redirect('category_list')
+
+def handle_income_update(request, budget):
+    income = request.POST.get('income')
+    currency = request.POST.get('currency')
+    reason = request.POST.get('reason')
+    
+    if income:
+        old_income = budget.income
+        old_currency = budget.currency
+        
+        budget.income = Decimal(income)
+        budget.currency = currency
+        budget.save()
+        
+        # Log income change
+        IncomeHistory.objects.create(
+            budget=budget,
+            old_amount=old_income,
+            new_amount=budget.income,
+            old_currency=old_currency,
+            new_currency=currency,
+            reason=reason
+        )
+        
+        messages.success(request, 'Income updated successfully!')
+    
+    return redirect('budget_detail', year=budget.month.year, month=budget.month.month)
+
+def handle_expense_update(request, budget):
+    expense_id = request.POST.get('expense_id')
+    name = request.POST.get('name')
+    amount = request.POST.get('amount')
+    is_recurring = request.POST.get('is_recurring') == 'on'
+    category_id = request.POST.get('category')
+    
+    if expense_id:
+        # Update existing expense
+        expense = get_object_or_404(Expense, id=expense_id, budget=budget)
+        expense.name = name
+        expense.amount = Decimal(amount)
+        expense.is_recurring = is_recurring
+        expense.category_id = category_id if category_id else None
+        expense.save()
+        messages.success(request, 'Expense updated successfully!')
+    else:
+        # Create new expense
+        Expense.objects.create(
+            budget=budget,
+            name=name,
+            amount=Decimal(amount),
+            is_recurring=is_recurring,
+            category_id=category_id if category_id else None
+        )
+        messages.success(request, 'Expense added successfully!')
+    
+    return redirect('budget_detail', year=budget.month.year, month=budget.month.month)
+
+def handle_expense_delete(request, budget):
+    expense_id = request.POST.get('expense_id')
+    if expense_id:
+        expense = get_object_or_404(Expense, id=expense_id, budget=budget)
+        expense.delete()
+        messages.success(request, 'Expense deleted successfully!')
+    
+    return redirect('budget_detail', year=budget.month.year, month=budget.month.month)

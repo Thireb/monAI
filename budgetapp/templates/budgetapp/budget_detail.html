@@ -1,4 +1,5 @@
 {% extends "budgetapp/base.html" %}
+{% load humanize %}
 
 {% block content %}
 <h1>Budget for {{ budget.month|date:"F Y" }}</h1>
@@ -19,7 +20,9 @@
                     <div class="mb-3">
                         <label for="income" class="form-label">Monthly Income</label>
                         <input type="number" step="0.01" name="income" id="income" 
-                               value="{{ budget.income }}" class="form-control" required>
+                               value="{{ budget.income }}" class="form-control" 
+                               placeholder="Enter your monthly income" required>
+                        <div class="form-text">Enter your total monthly income before expenses</div>
                     </div>
                     <div class="mb-3">
                         <label for="currency" class="form-label">Currency</label>
@@ -30,6 +33,12 @@
                                 </option>
                             {% endfor %}
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason for Change</label>
+                        <textarea name="reason" id="reason" class="form-control" rows="3" 
+                                  placeholder="e.g., Salary increase, Additional income source"></textarea>
+                        <div class="form-text">Helps you track why income changes over time</div>
                     </div>
                     <div class="d-flex justify-content-between">
                         {% if budget.income == 0 %}
@@ -71,16 +80,35 @@
                     {% csrf_token %}
                     <input type="hidden" name="expense_id" id="expense_id">
                     <div class="mb-3">
-                        {{ form.name.label_tag }}
-                        {{ form.name }}
+                        <label for="{{ form.name.id_for_label }}" class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control" id="{{ form.name.id_for_label }}"
+                               placeholder="e.g., Rent, Groceries, Utilities" required>
+                        <div class="form-text">Enter a clear, descriptive name for the expense</div>
                     </div>
                     <div class="mb-3">
-                        {{ form.amount.label_tag }}
-                        {{ form.amount }}
+                        <label for="{{ form.amount.id_for_label }}" class="form-label">Amount</label>
+                        <input type="number" step="0.01" name="amount" class="form-control" 
+                               id="{{ form.amount.id_for_label }}" 
+                               placeholder="Enter amount" required>
+                        <div class="form-text">Enter the expense amount in {{ budget.currency }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
+                        <select name="category" id="{{ form.category.id_for_label }}" class="form-select">
+                            <option value="">Select a category</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" 
+                                    {% if form.category.value == category.id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Group your expenses for better tracking</div>
                     </div>
                     <div class="mb-3 form-check">
                         {{ form.is_recurring }}
                         {{ form.is_recurring.label_tag }}
+                        <div class="form-text">Check if this is a monthly recurring expense</div>
                     </div>
                     <button type="submit" name="form_type" value="expense" 
                             class="btn btn-primary" id="expense-submit-btn">Add Expense</button>
@@ -98,8 +126,8 @@
             </div>
             <div class="card-body">
                 <div class="mb-4">
-                    <h4>Total Spent: {{ budget.currency }} {{ total_expenses }}</h4>
-                    <h4>Remaining: {{ budget.currency }} {{ budget.get_remaining_budget }}</h4>
+                    <h4>Total Spent: {{ budget.currency }} {{ total_expenses|floatformat:2|intcomma }}</h4>
+                    <h4>Remaining: {{ budget.currency }} {{ budget.get_remaining_budget|floatformat:2|intcomma }}</h4>
                 </div>
                 <h3>Expenses</h3>
                 <div class="table-responsive">
@@ -108,6 +136,7 @@
                             <tr>
                                 <th class="col-name">Name</th>
                                 <th class="col-amount">Amount</th>
+                                <th class="col-category">Category</th>
                                 <th class="col-recurring">Recurring</th>
                                 <th class="col-actions">Actions</th>
                             </tr>
@@ -141,6 +170,19 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    {% if expense.category %}
+                                    <span class="badge" style="background-color: {{ expense.category.color }}">
+                                        <i class="fas {{ expense.category.icon }}"></i>
+                                        {{ expense.category.name }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-question-circle"></i>
+                                        Uncategorized
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     {% if expense.is_recurring %}
                                     <span class="badge bg-success">Yes</span>
                                     {% else %}
@@ -148,22 +190,26 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <div class="btn-group">
+                                    <div class="action-buttons">
                                         <a href="{% url 'expense_detail' expense_id=expense.id %}" 
-                                           class="btn btn-sm btn-info">
-                                            <i class="bi bi-list-ul"></i> Breakdown
+                                           class="action-btn action-view"
+                                           data-tooltip="View breakdown">
+                                            <i class="fas fa-list-ul"></i>
                                         </a>
-                                        <button class="btn btn-sm btn-primary edit-expense" 
+                                        <button class="action-btn action-edit edit-expense"
                                                 data-expense-id="{{ expense.id }}"
                                                 data-expense-name="{{ expense.name }}"
                                                 data-expense-amount="{{ expense.amount }}"
-                                                data-expense-recurring="{{ expense.is_recurring|lower }}">
-                                            <i class="bi bi-pencil"></i> Edit
+                                                data-expense-category="{{ expense.category.id|default:'' }}"
+                                                data-expense-recurring="{{ expense.is_recurring|lower }}"
+                                                data-tooltip="Edit expense">
+                                            <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-danger delete-expense" 
+                                        <button class="action-btn action-delete delete-expense"
                                                 data-expense-id="{{ expense.id }}"
-                                                data-expense-name="{{ expense.name }}">
-                                            <i class="bi bi-trash"></i> Delete
+                                                data-expense-name="{{ expense.name }}"
+                                                data-tooltip="Delete expense">
+                                            <i class="fas fa-trash-alt"></i>
                                         </button>
                                     </div>
                                 </td>
@@ -201,71 +247,215 @@
     </div>
 </div>
 
+<!-- Add this section where appropriate in your template -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Expense Categories</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for category_name, data in expenses_by_category.items %}
+            <div class="col-md-6 mb-3">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas {{ data.icon }} fa-2x" style="color: {{ data.color }}"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">{{ category_name }}</h6>
+                        <div class="progress category-progress">
+                            <div class="progress-bar category-progress-bar" 
+                                 role="progressbar"
+                                 data-width="{{ data.percentage }}"
+                                 data-color="{{ data.color }}"
+                                 aria-valuenow="{{ data.percentage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            {{ data.amount }} {{ budget.currency }} ({{ data.percentage|floatformat:1 }}%)
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Add this after the income card -->
+{% if income_history %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Income History</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Old Amount</th>
+                        <th>New Amount</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for history in income_history %}
+                    <tr>
+                        <td>{{ history.changed_at|date:"M d, Y H:i" }}</td>
+                        <td>{{ history.old_currency }} {{ history.old_amount }}</td>
+                        <td>{{ history.new_currency }} {{ history.new_amount }}</td>
+                        <td>{{ history.reason|default:"No reason provided" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Add this before the expenses table -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Search & Filter Expenses</h5>
+    </div>
+    <div class="card-body">
+        <form id="expense-filter-form" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" id="expense-search" class="form-control" 
+                       placeholder="Search by expense name...">
+                <div class="form-text">Search through your expenses</div>
+            </div>
+            <div class="col-md-3">
+                <select id="category-filter" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.name }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Filter by category</div>
+            </div>
+            <div class="col-md-3">
+                <select id="recurring-filter" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="true">Recurring</option>
+                    <option value="false">Non-recurring</option>
+                </select>
+                <div class="form-text">Filter by expense type</div>
+            </div>
+            <div class="col-md-2">
+                <button type="reset" class="btn btn-secondary w-100">Reset</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock content %}
 
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Show income modal on page load if income is zero
-    {% if budget.income == 0 %}
-        var incomeModal = new bootstrap.Modal(document.getElementById('incomeModal'), {
-            backdrop: 'static',
-            keyboard: false
+    // Cache DOM elements
+    const $expenseForm = $('#expense-form');
+    const $expenseId = $('#expense_id');
+    const $expenseName = $('#id_name');
+    const $expenseAmount = $('#id_amount');
+    const $expenseRecurring = $('#id_is_recurring');
+    const $expenseCategory = $('#id_category');
+    const $formTitle = $('#expense-form-title');
+    const $submitBtn = $('#expense-submit-btn');
+    const $cancelBtn = $('#cancel-edit-btn');
+
+    // Debounce function for search
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Optimized filter function
+    const filterExpenses = debounce(function() {
+        const searchTerm = $('#expense-search').val().toLowerCase();
+        const categoryFilter = $('#category-filter').val();
+        const recurringFilter = $('#recurring-filter').val();
+
+        $('tbody tr').each(function() {
+            const $row = $(this);
+            if (!$row.data('searchCache')) {
+                const name = $row.find('td:first').text().toLowerCase();
+                const category = $row.find('.expense-category').text();
+                const isRecurring = $row.find('.badge-recurring').length > 0;
+                $row.data('searchCache', { name, category, isRecurring });
+            }
+
+            const cache = $row.data('searchCache');
+            const matchesSearch = !searchTerm || cache.name.includes(searchTerm);
+            const matchesCategory = !categoryFilter || cache.category === categoryFilter;
+            const matchesRecurring = !recurringFilter || 
+                                   (recurringFilter === 'true' && cache.isRecurring) ||
+                                   (recurringFilter === 'false' && !cache.isRecurring);
+
+            $row.toggle(matchesSearch && matchesCategory && matchesRecurring);
         });
-        incomeModal.show();
-    {% endif %}
+    }, 250);
 
-    // Edit Expense
-    $('.edit-expense').click(function() {
-        const expenseId = $(this).data('expense-id');
-        const name = $(this).data('expense-name');
-        const amount = $(this).data('expense-amount');
-        const recurring = $(this).data('expense-recurring') === 'true';
+    // Event handlers
+    function handleEdit(e) {
+        const $btn = $(e.currentTarget);
+        const data = $btn.data();
 
-        // Fill the form
-        $('#expense_id').val(expenseId);
-        $('#id_name').val(name);
-        $('#id_amount').val(amount);
-        $('#id_is_recurring').prop('checked', recurring);
+        // Fill form
+        $expenseId.val(data.expenseId);
+        $expenseName.val(data.expenseName);
+        $expenseAmount.val(data.expenseAmount);
+        $expenseRecurring.prop('checked', String(data.expenseRecurring).toLowerCase() === 'true');
+        $expenseCategory.val(data.expenseCategory);
 
         // Update UI
-        $('#expense-form-title').text('Edit Expense');
-        $('#expense-submit-btn').text('Update Expense');
-        $('#cancel-edit-btn').removeClass('d-none');
-        
-        // Scroll to form
+        $formTitle.text('Edit Expense');
+        $submitBtn.text('Update Expense');
+        $cancelBtn.removeClass('d-none');
+
+        // Smooth scroll
         $('html, body').animate({
-            scrollTop: $("#expense-form").offset().top - 100
+            scrollTop: $expenseForm.offset().top - 100
         }, 500);
-    });
-
-    // Cancel Edit
-    $('#cancel-edit-btn').click(function() {
-        resetForm();
-    });
-
-    // Delete Expense
-    $('.delete-expense').click(function() {
-        const expenseId = $(this).data('expense-id');
-        const expenseName = $(this).data('expense-name');
-        
-        $('#delete-expense-id').val(expenseId);
-        $('#delete-expense-name').text(expenseName);
-        
-        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        deleteModal.show();
-    });
-
-    function resetForm() {
-        // Reset form
-        $('#expense-form')[0].reset();
-        $('#expense_id').val('');
-        
-        // Reset UI
-        $('#expense-form-title').text('Add New Expense');
-        $('#expense-submit-btn').text('Add Expense');
-        $('#cancel-edit-btn').addClass('d-none');
     }
+
+    // Event listeners
+    $('.edit-expense').on('click', handleEdit);
+    $cancelBtn.on('click', resetForm);
+    $('#expense-search, #category-filter, #recurring-filter').on('input change', filterExpenses);
+    $('#expense-filter-form').on('reset', function() {
+        setTimeout(filterExpenses, 0);
+    });
+
+    // Initialize
+    {% if budget.income == 0 %}
+    new bootstrap.Modal(document.getElementById('incomeModal'), {
+        backdrop: 'static',
+        keyboard: false
+    }).show();
+    {% endif %}
+
+    // Set progress bar styles
+    $('.category-progress-bar').each(function() {
+        const $bar = $(this);
+        const width = $bar.data('width');
+        const color = $bar.data('color');
+        $bar.css({
+            'width': `${width}%`,
+            'background-color': color
+        });
+    });
 });
 </script>
 {% endblock extra_js %} 

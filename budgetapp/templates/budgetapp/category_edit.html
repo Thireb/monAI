@@ -1,0 +1,92 @@
+{% extends 'budgetapp/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Edit Category: {{ category.name }}</h5>
+                    <a href="{% url 'category_list' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Back to Categories
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Name</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger small">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small">{{ form.description.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.icon.id_for_label }}" class="form-label">
+                                Icon (Font Awesome class)
+                                <i class="fas {{ category.icon }}" id="icon-preview"></i>
+                            </label>
+                            {{ form.icon }}
+                            {% if form.icon.errors %}
+                                <div class="text-danger small">{{ form.icon.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                Enter a Font Awesome icon class (e.g., fa-home, fa-car, fa-utensils)
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.color.id_for_label }}" class="form-label">Color</label>
+                            {{ form.color }}
+                            {% if form.color.errors %}
+                                <div class="text-danger small">{{ form.color.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                            <a href="{% url 'category_list' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Live preview for icon
+    const iconInput = document.getElementById('{{ form.icon.id_for_label }}');
+    const iconPreview = document.getElementById('icon-preview');
+    
+    iconInput.addEventListener('input', function() {
+        // Remove old class
+        iconPreview.className = '';
+        // Add new classes
+        iconPreview.className = 'fas ' + this.value;
+    });
+
+    // Color picker preview
+    const colorInput = document.getElementById('{{ form.color.id_for_label }}');
+    colorInput.addEventListener('input', function() {
+        iconPreview.style.color = this.value;
+    });
+});
+</script>
+{% endblock %} 
