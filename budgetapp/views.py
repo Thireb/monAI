@@ -16,9 +16,11 @@ from django.db.models.functions import Coalesce
 from django.views.decorators.http import require_http_methods
 from django.core.cache import cache
 
+TEMPLATE_VERSION = 'material'  # or 'budgetapp' for original templates
+
 class HomeView(ListView):
     model = Budget
-    template_name = 'budgetapp/home.html'
+    template_name = f'{TEMPLATE_VERSION}/home.html'
     context_object_name = 'budgets'
     paginate_by = 10
 
@@ -108,18 +110,8 @@ def create_next_budget(request):
             details=f"Budget for {budget.month.strftime('%B %Y')} was created"
         )
 
-        # Copy recurring expenses from previous month if it exists
-        if last_budget:
-            recurring_expenses = last_budget.expenses.filter(is_recurring=True)
-            for expense in recurring_expenses:
-                Expense.objects.create(
-                    budget=budget,
-                    name=expense.name,
-                    amount=expense.amount,
-                    is_recurring=True
-                )
-            
-        messages.success(request, f'Budget for {next_month.strftime("%B %Y")} has been created!')
+        # Clean success message without any special characters
+        messages.success(request, f'Budget for {next_month.strftime("%B %Y")} has been created')
         return redirect('home')
     
     return redirect('home')
@@ -166,7 +158,7 @@ def budget_detail(request, year, month):
         'income_history': budget.income_history.all()[:5]
     }
     
-    return render(request, 'budgetapp/budget_detail.html', context)
+    return render(request, f'{TEMPLATE_VERSION}/budget_detail.html', context)
 
 def calculate_category_stats(expenses, total_expenses):
     stats = {}
@@ -223,7 +215,7 @@ def expense_detail(request, expense_id):
     else:
         form = SubExpenseForm()
 
-    return render(request, 'budgetapp/expense_detail.html', {
+    return render(request, f'{TEMPLATE_VERSION}/expense_detail.html', {
         'expense': expense,
         'form': form,
         'sub_expenses': expense.sub_expenses.all(),
@@ -248,6 +240,10 @@ def delete_budget(request, year_month):
             details=f"Budget for {budget.month.strftime('%B %Y')} was deleted"
         )
         budget.delete()
+        
+        # Clean message without any special characters
+        messages.success(request, 'Budget has been deleted successfully')
+        
         return JsonResponse({'status': 'success'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
@@ -315,7 +311,7 @@ def view_archives(request):
     context = {
         'archives_by_year': archives_by_year
     }
-    return render(request, 'budgetapp/archives.html', context)
+    return render(request, f'{TEMPLATE_VERSION}/archives.html', context)
 
 @require_POST
 def delete_archived_budget(request, year_month):
@@ -357,7 +353,7 @@ def category_list(request):
             messages.success(request, 'Category created successfully!')
             return redirect('category_list')
     
-    return render(request, 'budgetapp/category_list.html', {
+    return render(request, f'{TEMPLATE_VERSION}/category_list.html', {
         'categories': categories,
         'form': form
     })
@@ -373,7 +369,7 @@ def category_edit(request, slug):
     else:
         form = CategoryForm(instance=category)
     
-    return render(request, 'budgetapp/category_edit.html', {
+    return render(request, f'{TEMPLATE_VERSION}/category_edit.html', {
         'form': form,
         'category': category
     })

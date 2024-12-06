@@ -1,0 +1,217 @@
+{% extends "material/base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'home' %}">
+                    <i class="material-icons">home</i> Home
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'budget_detail' year=expense.budget.month.year month=expense.budget.month.month %}">
+                    <i class="material-icons">calendar_today</i> {{ expense.budget.month|date:"F Y" }}
+                </a>
+            </li>
+            <li class="breadcrumb-item active">{{ expense.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="material-icons">receipt_long</i>
+                        {{ expense.name }} - Breakdown
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h4 class="d-flex align-items-center">
+                            <i class="material-icons me-2">account_balance_wallet</i>
+                            Total Amount: {{ expense.budget.currency }} {{ expense.amount|floatformat:2|intcomma }}
+                        </h4>
+                        <h4 class="d-flex align-items-center">
+                            <i class="material-icons me-2">account_balance</i>
+                            Remaining: {{ expense.budget.currency }} {{ expense.get_remaining_amount|floatformat:2|intcomma }}
+                        </h4>
+                    </div>
+                    
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="sub_expense">
+                        <div class="form-group mb-3">
+                            {{ form.name.label_tag }}
+                            <input type="text" name="name" class="form-control" 
+                                   id="{{ form.name.id_for_label }}"
+                                   placeholder="Enter breakdown item name" required>
+                            <small class="form-text text-muted">
+                                <i class="material-icons">info</i>
+                                Name for this part of the expense
+                            </small>
+                        </div>
+                        <div class="form-group mb-3">
+                            {{ form.amount.label_tag }}
+                            <input type="number" step="0.01" name="amount" 
+                                   class="form-control" 
+                                   id="{{ form.amount.id_for_label }}"
+                                   placeholder="Enter amount" required>
+                            <small class="form-text text-muted">
+                                <i class="material-icons">info</i>
+                                Amount for this breakdown (Available: {{ expense.get_remaining_amount|floatformat:2|intcomma }})
+                            </small>
+                        </div>
+                        <button type="submit" class="btn btn-raised btn-primary">
+                            <i class="material-icons">add</i> Add Sub-Expense
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="material-icons">list</i>
+                        Sub-Expenses
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sub_expense in sub_expenses %}
+                                <tr>
+                                    <td>{{ sub_expense.name }}</td>
+                                    <td>{{ expense.budget.currency }} {{ sub_expense.amount|floatformat:2|intcomma }}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="action-btn action-edit edit-sub-expense"
+                                                    data-sub-expense-id="{{ sub_expense.id }}"
+                                                    data-sub-expense-name="{{ sub_expense.name }}"
+                                                    data-sub-expense-amount="{{ sub_expense.amount }}"
+                                                    data-tooltip="Edit breakdown">
+                                                <i class="material-icons">edit</i>
+                                            </button>
+                                            <button type="button" 
+                                                    class="action-btn action-delete delete-sub-expense"
+                                                    data-sub-expense-id="{{ sub_expense.id }}"
+                                                    data-sub-expense-name="{{ sub_expense.name }}"
+                                                    data-tooltip="Delete breakdown">
+                                                <i class="material-icons">delete</i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Sub-Expense Modal -->
+<div class="modal fade" id="editSubExpenseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="material-icons">edit</i>
+                    Edit Sub-Expense
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="edit_sub_expense">
+                    <input type="hidden" name="sub_expense_id" id="edit-sub-expense-id">
+                    <div class="form-group mb-3">
+                        <label for="edit-sub-expense-name" class="bmd-label-floating">Name</label>
+                        <input type="text" class="form-control" id="edit-sub-expense-name" name="name">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="edit-sub-expense-amount" class="bmd-label-floating">Amount</label>
+                        <input type="number" step="0.01" class="form-control" id="edit-sub-expense-amount" name="amount">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-raised btn-primary">
+                        <i class="material-icons">save</i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize Material Design components
+    $('body').bootstrapMaterialDesign();
+    
+    // Edit Sub-Expense
+    $('.edit-sub-expense').click(function() {
+        const subExpenseId = $(this).data('sub-expense-id');
+        const name = $(this).data('sub-expense-name');
+        const amount = $(this).data('sub-expense-amount');
+        
+        // Fill the modal form
+        $('#edit-sub-expense-id').val(subExpenseId);
+        $('#edit-sub-expense-name').val(name);
+        $('#edit-sub-expense-amount').val(amount);
+        
+        // Show modal
+        const editModal = new bootstrap.Modal(document.getElementById('editSubExpenseModal'));
+        editModal.show();
+    });
+
+    // Delete Sub-Expense
+    $('.delete-sub-expense').click(function() {
+        const subExpenseId = $(this).data('sub-expense-id');
+        const name = $(this).data('sub-expense-name');
+        
+        Swal.fire({
+            title: 'Delete Sub-Expense?',
+            text: `Are you sure you want to delete "${name}"?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = `
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="delete_sub_expense">
+                    <input type="hidden" name="sub_expense_id" value="${subExpenseId}">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    });
+});
+</script>
+{% endblock extra_js %} 

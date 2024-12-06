@@ -7,10 +7,33 @@ class CategoryForm(forms.ModelForm):
         model = Category
         fields = ['name', 'description', 'icon', 'color']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'icon': forms.TextInput(attrs={'class': 'form-control'}),
-            'color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Category Name'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Category Description'
+            }),
+            'icon': forms.Select(attrs={
+                'class': 'form-control',
+            }, choices=[
+                ('fa-home', 'Home'),
+                ('fa-car', 'Car'),
+                ('fa-utensils', 'Food'),
+                ('fa-shopping-cart', 'Shopping'),
+                ('fa-medical-kit', 'Medical'),
+                ('fa-graduation-cap', 'Education'),
+                ('fa-plane', 'Travel'),
+                ('fa-gamepad', 'Entertainment'),
+                ('fa-gift', 'Gift'),
+            ]),
+            'color': forms.TextInput(attrs={
+                'class': 'form-control',
+                'type': 'color',
+                'data-pickr': 'true'
+            }),
         }
 
 class ExpenseForm(forms.ModelForm):

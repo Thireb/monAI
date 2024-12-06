@@ -1,0 +1,210 @@
+{% extends "material/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="material-icons">category</i>
+                    Expense Categories
+                </h2>
+            </div>
+            
+            <div class="row">
+                {% for category in categories %}
+                <div class="col-md-6 mb-3">
+                    <div class="card" style="border-left: 5px solid {{ category.color }}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="card-title d-flex align-items-center">
+                                    <i class="material-icons" style="color: {{ category.color }}">
+                                        {% if category.icon == 'fa-home' %}home{% elif category.icon == 'fa-car' %}directions_car
+                                        {% elif category.icon == 'fa-utensils' %}restaurant{% else %}category{% endif %}
+                                    </i>
+                                    <span class="ms-2">{{ category.name }}</span>
+                                </h5>
+                                <div class="action-buttons">
+                                    <a href="{% url 'category_edit' category.slug %}" 
+                                       class="action-btn action-edit"
+                                       data-tooltip="Edit category">
+                                        <i class="material-icons">edit</i>
+                                    </a>
+                                    <button type="button" 
+                                            class="action-btn action-delete"
+                                            onclick="deleteCategory('{{ category.slug }}')"
+                                            data-tooltip="Delete category">
+                                        <i class="material-icons">delete</i>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="card-text text-muted small">
+                                {% if category.description %}
+                                    <i class="material-icons">description</i>
+                                    {{ category.description }}
+                                {% else %}
+                                    <i class="material-icons">info</i>
+                                    No description provided
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="material-icons">add_circle</i>
+                        Add New Category
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="form-group mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="bmd-label-floating">Name</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger small">{{ form.name.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                <i class="material-icons">info</i>
+                                Enter a unique category name
+                            </small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="bmd-label-floating">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small">{{ form.description.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                <i class="material-icons">info</i>
+                                Brief description of the category
+                            </small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.icon.id_for_label }}" class="bmd-label-floating">
+                                Icon
+                                <i class="material-icons" id="icon-preview">category</i>
+                            </label>
+                            {{ form.icon }}
+                            {% if form.icon.errors %}
+                                <div class="text-danger small">{{ form.icon.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                <i class="material-icons">info</i>
+                                Choose an icon for the category
+                            </small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.color.id_for_label }}" class="bmd-label-floating">Color</label>
+                            {{ form.color }}
+                            {% if form.color.errors %}
+                                <div class="text-danger small">{{ form.color.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                <i class="material-icons">palette</i>
+                                Pick a color for the category
+                            </small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-raised btn-primary">
+                            <i class="material-icons">save</i>
+                            Create Category
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Material Design components
+    $('body').bootstrapMaterialDesign();
+    
+    // Icon mapping from Font Awesome to Material Icons
+    const iconMapping = {
+        'fa-home': 'home',
+        'fa-car': 'directions_car',
+        'fa-utensils': 'restaurant',
+        'fa-shopping-cart': 'shopping_cart',
+        'fa-medical-kit': 'medical_services',
+        'fa-graduation-cap': 'school',
+        'fa-plane': 'flight',
+        'fa-gamepad': 'sports_esports',
+        'fa-gift': 'card_giftcard',
+        // Add more mappings as needed
+    };
+
+    // Live preview for icon
+    const iconInput = document.getElementById('{{ form.icon.id_for_label }}');
+    const iconPreview = document.getElementById('icon-preview');
+    
+    iconInput.addEventListener('input', function() {
+        const materialIcon = iconMapping[this.value] || 'category';
+        iconPreview.textContent = materialIcon;
+    });
+
+    // Color picker preview
+    const colorInput = document.getElementById('{{ form.color.id_for_label }}');
+    colorInput.addEventListener('input', function() {
+        iconPreview.style.color = this.value;
+    });
+});
+
+function deleteCategory(slug) {
+    Swal.fire({
+        title: 'Delete Category?',
+        text: "Expenses in this category will become uncategorized. This action cannot be undone!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, keep it',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/categories/${slug}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                }
+            }).then(response => {
+                if (response.ok) {
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: 'Category has been deleted.',
+                        icon: 'success',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire(
+                        'Error!',
+                        'Failed to delete category.',
+                        'error'
+                    );
+                }
+            });
+        }
+    });
+}
+</script>
+{% endblock %} 

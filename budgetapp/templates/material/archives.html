@@ -1,0 +1,175 @@
+{% extends "material/base.html" %}
+{% load budget_filters %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="material-icons">archive</i>
+            Archived Budgets
+        </h2>
+        <a href="{% url 'home' %}" class="btn btn-raised btn-primary">
+            <i class="material-icons">arrow_back</i> Back to Home
+        </a>
+    </div>
+
+    {% if archives_by_year %}
+        {% for year, archives in archives_by_year.items %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0">
+                    <i class="material-icons">calendar_today</i>
+                    {{ year }}
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for archive in archives %}
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title d-flex align-items-center">
+                                    <i class="material-icons me-2">folder</i>
+                                    {{ archive.budget.month|date:"F Y" }}
+                                </h5>
+                                <div class="card-text">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="material-icons me-2">account_balance_wallet</i>
+                                        Total Spent: {{ archive.budget.currency }} 
+                                        {{ archive.budget.expenses.all|sum_expenses|floatformat:2 }}
+                                    </div>
+                                    <small class="text-muted d-flex align-items-center">
+                                        <i class="material-icons me-2">access_time</i>
+                                        Archived: {{ archive.archived_date|date:"M d, Y" }}
+                                    </small>
+                                </div>
+                                <div class="mt-3 d-flex gap-2">
+                                    <a href="{% url 'budget_detail' year=archive.budget.month.year month=archive.budget.month.month %}" 
+                                       class="btn btn-raised btn-info btn-sm">
+                                        <i class="material-icons">visibility</i>
+                                        View
+                                    </a>
+                                    <button class="btn btn-raised btn-danger btn-sm delete-archive-btn"
+                                            data-year-month="{{ archive.budget.month|date:'Y-m' }}"
+                                            data-delete-url="{% url 'delete_archived_budget' year_month=archive.budget.month|date:'Y-m' %}">
+                                        <i class="material-icons">delete</i>
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card">
+            <div class="card-body">
+                <div class="alert alert-info d-flex align-items-center">
+                    <i class="material-icons me-2">info</i>
+                    No archived budgets found.
+                    {% if user.is_staff %}
+                    <small class="d-block mt-2">
+                        <i class="material-icons">bug_report</i>
+                        Debug info: Check if ArchivedBudget table has entries and if Budget records exist.
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% csrf_token %}
+
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Material Design components
+    $('body').bootstrapMaterialDesign();
+    
+    document.querySelectorAll('.delete-archive-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const yearMonth = this.dataset.yearMonth;
+            const deleteUrl = this.dataset.deleteUrl;
+            
+            const result = await Swal.fire({
+                title: 'Delete Archived Budget?',
+                text: "This action cannot be undone!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'No, keep it',
+                reverseButtons: true
+            });
+            
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(deleteUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        await Swal.fire({
+                            title: 'Deleted!',
+                            text: 'Archived budget has been deleted.',
+                            icon: 'success',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                        
+                        // Fade out and remove the card with animation
+                        const card = this.closest('.col-md-3');
+                        card.style.transition = 'opacity 0.3s ease';
+                        card.style.opacity = '0';
+                        setTimeout(() => {
+                            card.remove();
+                            
+                            // Check if this was the last archive in the year
+                            const yearCard = card.closest('.card');
+                            if (yearCard && !yearCard.querySelector('.col-md-3')) {
+                                yearCard.style.transition = 'opacity 0.3s ease';
+                                yearCard.style.opacity = '0';
+                                setTimeout(() => {
+                                    yearCard.remove();
+                                    
+                                    // If no more archives, show the "no archives" message
+                                    if (!document.querySelector('.col-md-3')) {
+                                        const container = document.querySelector('.container');
+                                        const noArchivesCard = document.createElement('div');
+                                        noArchivesCard.className = 'card';
+                                        noArchivesCard.innerHTML = `
+                                            <div class="card-body">
+                                                <div class="alert alert-info d-flex align-items-center">
+                                                    <i class="material-icons me-2">info</i>
+                                                    No archived budgets found.
+                                                </div>
+                                            </div>
+                                        `;
+                                        container.appendChild(noArchivesCard);
+                                    }
+                                }, 300);
+                            }
+                        }, 300);
+                    } else {
+                        const data = await response.json();
+                        Swal.fire('Error!', data.message || 'Something went wrong.', 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error!', 'Something went wrong.', 'error');
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock extra_js %} 
