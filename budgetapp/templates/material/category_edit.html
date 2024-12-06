@@ -47,33 +47,45 @@
                         </div>
                         
                         <div class="form-group mb-3">
-                            <label for="{{ form.icon.id_for_label }}" class="bmd-label-floating d-flex align-items-center">
-                                Icon
-                                <i class="material-icons ms-2" id="icon-preview" style="color: {{ category.color }}">
-                                    {% if category.icon == 'fa-home' %}home
-                                    {% elif category.icon == 'fa-car' %}directions_car
-                                    {% elif category.icon == 'fa-utensils' %}restaurant
-                                    {% else %}category{% endif %}
-                                </i>
-                            </label>
-                            {{ form.icon }}
-                            {% if form.icon.errors %}
-                                <div class="text-danger small">{{ form.icon.errors }}</div>
-                            {% endif %}
+                            <label for="{{ form.icon.id_for_label }}" class="form-label">Icon</label>
+                            <select name="icon" id="{{ form.icon.id_for_label }}" class="form-select">
+                                <option value="fa-home" {% if category.icon == 'fa-home' %}selected{% endif %}>🏠 Home</option>
+                                <option value="fa-car" {% if category.icon == 'fa-car' %}selected{% endif %}>🚗 Car</option>
+                                <option value="fa-utensils" {% if category.icon == 'fa-utensils' %}selected{% endif %}>🍽️ Food</option>
+                                <option value="fa-shopping-cart" {% if category.icon == 'fa-shopping-cart' %}selected{% endif %}>🛒 Shopping</option>
+                                <option value="fa-medical-kit" {% if category.icon == 'fa-medical-kit' %}selected{% endif %}>⚕️ Medical</option>
+                                <option value="fa-graduation-cap" {% if category.icon == 'fa-graduation-cap' %}selected{% endif %}>🎓 Education</option>
+                                <option value="fa-plane" {% if category.icon == 'fa-plane' %}selected{% endif %}>✈️ Travel</option>
+                                <option value="fa-gamepad" {% if category.icon == 'fa-gamepad' %}selected{% endif %}>🎮 Entertainment</option>
+                                <option value="fa-gift" {% if category.icon == 'fa-gift' %}selected{% endif %}>🎁 Gift</option>
+                            </select>
                             <small class="form-text text-muted">
-                                <i class="material-icons">palette</i>
+                                <i class="material-icons">info</i>
                                 Choose an icon that best represents this category
                             </small>
                         </div>
                         
                         <div class="form-group mb-3">
-                            <label for="{{ form.color.id_for_label }}" class="bmd-label-floating">Color</label>
+                            <label for="{{ form.color.id_for_label }}" class="form-label">Color</label>
                             {{ form.color }}
-                            {% if form.color.errors %}
-                                <div class="text-danger small">{{ form.color.errors }}</div>
-                            {% endif %}
+                            <div class="color-picker-container mt-2">
+                                <div class="color-options">
+                                    <button type="button" class="color-option" data-color="#2196F3" style="background-color: #2196F3"></button>
+                                    <button type="button" class="color-option" data-color="#4CAF50" style="background-color: #4CAF50"></button>
+                                    <button type="button" class="color-option" data-color="#F44336" style="background-color: #F44336"></button>
+                                    <button type="button" class="color-option" data-color="#FFC107" style="background-color: #FFC107"></button>
+                                    <button type="button" class="color-option" data-color="#9C27B0" style="background-color: #9C27B0"></button>
+                                    <button type="button" class="color-option" data-color="#00BCD4" style="background-color: #00BCD4"></button>
+                                    <button type="button" class="color-option" data-color="#FF9800" style="background-color: #FF9800"></button>
+                                    <button type="button" class="color-option" data-color="#795548" style="background-color: #795548"></button>
+                                    <button type="button" class="color-option" data-color="#607D8B" style="background-color: #607D8B"></button>
+                                    <button type="button" class="color-option" data-color="#E91E63" style="background-color: #E91E63"></button>
+                                </div>
+                                <input type="color" id="custom-color" class="mt-2" value="{{ category.color|default:'#2196F3' }}">
+                                <label for="custom-color" class="form-text text-muted">Or pick a custom color</label>
+                            </div>
                             <small class="form-text text-muted">
-                                <i class="material-icons">format_color_fill</i>
+                                <i class="material-icons">palette</i>
                                 Select a color for visual identification
                             </small>
                         </div>
@@ -124,81 +136,55 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Material Design components
     $('body').bootstrapMaterialDesign();
-    
-    // Icon mapping from Font Awesome to Material Icons
-    const iconMapping = {
-        'fa-home': 'home',
-        'fa-car': 'directions_car',
-        'fa-utensils': 'restaurant',
-        'fa-shopping-cart': 'shopping_cart',
-        'fa-medical-kit': 'medical_services',
-        'fa-graduation-cap': 'school',
-        'fa-plane': 'flight',
-        'fa-gamepad': 'sports_esports',
-        'fa-gift': 'card_giftcard'
-    };
 
-    // Form elements
-    const nameInput = document.getElementById('{{ form.name.id_for_label }}');
-    const descInput = document.getElementById('{{ form.description.id_for_label }}');
-    const iconInput = document.getElementById('{{ form.icon.id_for_label }}');
     const colorInput = document.getElementById('{{ form.color.id_for_label }}');
-    
-    // Add material form classes
-    document.querySelectorAll('.form-control').forEach(input => {
-        input.closest('.form-group').classList.add('bmd-form-group');
-        if (input.value) {
-            input.classList.add('is-filled');
-        }
-    });
+    const customColorInput = document.getElementById('custom-color');
+    const colorOptions = document.querySelectorAll('.color-option');
 
-    // Initialize Pickr color picker
-    const pickr = Pickr.create({
-        el: colorInput,
-        theme: 'classic',
-        default: '{{ category.color }}',
-        components: {
-            preview: true,
-            opacity: true,
-            hue: true,
-            interaction: {
-                hex: true,
-                rgba: true,
-                input: true,
-                save: true
+    // Set initial color
+    if (colorInput.value) {
+        customColorInput.value = colorInput.value;
+        updatePreview(colorInput.value);
+        // Find and select the matching color option if it exists
+        colorOptions.forEach(option => {
+            if (option.dataset.color.toLowerCase() === colorInput.value.toLowerCase()) {
+                option.classList.add('selected');
             }
-        },
-        swatches: [
-            '#2196F3', '#4CAF50', '#F44336', '#FFC107', '#9C27B0',
-            '#00BCD4', '#FF9800', '#795548', '#607D8B', '#E91E63'
-        ]
-    });
+        });
+    }
 
-    // Update color on pickr change
-    pickr.on('change', color => {
-        const hexColor = color.toHEXA().toString();
-        colorInput.value = hexColor;
-        previewIcon.style.color = hexColor;
-        iconPreview.style.color = hexColor;
-        previewCard.style.borderLeftColor = hexColor;
-        
-        // Add ripple effect to preview card
-        const ripple = document.createElement('div');
-        ripple.className = 'ripple';
-        ripple.style.backgroundColor = hexColor;
-        previewCard.appendChild(ripple);
-        setTimeout(() => ripple.remove(), 1000);
-    });
-
-    // Add material ripple effect to buttons
-    document.querySelectorAll('.btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            const ripple = document.createElement('div');
-            ripple.className = 'ripple';
-            this.appendChild(ripple);
-            setTimeout(() => ripple.remove(), 1000);
+    // Handle predefined color options
+    colorOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            const color = option.dataset.color;
+            colorInput.value = color;
+            customColorInput.value = color;
+            updatePreview(color);
+            // Update selected state
+            colorOptions.forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
         });
     });
+
+    // Handle custom color input
+    customColorInput.addEventListener('input', (e) => {
+        const color = e.target.value;
+        colorInput.value = color;
+        updatePreview(color);
+        // Remove selected state from predefined colors
+        colorOptions.forEach(opt => opt.classList.remove('selected'));
+    });
+
+    function updatePreview(color) {
+        document.querySelector('.preview-icon').style.color = color;
+        document.querySelector('#preview-card').style.borderLeftColor = color;
+    }
+
+    // Set initial icon selection
+    const iconSelect = document.getElementById('{{ form.icon.id_for_label }}');
+    if (iconSelect) {
+        iconSelect.value = '{{ category.icon }}';
+    }
 });
 </script>
 {% endblock %} 

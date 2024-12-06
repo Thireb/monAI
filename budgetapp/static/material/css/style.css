@@ -481,45 +481,134 @@ body {
 /* Category form specific styles */
 .category-form .form-group {
     position: relative;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    padding-top: 0;
 }
 
-.category-form .form-control {
-    border: none;
-    border-bottom: 1px solid rgba(0,0,0,.12);
-    border-radius: 0;
-    padding: .4375rem 0;
-    background-image: none;
-    background-color: transparent;
+.category-form .form-group label {
+    display: block;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: #495057;
+    font-weight: 500;
+    background: transparent;
+    position: static;
 }
 
-.category-form .form-control:focus {
-    border-color: #2196F3;
-    box-shadow: none;
-}
-
-.category-form .bmd-label-floating {
-    position: absolute;
-    pointer-events: none;
-    transition: 0.2s ease all;
-    color: rgba(0,0,0,.6);
-}
-
-.category-form .form-control:focus ~ .bmd-label-floating,
-.category-form .form-control:not(:placeholder-shown) ~ .bmd-label-floating {
-    transform: translateY(-1.5rem) scale(0.85);
-    color: #2196F3;
+.category-form .form-control,
+.category-form .form-select {
+    margin-top: 0.5rem;
+    padding: 0.75rem 1rem;
+    height: auto;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
 }
 
 /* Color picker styles */
-.pickr {
-    width: 100% !important;
+.category-form .color-picker-container {
+    margin-top: 1rem;
 }
 
-.pickr .pcr-button {
-    width: 100% !important;
-    height: 38px !important;
-    border-radius: 4px;
+.category-form .color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 1rem 0;
+}
+
+.category-form .color-option {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.category-form .color-option:hover {
+    transform: scale(1.1);
+}
+
+.category-form .color-option.selected {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2196F3;
+}
+
+/* Icon select specific styles */
+.category-form .form-select {
+    height: calc(1.5em + 1.5rem + 2px);
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    appearance: none;
+}
+
+/* Color picker styles for category form */
+.category-form .color-picker-container {
+    margin-top: 1rem;
+    padding-top: 0;
+    border: none;
+}
+
+.category-form .color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 1rem 0;
+}
+
+/* Dark mode adjustments for category form */
+[data-theme="dark"] .category-form .form-control,
+[data-theme="dark"] .category-form .form-select {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .category-form .form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e0e0e0' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+
+[data-theme="dark"] .category-form label {
+    color: #e0e0e0;
+}
+
+/* Color picker styles - Updated */
+.color-picker-container {
+    margin-top: 1rem !important;  /* Reduced from 3.5rem */
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0.5rem 0;  /* Reduced from 1rem */
+}
+
+/* Form group with color picker */
+.form-group.mb-3 .color-picker-container {
+    position: relative;
+    margin-top: 2rem;
+}
+
+.form-group.mb-3 .color-picker-container label {
+    position: relative;
+    display: block;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    color: #757575;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .color-picker-container {
+    border-top-color: #404040;
+}
+
+[data-theme="dark"] .form-group.mb-3 .color-picker-container label {
+    color: #adb5bd;
 }
 
 /* Preview card styles */
@@ -632,98 +721,105 @@ body {
 /* Update form group styles */
 .form-group {
     position: relative;
-    margin-bottom: 25px !important;
+    margin-bottom: 2.5rem !important;
+    padding-top: 1.5rem;
 }
 
 .form-group label {
-    display: block;  /* Changed from absolute positioning */
-    position: static; /* Remove absolute positioning */
-    margin-bottom: 8px; /* Add space between label and input */
+    display: block;
+    margin-bottom: 1.25rem;
     font-size: 0.875rem;
-    color: #757575;
+    color: #495057;
     font-weight: 500;
+    position: relative;
+    z-index: 1;
+    background: transparent;
 }
 
+/* Input styles */
 .form-group input,
 .form-group select,
 .form-group textarea {
     display: block;
     width: 100%;
-    height: calc(1.5em + 1rem + 2px); /* Standard height calculation */
-    padding: .5rem .75rem !important;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background-color: #fff;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
     font-size: 1rem;
-    font-weight: 400;
     line-height: 1.5;
-    background-clip: padding-box;
-    box-sizing: border-box;
-}
-
-/* Specific height for textarea */
-.form-group textarea {
-    height: auto;
-    min-height: 100px;
-}
-
-/* Remove any Bootstrap Material Design specific styles that might interfere */
-.form-group.bmd-form-group {
-    padding-top: 0 !important;
-    margin: 0 0 1rem 0 !important;
-}
-
-.form-control {
-    height: auto !important;
-}
-
-/* Override any Material Design transformations */
-.bmd-form-group.is-filled .bmd-label-floating,
-.bmd-form-group.is-focused .bmd-label-floating,
-.bmd-form-group .bmd-label-floating {
-    position: static !important;
-    transform: none !important;
-}
-
-/* Ensure proper text display */
-.form-group input,
-.form-group select {
-    text-overflow: ellipsis;
-}
-
-/* Fix alignment issues */
-.form-group {
-    margin-bottom: 1.5rem !important;
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group label {
-    margin-bottom: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
     color: #495057;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Select specific styles */
+.form-select {
+    height: calc(1.5em + 1.5rem + 2px);
+    padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    appearance: none;
+}
+
+/* Color picker container */
+.color-picker-container {
+    margin-top: 0.5rem !important;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .form-group label {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] .form-group textarea {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e0e0e0' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+
+/* Helper text */
+.form-text {
+    display: block;
+    margin-top: 1rem !important;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+[data-theme="dark"] .form-text {
+    color: #adb5bd;
 }
 
 /* Dark mode adjustments */
 [data-theme="dark"] .form-group input,
 [data-theme="dark"] .form-group select,
 [data-theme="dark"] .form-group textarea {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #fff;
+    background-color: #2d2d2d !important;
+    border-color: #404040 !important;
+    color: #e0e0e0 !important;
 }
 
 [data-theme="dark"] .form-group label {
-    color: #adb5bd;
+    color: #e0e0e0 !important;
+    background: transparent !important;
 }
 
-/* Style for focused state */
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-    border-color: #2196F3;
-    box-shadow: 0 1px 3px rgba(33, 150, 243, 0.2);
+[data-theme="dark"] .form-control:focus {
+    background-color: #2d2d2d !important;
+    border-color: #1976d2 !important;
+    color: #e0e0e0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.25) !important;
 }
 
 /* Style for filled inputs */
@@ -946,4 +1042,187 @@ body {
 [data-theme="dark"] input:-webkit-autofill {
     -webkit-box-shadow: 0 0 0 30px #2d2d2d inset !important;
     -webkit-text-fill-color: #e0e0e0 !important;
+}
+
+/* Color picker styles */
+.pickr {
+    width: 100% !important;
+}
+
+.pickr .pcr-button {
+    width: 100% !important;
+    height: 38px !important;
+    border-radius: 4px;
+}
+
+/* Dark mode adjustments for color picker */
+[data-theme="dark"] .pcr-app {
+    background-color: #2d2d2d !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .pcr-interaction input {
+    background-color: #1e1e1e !important;
+    color: #e0e0e0 !important;
+    border-color: #404040 !important;
+}
+
+[data-theme="dark"] .pcr-interaction .pcr-save {
+    background-color: #1976d2 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .pcr-interaction .pcr-clear {
+    background-color: #dc3545 !important;
+    color: #ffffff !important;
+}
+
+/* Color picker container styles */
+#color-picker-container {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.pcr-app {
+    position: fixed;  /* Change from absolute to fixed */
+    z-index: 1000;   /* Ensure it appears above other elements */
+}
+
+.pcr-button {
+    width: 100%;
+    height: 38px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+/* Hide the original color input */
+input[type="hidden"].color-picker {
+    display: none;
+}
+
+/* Color picker styles */
+.color-picker-container {
+    margin: 1rem 0;
+}
+
+.color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 1rem;
+}
+
+.color-option {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    padding: 0;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.color-option.selected {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2196F3;
+}
+
+input[type="color"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 40px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 2px;
+    background: #fff;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 2px;
+}
+
+input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 2px;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .color-option.selected {
+    box-shadow: 0 0 0 2px #2d2d2d, 0 0 0 4px #2196F3;
+}
+
+[data-theme="dark"] input[type="color"] {
+    background: #2d2d2d;
+    border-color: #404040;
+}
+
+[data-theme="dark"] .form-select {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #404040;
+}
+
+[data-theme="dark"] .form-select option {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+}
+
+/* Icon select specific styles */
+.form-group select.form-select {
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+    height: calc(1.5em + 1.5rem + 2px);
+}
+
+/* Form text (helper text) styles */
+.form-text {
+    margin-top: 1rem !important;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .form-group select.form-select {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .form-group label {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .form-text {
+    color: #adb5bd;
+}
+
+/* Selected color display styles */
+.selected-color-display {
+    margin-bottom: 0.5rem;  /* Reduced from 2rem */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.color-preview {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+[data-theme="dark"] .selected-color-display {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .color-preview {
+    border-color: #404040;
 } 

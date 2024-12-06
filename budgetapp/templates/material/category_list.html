@@ -67,7 +67,7 @@
                     <form method="post">
                         {% csrf_token %}
                         <div class="form-group mb-3">
-                            <label for="{{ form.name.id_for_label }}" class="bmd-label-floating">Name</label>
+                            <label for="{{ form.name.id_for_label }}">Name</label>
                             {{ form.name }}
                             {% if form.name.errors %}
                                 <div class="text-danger small">{{ form.name.errors }}</div>
@@ -79,7 +79,7 @@
                         </div>
                         
                         <div class="form-group mb-3">
-                            <label for="{{ form.description.id_for_label }}" class="bmd-label-floating">Description</label>
+                            <label for="{{ form.description.id_for_label }}">Description</label>
                             {{ form.description }}
                             {% if form.description.errors %}
                                 <div class="text-danger small">{{ form.description.errors }}</div>
@@ -91,10 +91,7 @@
                         </div>
                         
                         <div class="form-group mb-3">
-                            <label for="{{ form.icon.id_for_label }}" class="bmd-label-floating">
-                                Icon
-                                <i class="material-icons" id="icon-preview">category</i>
-                            </label>
+                            <label for="{{ form.icon.id_for_label }}">Icon</label>
                             {{ form.icon }}
                             {% if form.icon.errors %}
                                 <div class="text-danger small">{{ form.icon.errors }}</div>
@@ -106,15 +103,26 @@
                         </div>
                         
                         <div class="form-group mb-3">
-                            <label for="{{ form.color.id_for_label }}" class="bmd-label-floating">Color</label>
+                            <label for="{{ form.color.id_for_label }}" class="form-label">Color</label>
                             {{ form.color }}
-                            {% if form.color.errors %}
-                                <div class="text-danger small">{{ form.color.errors }}</div>
-                            {% endif %}
-                            <small class="form-text text-muted">
-                                <i class="material-icons">palette</i>
-                                Pick a color for the category
-                            </small>
+                            <div class="color-picker-container">
+                                <div class="selected-color-display mb-2">
+                                    Selected Color: <span class="color-preview" id="selectedColorPreview"></span>
+                                    <span id="selectedColorValue">#2196F3</span>
+                                </div>
+                                <div class="color-options">
+                                    <button type="button" class="color-option" data-color="#2196F3" style="background-color: #2196F3"></button>
+                                    <button type="button" class="color-option" data-color="#4CAF50" style="background-color: #4CAF50"></button>
+                                    <button type="button" class="color-option" data-color="#F44336" style="background-color: #F44336"></button>
+                                    <button type="button" class="color-option" data-color="#FFC107" style="background-color: #FFC107"></button>
+                                    <button type="button" class="color-option" data-color="#9C27B0" style="background-color: #9C27B0"></button>
+                                    <button type="button" class="color-option" data-color="#00BCD4" style="background-color: #00BCD4"></button>
+                                    <button type="button" class="color-option" data-color="#FF9800" style="background-color: #FF9800"></button>
+                                    <button type="button" class="color-option" data-color="#795548" style="background-color: #795548"></button>
+                                    <button type="button" class="color-option" data-color="#607D8B" style="background-color: #607D8B"></button>
+                                    <button type="button" class="color-option" data-color="#E91E63" style="background-color: #E91E63"></button>
+                                </div>
+                            </div>
                         </div>
                         
                         <button type="submit" class="btn btn-raised btn-primary">
@@ -161,8 +169,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Color picker preview
     const colorInput = document.getElementById('{{ form.color.id_for_label }}');
-    colorInput.addEventListener('input', function() {
-        iconPreview.style.color = this.value;
+    const colorOptions = document.querySelectorAll('.color-option');
+    const selectedColorPreview = document.getElementById('selectedColorPreview');
+    const selectedColorValue = document.getElementById('selectedColorValue');
+
+    // Function to update color display
+    function updateColorDisplay(color) {
+        selectedColorPreview.style.backgroundColor = color;
+        selectedColorValue.textContent = color;
+        colorInput.value = color;
+    }
+
+    // Set initial color
+    if (colorInput.value) {
+        updateColorDisplay(colorInput.value);
+        colorOptions.forEach(option => {
+            if (option.dataset.color.toLowerCase() === colorInput.value.toLowerCase()) {
+                option.classList.add('selected');
+            }
+        });
+    } else {
+        // Set default color
+        updateColorDisplay('#2196F3');
+    }
+
+    // Handle color selection
+    colorOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            const color = option.dataset.color;
+            updateColorDisplay(color);
+            
+            // Update selected state
+            colorOptions.forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+        });
     });
 });
 

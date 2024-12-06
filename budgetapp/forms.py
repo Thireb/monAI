@@ -9,32 +9,38 @@ class CategoryForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Category Name'
+                'placeholder': 'Enter category name'
             }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'Category Description'
+                'placeholder': 'Enter category description'
             }),
             'icon': forms.Select(attrs={
-                'class': 'form-control',
+                'class': 'form-select'
             }, choices=[
-                ('fa-home', 'Home'),
-                ('fa-car', 'Car'),
-                ('fa-utensils', 'Food'),
-                ('fa-shopping-cart', 'Shopping'),
-                ('fa-medical-kit', 'Medical'),
-                ('fa-graduation-cap', 'Education'),
-                ('fa-plane', 'Travel'),
-                ('fa-gamepad', 'Entertainment'),
-                ('fa-gift', 'Gift'),
+                ('fa-home', '🏠 Home'),
+                ('fa-car', '🚗 Car'),
+                ('fa-utensils', '🍽️ Food'),
+                ('fa-shopping-cart', '🛒 Shopping'),
+                ('fa-medical-kit', '⚕️ Medical'),
+                ('fa-graduation-cap', '🎓 Education'),
+                ('fa-plane', '✈️ Travel'),
+                ('fa-gamepad', '🎮 Entertainment'),
+                ('fa-gift', '🎁 Gift'),
             ]),
             'color': forms.TextInput(attrs={
-                'class': 'form-control',
-                'type': 'color',
-                'data-pickr': 'true'
-            }),
+                'class': 'form-control color-picker',
+                'type': 'hidden'
+            })
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].label = "Category Name"
+        self.fields['description'].label = "Description"
+        self.fields['icon'].label = "Icon"
+        self.fields['color'].label = "Color"
 
 class ExpenseForm(forms.ModelForm):
     class Meta:
