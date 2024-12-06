@@ -209,6 +209,25 @@ body {
 
 [data-theme="dark"] .card {
     background-color: #1e1e1e;
+    border-color: #2d2d2d;
+}
+
+[data-theme="dark"] .card-header {
+    background-color: #252525;
+    border-bottom-color: #2d2d2d;
+}
+
+[data-theme="dark"] .modal-content {
+    background-color: #1e1e1e;
+    border-color: #2d2d2d;
+}
+
+[data-theme="dark"] .modal-header {
+    border-bottom-color: #2d2d2d;
+}
+
+[data-theme="dark"] .modal-footer {
+    border-top-color: #2d2d2d;
 }
 
 [data-theme="dark"] .form-control {
@@ -217,8 +236,85 @@ body {
     color: #ffffff;
 }
 
-[data-theme="dark"] .navbar {
-    background-color: #1e1e1e !important;
+[data-theme="dark"] .form-control:focus {
+    background-color: #2d2d2d;
+    border-color: #2196F3;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .form-text {
+    color: #adb5bd;
+}
+
+[data-theme="dark"] .table {
+    color: #ffffff;
+}
+
+[data-theme="dark"] .table td,
+[data-theme="dark"] .table th {
+    border-color: #2d2d2d;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #adb5bd !important;
+}
+
+[data-theme="dark"] .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+[data-theme="dark"] .btn-secondary {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+    background-color: #404040;
+    border-color: #4d4d4d;
+}
+
+[data-theme="dark"] .form-check-input {
+    background-color: #2d2d2d;
+    border-color: #404040;
+}
+
+[data-theme="dark"] .form-check-input:checked {
+    background-color: #2196F3;
+    border-color: #2196F3;
+}
+
+[data-theme="dark"] select.form-control option {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .progress {
+    background-color: #2d2d2d;
+}
+
+/* Dark mode for tooltips */
+[data-theme="dark"] .tooltip .tooltip-inner {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .tooltip.bs-tooltip-top .tooltip-arrow::before {
+    border-top-color: #2d2d2d;
+}
+
+/* Dark mode for sweet alert */
+[data-theme="dark"] .swal2-popup {
+    background-color: #1e1e1e;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .swal2-title,
+[data-theme="dark"] .swal2-content {
+    color: #ffffff;
+}
+
+[data-theme="dark"] .swal2-actions button {
+    border-color: #404040;
 }
 
 /* Progress bars */
@@ -687,4 +783,167 @@ body {
 
 [data-theme="dark"] .action-btn.action-delete:hover {
     background-color: rgba(220, 53, 69, 0.2);
+}
+
+/* Dark mode styles - Base */
+[data-theme="dark"] {
+    background-color: #121212 !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] body {
+    background-color: #121212 !important;
+    color: #e0e0e0 !important;
+}
+
+/* Dark mode - Navbar */
+[data-theme="dark"] .navbar {
+    background-color: #1a1a1a !important;
+    border-bottom: 1px solid #2d2d2d;
+}
+
+[data-theme="dark"] .navbar-brand,
+[data-theme="dark"] .nav-link,
+[data-theme="dark"] .navbar-dark .navbar-nav .nav-link {
+    color: #e0e0e0 !important;
+}
+
+/* Dark mode - Buttons */
+[data-theme="dark"] .btn {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .btn-raised.btn-primary {
+    background-color: #1976d2 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .btn-raised.btn-secondary {
+    background-color: #424242 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .btn-success {
+    background-color: #2e7d32 !important;
+    color: #ffffff !important;
+}
+
+/* Dark mode - Forms */
+[data-theme="dark"] .form-group label {
+    color: #e0e0e0 !important;
+    background: transparent !important;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] .form-group textarea {
+    background-color: #2d2d2d !important;
+    border-color: #404040 !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .form-control:focus {
+    background-color: #2d2d2d !important;
+    border-color: #1976d2 !important;
+    color: #e0e0e0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.25) !important;
+}
+
+/* Dark mode - Cards */
+[data-theme="dark"] .card {
+    background-color: #1e1e1e !important;
+    border-color: #2d2d2d !important;
+}
+
+[data-theme="dark"] .card-header {
+    background-color: #252525 !important;
+    border-bottom-color: #2d2d2d !important;
+}
+
+/* Dark mode - Budget buttons */
+[data-theme="dark"] .budget-button {
+    background-color: #1e1e1e !important;
+    color: #e0e0e0 !important;
+    border: 1px solid #2d2d2d !important;
+}
+
+[data-theme="dark"] .budget-button:hover {
+    background-color: #252525 !important;
+}
+
+/* Dark mode - Text colors */
+[data-theme="dark"] h1, 
+[data-theme="dark"] h2, 
+[data-theme="dark"] h3, 
+[data-theme="dark"] h4, 
+[data-theme="dark"] h5, 
+[data-theme="dark"] h6 {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .text-muted {
+    color: #9e9e9e !important;
+}
+
+/* Dark mode - Tables */
+[data-theme="dark"] .table {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .table td,
+[data-theme="dark"] .table th {
+    border-color: #2d2d2d !important;
+}
+
+/* Dark mode - Action buttons */
+[data-theme="dark"] .action-btn {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .action-btn.action-delete {
+    color: #f44336 !important;
+}
+
+[data-theme="dark"] .action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Dark mode - Badges */
+[data-theme="dark"] .badge.bg-success {
+    background-color: rgba(46, 125, 50, 0.2) !important;
+    color: #81c784 !important;
+}
+
+[data-theme="dark"] .badge.bg-secondary {
+    background-color: rgba(158, 158, 158, 0.2) !important;
+    color: #e0e0e0 !important;
+}
+
+/* Dark mode - Checkbox */
+[data-theme="dark"] .form-check-input {
+    background-color: #2d2d2d !important;
+    border-color: #404040 !important;
+}
+
+[data-theme="dark"] .form-check-label {
+    color: #e0e0e0 !important;
+}
+
+/* Override Material Design specific styles */
+[data-theme="dark"] .bmd-form-group .form-control,
+[data-theme="dark"] .bmd-form-group.is-focused .form-control {
+    background-image: none !important;
+}
+
+/* Fix select dropdown in dark mode */
+[data-theme="dark"] select option {
+    background-color: #2d2d2d !important;
+    color: #e0e0e0 !important;
+}
+
+/* Fix autofill background */
+[data-theme="dark"] input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 30px #2d2d2d inset !important;
+    -webkit-text-fill-color: #e0e0e0 !important;
 } 
