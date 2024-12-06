@@ -238,6 +238,47 @@ body {
     font-weight: 500;
     padding: 0.4em 0.8em;
     border-radius: 12px;
+    font-size: 0.75rem;
+    letter-spacing: 0.3px;
+}
+
+/* Category badge specific styles */
+.badge[style*="background-color"] {
+    /* For category badges with dynamic colors */
+    opacity: 0.85;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Recurring badge */
+.badge.bg-success {
+    background-color: rgba(76, 175, 80, 0.15) !important;
+    color: #2e7d32;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+/* Non-recurring badge */
+.badge.bg-secondary {
+    background-color: rgba(158, 158, 158, 0.15) !important;
+    color: #757575;
+    border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .badge.bg-success {
+    background-color: rgba(76, 175, 80, 0.2) !important;
+    color: #81c784;
+    border-color: rgba(129, 199, 132, 0.3);
+}
+
+[data-theme="dark"] .badge.bg-secondary {
+    background-color: rgba(158, 158, 158, 0.2) !important;
+    color: #bdbdbd;
+    border-color: rgba(189, 189, 189, 0.3);
+}
+
+[data-theme="dark"] .badge[style*="background-color"] {
+    opacity: 0.7;
 }
 
 /* Alert styles */
@@ -490,4 +531,160 @@ body {
 
 .timeline .countdown {
     font-weight: 500;
+}
+
+/* Update form group styles */
+.form-group {
+    position: relative;
+    margin-bottom: 25px !important;
+}
+
+.form-group label {
+    display: block;  /* Changed from absolute positioning */
+    position: static; /* Remove absolute positioning */
+    margin-bottom: 8px; /* Add space between label and input */
+    font-size: 0.875rem;
+    color: #757575;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    display: block;
+    width: 100%;
+    height: calc(1.5em + 1rem + 2px); /* Standard height calculation */
+    padding: .5rem .75rem !important;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fff;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    background-clip: padding-box;
+    box-sizing: border-box;
+}
+
+/* Specific height for textarea */
+.form-group textarea {
+    height: auto;
+    min-height: 100px;
+}
+
+/* Remove any Bootstrap Material Design specific styles that might interfere */
+.form-group.bmd-form-group {
+    padding-top: 0 !important;
+    margin: 0 0 1rem 0 !important;
+}
+
+.form-control {
+    height: auto !important;
+}
+
+/* Override any Material Design transformations */
+.bmd-form-group.is-filled .bmd-label-floating,
+.bmd-form-group.is-focused .bmd-label-floating,
+.bmd-form-group .bmd-label-floating {
+    position: static !important;
+    transform: none !important;
+}
+
+/* Ensure proper text display */
+.form-group input,
+.form-group select {
+    text-overflow: ellipsis;
+}
+
+/* Fix alignment issues */
+.form-group {
+    margin-bottom: 1.5rem !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #495057;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] .form-group textarea {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #fff;
+}
+
+[data-theme="dark"] .form-group label {
+    color: #adb5bd;
+}
+
+/* Style for focused state */
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #2196F3;
+    box-shadow: 0 1px 3px rgba(33, 150, 243, 0.2);
+}
+
+/* Style for filled inputs */
+.form-group input:not(:placeholder-shown),
+.form-group select:not(:placeholder-shown),
+.form-group textarea:not(:placeholder-shown) {
+    border-color: #2196F3;
+}
+
+/* Adjust modal form groups */
+.modal .form-group {
+    margin-bottom: 20px !important;
+}
+
+/* Ensure labels don't overlap with validation messages */
+.form-group .text-danger {
+    margin-top: 4px;
+    font-size: 0.75rem;
+}
+
+/* Add some spacing after form groups in cards */
+.card .form-group:last-child {
+    margin-bottom: 15px !important;
+}
+
+/* Add these styles for the table */
+.budget-summary-table {
+    width: 100%;
+}
+
+.budget-summary-table td {
+    vertical-align: middle;
+}
+
+.budget-summary-table .action-buttons {
+    white-space: nowrap;
+    min-width: 120px;
+}
+
+/* Style for delete button and its container */
+.action-buttons form {
+    margin: 0;
+    padding: 0;
+    display: inline-flex;
+}
+
+.action-btn.action-delete {
+    color: #dc3545;
+    cursor: pointer;
+    padding: 0;
+    background: transparent;
+}
+
+.action-btn.action-delete:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+[data-theme="dark"] .action-btn.action-delete:hover {
+    background-color: rgba(220, 53, 69, 0.2);
 } 

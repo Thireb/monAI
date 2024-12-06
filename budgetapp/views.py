@@ -443,8 +443,12 @@ def handle_expense_update(request, budget):
 def handle_expense_delete(request, budget):
     expense_id = request.POST.get('expense_id')
     if expense_id:
-        expense = get_object_or_404(Expense, id=expense_id, budget=budget)
-        expense.delete()
-        messages.success(request, 'Expense deleted successfully!')
+        try:
+            expense = get_object_or_404(Expense, id=expense_id, budget=budget)
+            expense_name = expense.name
+            expense.delete()
+            messages.success(request, f'Expense "{expense_name}" deleted successfully!')
+        except Exception as e:
+            messages.error(request, f'Error deleting expense: {str(e)}')
     
     return redirect('budget_detail', year=budget.month.year, month=budget.month.month)

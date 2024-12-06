@@ -5,13 +5,15 @@
 <h1 class="mb-4">Budget for {{ budget.month|date:"F Y" }}</h1>
 
 <!-- Income Modal -->
-<div class="modal fade" id="incomeModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+<div class="modal fade" id="incomeModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="incomeModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">{% if budget.income == 0 %}Set Income{% else %}Update Income{% endif %}</h5>
+                <h5 class="modal-title" id="incomeModalLabel">
+                    {% if budget.income == 0 %}Set Income{% else %}Update Income{% endif %}
+                </h5>
                 {% if budget.income > 0 %}
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 {% endif %}
             </div>
             <div class="modal-body">
@@ -59,13 +61,17 @@
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-6">
+<div class="row">
+    <div class="col-md-4">
         {% if budget.income > 0 %}
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="mb-0">Income Details</h3>
-                <button type="button" class="btn btn-raised btn-primary" data-bs-toggle="modal" data-bs-target="#incomeModal">
+                <button type="button" 
+                        class="btn btn-raised btn-primary" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#incomeModal"
+                        id="updateIncomeBtn">
                     <i class="material-icons">edit</i> Update Income
                 </button>
             </div>
@@ -127,7 +133,7 @@
         </div>
     </div>
     
-    <div class="col-md-6">
+    <div class="col-md-8">
         <!-- Category Statistics Card -->
         <div class="card mb-4">
             <div class="card-header">
@@ -172,19 +178,21 @@
             </div>
             <div class="card-body">
                 <div class="mb-4">
+                    {% with remaining=budget.get_remaining_budget %}
                     <h4>Total Spent: {{ budget.currency }} {{ total_expenses|floatformat:2|intcomma }}</h4>
-                    <h4>Remaining: {{ budget.currency }} {{ budget.get_remaining_budget|floatformat:2|intcomma }}</h4>
+                    <h4>Remaining: {{ budget.currency }} {{ remaining|floatformat:2|intcomma }}</h4>
+                    {% endwith %}
                 </div>
                 <h3>Expenses</h3>
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table budget-summary-table">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Amount</th>
-                                <th>Category</th>
-                                <th>Recurring</th>
-                                <th>Actions</th>
+                                <th style="width: 30%">Name</th>
+                                <th style="width: 15%">Amount</th>
+                                <th style="width: 20%">Category</th>
+                                <th style="width: 15%">Recurring</th>
+                                <th style="width: 20%">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -239,7 +247,8 @@
                                     <div class="action-buttons">
                                         <a href="{% url 'expense_detail' expense_id=expense.id %}" 
                                            class="action-btn action-view"
-                                           data-tooltip="View breakdown">
+                                           data-bs-toggle="tooltip" 
+                                           title="View breakdown">
                                             <i class="material-icons">list</i>
                                         </a>
                                         <button class="action-btn action-edit edit-expense"
@@ -248,15 +257,21 @@
                                                 data-expense-amount="{{ expense.amount }}"
                                                 data-expense-category="{{ expense.category.id|default:'' }}"
                                                 data-expense-recurring="{{ expense.is_recurring|lower }}"
-                                                data-tooltip="Edit expense">
+                                                data-bs-toggle="tooltip" 
+                                                title="Edit expense">
                                             <i class="material-icons">edit</i>
                                         </button>
-                                        <button class="action-btn action-delete delete-expense"
-                                                data-expense-id="{{ expense.id }}"
-                                                data-expense-name="{{ expense.name }}"
-                                                data-tooltip="Delete expense">
-                                            <i class="material-icons">delete</i>
-                                        </button>
+                                        <form method="post" class="delete-form" onsubmit="return handleDelete(event, '{{ expense.name }}')">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="form_type" value="delete_expense">
+                                            <input type="hidden" name="expense_id" value="{{ expense.id }}">
+                                            <button type="submit" 
+                                                    class="action-btn action-delete"
+                                                    data-bs-toggle="tooltip" 
+                                                    title="Delete expense">
+                                                <i class="material-icons">delete</i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -305,11 +320,64 @@
 
 {% block extra_js %}
 <script>
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
     // Initialize Material Design components
     $('body').bootstrapMaterialDesign();
-    
-    // Rest of your existing JavaScript code...
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Initialize Bootstrap modal
+    const incomeModalEl = document.getElementById('incomeModal');
+    if (incomeModalEl) {
+        const incomeModal = new bootstrap.Modal(incomeModalEl, {
+            keyboard: false,
+            backdrop: 'static'
+        });
+
+        // Show modal if income is 0
+        {% if budget.income == 0 %}
+            incomeModal.show();
+        {% endif %}
+
+        // Handle update income button click
+        const updateIncomeBtn = document.querySelector('[data-bs-target="#incomeModal"]');
+        if (updateIncomeBtn) {
+            updateIncomeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                incomeModal.show();
+            });
+        }
+
+        // Handle modal close
+        incomeModalEl.addEventListener('hidden.bs.modal', function () {
+            document.querySelector('.income-form').reset();
+        });
+    }
 });
+
+async function handleDelete(event, expenseName) {
+    event.preventDefault(); // Prevent form submission
+    
+    const result = await Swal.fire({
+        title: 'Delete Expense?',
+        text: `Are you sure you want to delete "${expenseName}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, keep it',
+        reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+        event.target.submit(); // Submit the form if confirmed
+    }
+    return false;
+}
 </script>
 {% endblock extra_js %} 

@@ -3,6 +3,8 @@ from django.utils import timezone
 from decimal import Decimal
 from django.core.cache import cache
 from django.utils.text import slugify
+from django.db.models import Sum, Value, DecimalField
+from django.db.models.functions import Coalesce
 
 class Budget(models.Model):
     """
@@ -29,19 +31,13 @@ class Budget(models.Model):
         """Return True if the budget was edited after creation"""
         return self.updated_at > self.created_at
 
-    def get_remaining_budget(self) -> Decimal:
-        """Calculate remaining budget with caching."""
-        cache_key = f'budget_remaining_{self.id}'
-        cached_value = cache.get(cache_key)
-        if cached_value is not None:
-            return cached_value
-
+    def get_remaining_budget(self):
+        """Calculate remaining budget after all expenses"""
         total_expenses = self.expenses.aggregate(
-            total=models.Sum('amount'))['total'] or Decimal('0')
-        remaining = self.income - total_expenses
+            total=Coalesce(Sum('amount'), Value(0), output_field=DecimalField())
+        )['total']
         
-        cache.set(cache_key, remaining, timeout=3600)  # Cache for 1 hour
-        return remaining
+        return self.income - total_expenses if self.income else Decimal('0.00')
 
     @staticmethod
     def get_currency_choices():
