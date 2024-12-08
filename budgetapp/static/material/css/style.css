@@ -721,18 +721,19 @@ body {
 /* Update form group styles */
 .form-group {
     position: relative;
-    margin-bottom: 2.5rem !important;
-    padding-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-top: 0;
 }
 
 .form-group label {
+    position: static;
     display: block;
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.5rem;
     font-size: 0.875rem;
     color: #495057;
     font-weight: 500;
-    position: relative;
-    z-index: 1;
+    transition: none;
+    transform: none;
     background: transparent;
 }
 
@@ -831,7 +832,8 @@ body {
 
 /* Adjust modal form groups */
 .modal .form-group {
-    margin-bottom: 20px !important;
+    margin-bottom: 1.5rem;
+    padding-top: 0;
 }
 
 /* Ensure labels don't overlap with validation messages */
