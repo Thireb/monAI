@@ -2,6 +2,15 @@
 {% load humanize %}
 
 {% block content %}
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
 <h1 class="mb-4">Budget for {{ budget.month|date:"F Y" }}</h1>
 
 <!-- Income Modal -->
@@ -88,6 +97,7 @@
             <div class="card-body">
                 <form method="post" id="expense-form">
                     {% csrf_token %}
+                    <input type="hidden" name="form_type" value="expense">
                     <input type="hidden" name="expense_id" id="expense_id">
                     <div class="form-group mb-3">
                         <label for="{{ form.name.id_for_label }}">Name</label>
@@ -330,6 +340,49 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
+    // Handle edit expense button clicks
+    const editButtons = document.querySelectorAll('.edit-expense');
+    const expenseForm = document.getElementById('expense-form');
+    const expenseFormTitle = document.getElementById('expense-form-title');
+    const submitBtn = document.getElementById('expense-submit-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const expenseData = this.dataset;
+            
+            // Update form fields with expense data
+            document.getElementById('expense_id').value = expenseData.expenseId;
+            document.querySelector('input[name="name"]').value = expenseData.expenseName;
+            document.querySelector('input[name="amount"]').value = expenseData.expenseAmount;
+            document.querySelector('select[name="category"]').value = expenseData.expenseCategory;
+            document.querySelector('input[name="is_recurring"]').checked = 
+                expenseData.expenseRecurring === 'true';
+            
+            // Update form appearance
+            expenseFormTitle.textContent = 'Edit Expense';
+            submitBtn.innerHTML = '<i class="material-icons">save</i> Update Expense';
+            cancelEditBtn.classList.remove('d-none');
+            
+            // Scroll to form
+            expenseForm.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+    
+    // Handle cancel edit button
+    if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', function() {
+            // Reset form
+            expenseForm.reset();
+            document.getElementById('expense_id').value = '';
+            
+            // Reset form appearance
+            expenseFormTitle.textContent = 'Add New Expense';
+            submitBtn.innerHTML = '<i class="material-icons">add</i> Add Expense';
+            cancelEditBtn.classList.add('d-none');
+        });
+    }
+
     // Initialize Bootstrap modal
     const incomeModalEl = document.getElementById('incomeModal');
     if (incomeModalEl) {
@@ -338,12 +391,10 @@ document.addEventListener('DOMContentLoaded', function() {
             backdrop: 'static'
         });
 
-        // Show modal if income is 0
         {% if budget.income == 0 %}
             incomeModal.show();
         {% endif %}
 
-        // Handle update income button click
         const updateIncomeBtn = document.querySelector('[data-bs-target="#incomeModal"]');
         if (updateIncomeBtn) {
             updateIncomeBtn.addEventListener('click', function(e) {
@@ -352,7 +403,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Handle modal close
         incomeModalEl.addEventListener('hidden.bs.modal', function () {
             document.querySelector('.income-form').reset();
         });
@@ -360,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function handleDelete(event, expenseName) {
-    event.preventDefault(); // Prevent form submission
+    event.preventDefault();
     
     const result = await Swal.fire({
         title: 'Delete Expense?',
@@ -375,7 +425,7 @@ async function handleDelete(event, expenseName) {
     });
 
     if (result.isConfirmed) {
-        event.target.submit(); // Submit the form if confirmed
+        event.target.submit();
     }
     return false;
 }

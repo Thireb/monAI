@@ -164,3 +164,17 @@ class IncomeHistory(models.Model):
 
     def __str__(self):
         return f"Income change for {self.budget.month.strftime('%B %Y')}"
+
+class RecentUpdate(models.Model):
+    budget = models.ForeignKey('Budget', on_delete=models.CASCADE, related_name='recent_updates')
+    action_type = models.CharField(max_length=50)  # e.g., 'expense_added', 'income_updated'
+    description = models.TextField()
+    timestamp = models.DateTimeField(default=timezone.now)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.action_type} - {self.description}"

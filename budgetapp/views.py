@@ -3,7 +3,7 @@ from django.views.generic import ListView
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from django.contrib import messages
-from .models import Budget, Expense, SubExpense, BudgetLog, ArchivedBudget, BudgetDeletionLog, Category, IncomeHistory
+from .models import Budget, Expense, SubExpense, BudgetLog, ArchivedBudget, BudgetDeletionLog, Category, IncomeHistory, RecentUpdate
 from .forms import ExpenseForm, SubExpenseForm, CategoryForm
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -15,6 +15,7 @@ from django.db.models import Sum, F, Value, DecimalField
 from django.db.models.functions import Coalesce
 from django.views.decorators.http import require_http_methods
 from django.core.cache import cache
+from django.urls import reverse
 
 TEMPLATE_VERSION = 'material'  # or 'budgetapp' for original templates
 
@@ -127,7 +128,26 @@ def budget_detail(request, year, month):
         if form_type == 'income':
             return handle_income_update(request, budget)
         elif form_type == 'expense':
-            return handle_expense_update(request, budget)
+            form = ExpenseForm(request.POST)
+            if form.is_valid():
+                expense = form.save(commit=False)
+                expense.budget = budget
+                expense.save()
+                
+                # Add success message that will appear on the current page
+                messages.success(request, f'Expense "{expense.name}" added successfully!')
+                
+                # Create a recent update entry
+                RecentUpdate.objects.create(
+                    budget=budget,
+                    action_type='expense_added',
+                    description=f'Added expense: {expense.name} ({budget.currency} {expense.amount})',
+                    amount=expense.amount,
+                    category=expense.category
+                )
+                
+                # Redirect to the same page to prevent form resubmission
+                return redirect(reverse('budget_detail', kwargs={'year': year, 'month': month}))
         elif form_type == 'delete_expense':
             return handle_expense_delete(request, budget)
         
@@ -137,7 +157,7 @@ def budget_detail(request, year, month):
     expenses = budget.expenses.select_related('category').prefetch_related(
         'sub_expenses',
         'category'
-    )
+    ).order_by('-created_at')
     
     # Calculate totals using database aggregation
     total_expenses = expenses.aggregate(
