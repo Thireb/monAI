@@ -5,14 +5,11 @@
 - Added dark mode support with smooth transitions
 - Enhanced UI components with Material Design principles
 - Improved form styling with fixed labels (removed floating animations)
-- Added swipe gesture animations and visual feedback
+- Enhanced swipe animations with better hover feedback and reduced distance
 - Added color picker for category management
 - Enhanced accessibility features
 - Fixed expense ordering to show latest first
 - Improved expense edit functionality
-- Enhanced swipe animations with improved visual feedback
-- Added better touch device support for swipe gestures
-- Improved swipe indicators and progress feedback
 
 ## Current Features
 1. Budget Management
@@ -63,9 +60,9 @@
    - [✓] Removed floating label animations for better usability
    - [✓] Fixed expense ordering (latest first)
    - [✓] Enhanced expense edit functionality
-   - [✓] Enhanced swipe animations and feedback
-   - [✓] Improved touch device support
-   - [✓] Added swipe progress indicators
+   - [✓] Improved swipe animations and feedback
+   - [✓] Optimized swipe distance for better UX
+   - [✓] Added hover-based swipe hints
 
 ## Pending Improvements
 1. Income Management
@@ -140,45 +137,46 @@
 - POST /archives/delete/<year-month>/: Delete archived budget
 
 ## Recent Changes Log
-1. 2024-03-xx: Expense Management Updates
+1. 2024-03-xx: Swipe Animation Improvements
+   - Reduced swipe distance for better usability
+   - Added hover-based animation hints
+   - Fixed swipe position stability
+   - Improved touch device support
+   - Enhanced visual feedback during swipes
+   - Optimized transition animations
+
+2. 2024-03-xx: Expense Management Updates
    - Fixed expense ordering to show latest entries first
    - Enhanced expense edit functionality
    - Improved form reset behavior
    - Added proper form validation feedback
    - Updated expense form UI/UX
 
-2. 2024-03-xx: Form Style Updates
+3. 2024-03-xx: Form Style Updates
    - Removed floating label animations
    - Implemented fixed label positions
    - Enhanced form readability and usability
    - Improved form validation feedback
    - Updated dark mode compatibility for forms
 
-3. 2024-03-xx: Material Design Implementation
+4. 2024-03-xx: Material Design Implementation
    - Added comprehensive Material Design styling
    - Implemented dark mode support
    - Enhanced component animations
    - Improved form styling and validation
 
-4. 2024-03-xx: UI/UX Enhancements
+5. 2024-03-xx: UI/UX Enhancements
    - Added swipe gesture animations
    - Enhanced visual feedback
    - Improved color picker interface
    - Added accessibility features
 
-5. 2024-03-xx: Component Updates
+6. 2024-03-xx: Component Updates
    - Updated all forms with fixed label positions
    - Enhanced modal dialogs
    - Improved button and input styling
    - Added transition effects
    - Fixed form validation feedback
-
-6. 2024-03-xx: Swipe Animation Updates
-   - Enhanced swipe animations with better transitions
-   - Added visual progress indicators
-   - Improved touch device support
-   - Added initial swipe hint animation
-   - Enhanced dark mode compatibility for swipe actions
 
 ## Notes for Next Session
 - Consider adding data visualization with Material Design charts
@@ -189,6 +187,8 @@
 - Review form validation feedback with fixed labels
 - Consider adding bulk expense actions
 - Add expense search and filtering options
+- Consider adding haptic feedback for swipe actions
+- Optimize animations for lower-end devices
 
 ## Database Migrations Status
 - ✓ Initial migrations

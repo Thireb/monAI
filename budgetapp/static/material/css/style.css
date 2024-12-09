@@ -66,7 +66,13 @@ body {
     cursor: grab;
     border-radius: 8px;
     margin-bottom: 1rem;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover animation */
+@keyframes swipeHint {
+    0%, 100% { transform: translateX(0); }
+    35% { transform: translateX(-8px); }
+    65% { transform: translateX(8px); }
 }
 
 .budget-button {
@@ -84,9 +90,82 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     transform-origin: center;
     will-change: transform;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
                 background-color 0.3s ease,
                 box-shadow 0.3s ease;
+}
+
+/* Only animate on hover when not being swiped */
+.budget-item:hover:not(.swiping):not(.delete-ready):not(.archive-ready) .budget-button {
+    animation: swipeHint 2s ease-in-out infinite;
+}
+
+/* Swipe states - reduced distance and no flickering */
+.budget-item.swiping .budget-button {
+    transition: none;
+    transform: translateX(var(--swipe-amount, 0));
+}
+
+/* Reduce swipe threshold - adjust these values */
+.budget-item.delete-ready .budget-button {
+    transform: translateX(80px) !important; /* Reduced from 100% */
+    background-color: #dc3545;
+    color: white;
+}
+
+.budget-item.archive-ready .budget-button {
+    transform: translateX(-80px) !important; /* Reduced from -100% */
+    background-color: #2196F3;
+    color: white;
+}
+
+/* Swipe background indicators - adjust positions */
+.budget-item::before,
+.budget-item::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 80px; /* Match the swipe distance */
+    background-color: #dc3545;
+    z-index: 1;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Material Icons';
+    color: white;
+    font-size: 1.5rem;
+}
+
+.budget-item::before {
+    left: 0;
+    content: 'delete';
+    background-color: #dc3545;
+}
+
+.budget-item::after {
+    right: 0;
+    content: 'archive';
+    background-color: #2196F3;
+}
+
+/* Show background on swipe */
+.budget-item.delete-ready::before,
+.budget-item.archive-ready::after {
+    opacity: 1;
+}
+
+/* Progress indicators - adjust max width */
+.swipe-progress {
+    position: absolute;
+    bottom: 0;
+    height: 3px;
+    width: 0;
+    max-width: 80px; /* Match the swipe distance */
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 3;
 }
 
 /* Swipe background indicators */
