@@ -30,4 +30,41 @@ document.addEventListener('DOMContentLoaded', function() {
         themeText.textContent = isDark ? 'Light Mode' : 'Dark Mode';
         themeIcon.textContent = isDark ? 'light_mode' : 'dark_mode';
     }
+});
+
+// Calculator functions
+function appendToCalc(value) {
+    const display = document.getElementById('calcDisplay');
+    display.value += value;
+}
+
+function clearCalc() {
+    document.getElementById('calcDisplay').value = '';
+}
+
+function calculate() {
+    const display = document.getElementById('calcDisplay');
+    try {
+        display.value = eval(display.value);
+    } catch (error) {
+        display.value = 'Error';
+        setTimeout(clearCalc, 1000);
+    }
+}
+
+// Add keyboard support for calculator
+document.addEventListener('keydown', function(event) {
+    const calculatorModal = document.getElementById('calculatorModal');
+    if (calculatorModal.classList.contains('show')) {
+        const key = event.key;
+        if (/[\d\+\-\*\/\(\)\.]/.test(key)) {
+            event.preventDefault();
+            appendToCalc(key);
+        } else if (key === 'Enter') {
+            event.preventDefault();
+            calculate();
+        } else if (key === 'Escape') {
+            clearCalc();
+        }
+    }
 }); 
