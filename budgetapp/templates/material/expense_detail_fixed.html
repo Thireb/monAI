@@ -9,8 +9,8 @@
         <a
           href="{% url 'budget_detail' year=expense.budget.month.year month=expense.budget.month.month %}"
         >
-          <i class="material-icons">calendar_today</i> {{
-          expense.budget.month|date:"F Y" }}
+          <i class="material-icons">calendar_today</i>
+          {{ expense.budget.month|date:"F Y" }}
         </a>
       </li>
       <li class="breadcrumb-item active">{{ expense.name }}</li>
