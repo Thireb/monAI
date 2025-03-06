@@ -125,6 +125,19 @@ def create_next_budget(request):
         # Create new budget
         budget = Budget.objects.create(month=next_month)
 
+        # Copy recurring expenses from previous budget if it exists
+        if last_budget:
+            recurring_expenses = last_budget.expenses.filter(is_recurring=True)
+            for expense in recurring_expenses:
+                # Create a copy of the recurring expense in the new budget
+                Expense.objects.create(
+                    budget=budget,
+                    name=expense.name,
+                    amount=expense.amount,
+                    is_recurring=True,
+                    category=expense.category,
+                )
+
         # Log the creation
         BudgetLog.objects.create(
             month=budget.month,

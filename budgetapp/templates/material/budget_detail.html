@@ -229,7 +229,7 @@
                                     {% if expense.sub_expenses.exists %}
                                     <div class="ms-3 mt-2 small text-muted">
                                         <i class="material-icons">arrow_right</i>
-                                        Remaining: {{ budget.currency }} {{ expense.get_remaining_amount }}
+                                        Remaining: {{ budget.currency }} {{ expense.get_remaining_amount|floatformat:3 }}
                                     </div>
                                     {% endif %}
                                 </td>
