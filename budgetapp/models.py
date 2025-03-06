@@ -51,6 +51,13 @@ class Budget(models.Model):
         # Remaining is: income - expenses + returns
         return self.income - total_expenses + total_returns
 
+    def get_total_returns(self):
+        """Calculate total returns from all expenses"""
+        total_returns = Decimal("0")
+        for expense in self.expenses.all():
+            total_returns += expense.get_total_returns()
+        return total_returns
+
     @staticmethod
     def get_currency_choices():
         # Common currencies with their names

@@ -1,6 +1,6 @@
 {% extends "material/base.html" %}
 {% load humanize %}
-
+{% load budget_filters %}
 {% block content %}
 {% if messages %}
     {% for message in messages %}
@@ -187,11 +187,55 @@
                 <h3 class="mb-0">Budget Summary</h3>
             </div>
             <div class="card-body">
-                <div class="mb-4">
-                    {% with remaining=budget.get_remaining_budget %}
-                    <h4>Total Spent: {{ budget.currency }} {{ total_expenses|floatformat:2|intcomma }}</h4>
-                    <h4>Remaining: {{ budget.currency }} {{ remaining|floatformat:2|intcomma }}</h4>
-                    {% endwith %}
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="material-icons">account_balance_wallet</i>
+                            Budget Summary
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="budget-stat">
+                                    <h6 class="text-muted">Income</h6>
+                                    <h3>{{ budget.currency }} {{ budget.income|floatformat:2|intcomma }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="budget-stat">
+                                    <h6 class="text-muted">Total Expenses</h6>
+                                    <h3>{{ budget.currency }} {{ total_expenses|floatformat:2|intcomma }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="budget-stat">
+                                    <h6 class="text-muted">Total Returns</h6>
+                                    <h3 class="text-success">{{ budget.currency }} {{ budget.get_total_returns|floatformat:2|intcomma }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="budget-stat">
+                                    <h6 class="text-muted">Remaining (with returns)</h6>
+                                    <h3 class="{% if budget.get_remaining_budget > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ budget.currency }} {{ budget.get_remaining_budget|floatformat:2|intcomma }}
+                                    </h3>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="budget-stat">
+                                    <h6 class="text-muted">Remaining (without returns)</h6>
+                                    {% with remaining_without_returns=budget.income|subtract:total_expenses %}
+                                    <h3 class="{% if remaining_without_returns > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ budget.currency }} {{ remaining_without_returns|floatformat:2|intcomma }}
+                                    </h3>
+                                    {% endwith %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <h3>Expenses</h3>
                 <div class="table-responsive">
