@@ -34,12 +34,22 @@ class Budget(models.Model):
         return self.updated_at > self.created_at
 
     def get_remaining_budget(self):
-        """Calculate remaining budget after all expenses"""
-        total_expenses = self.expenses.aggregate(
+        """Calculate remaining budget after all expenses, accounting for returns"""
+        # Get all expenses
+        expenses = self.expenses.all()
+        
+        # Calculate total expense amounts
+        total_expenses = expenses.aggregate(
             total=Coalesce(Sum("amount"), Value(0), output_field=DecimalField())
         )["total"]
-
-        return self.income - total_expenses if self.income else Decimal("0.00")
+        
+        # Calculate total returns from all sub-expenses
+        total_returns = Decimal("0")
+        for expense in expenses:
+            total_returns += expense.get_total_returns()
+        
+        # Remaining is: income - expenses + returns
+        return self.income - total_expenses + total_returns
 
     @staticmethod
     def get_currency_choices():
@@ -109,18 +119,14 @@ class Expense(models.Model):
         # Get all sub expenses
         sub_expenses = self.sub_expenses.all()
 
-        # Calculate total spent (regular sub-expenses)
-        total_spent = sub_expenses.filter(is_return=False).aggregate(
+        # Calculate total spent (all sub-expenses, including returns)
+        total_spent = sub_expenses.aggregate(
             total=models.Sum("amount")
         )["total"] or Decimal("0")
-
-        # Calculate total returns (sub-expenses marked as returns)
-        total_returns = sub_expenses.filter(is_return=True).aggregate(
-            total=models.Sum("amount")
-        )["total"] or Decimal("0")
-
-        # Remaining amount is: original amount - spent + returns
-        return self.amount - total_spent + total_returns
+        
+        # Remaining is simply: original amount - all spent (including returns)
+        # Returns don't increase the remaining amount of the expense itself
+        return self.amount - total_spent
 
     def get_total_returns(self):
         # Calculate total returns (sub-expenses marked as returns)
