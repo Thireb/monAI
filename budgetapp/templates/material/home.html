@@ -1,165 +1,163 @@
-{% extends "material/base.html" %}
-
-{% block content %}
+{% extends "material/base.html" %} {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Monthly Budgets</h1>
-    <form method="post" action="{% url 'create_next_budget' %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-raised btn-success">
-            <i class="material-icons">add_circle</i>
-            Create {{ next_month|date:"F Y" }} Budget
-        </button>
-    </form>
+<h1>Monthly Budgets</h1>
+<form method="post" action="{% url 'create_next_budget' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-raised btn-success">
+    <i class="material-icons">add_circle</i>
+    Create {{ next_month|date:"F Y" }} Budget
+    </button>
+</form>
 </div>
 
 <div class="d-flex justify-content-between mb-3">
-    <h2>Your Budgets</h2>
-    <a href="{% url 'view_archives' %}" class="btn btn-raised btn-secondary">
-        <i class="material-icons">archive</i> View Archives
-    </a>
+  <h2>Your Budgets</h2>
+  <a href="{% url 'view_archives' %}" class="btn btn-raised btn-secondary">
+    <i class="material-icons">archive</i> View Archives
+  </a>
 </div>
 
 {% if messages %}
 <div class="messages mb-4">
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <i class="material-icons">close</i>
-        </button>
-    </div>
-    {% endfor %}
+  {% for message in messages %}
+  <div
+    class="alert alert-{{ message.tags }} alert-dismissible fade show"
+    role="alert"
+  >
+    {{ message }}
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      <i class="material-icons">close</i>
+    </button>
+  </div>
+  {% endfor %}
 </div>
 {% endif %}
 
 <div class="row mt-4">
-    {% for budget in budgets %}
-    <div class="col-md-3 mb-3">
-        <div class="budget-item" 
-             data-year-month="{{ budget.month|date:'Y-m' }}"
-             data-delete-url="{% url 'delete_budget' year_month=budget.month|date:'Y-m' %}"
-             data-archive-url="{% url 'archive_budget' year_month=budget.month|date:'Y-m' %}">
-            {% now "Y-m" as current_month %}
-            {% with budget_month=budget.month|date:"Y-m" %}
-            <a href="{% url 'budget_detail' year=budget.month.year month=budget.month.month %}" 
-               class="btn btn-raised w-100 budget-button 
-                      {% if budget_month == current_month %}
-                          btn-primary
-                      {% elif budget_month < current_month %}
-                          btn-danger
-                      {% else %}
-                          btn-success
-                      {% endif %}">
-                {{ budget.month|date:"F Y" }}
-            </a>
-            {% endwith %}
-            <div class="swipe-hint">
-                <span class="delete-hint">
-                    <i class="material-icons">arrow_back</i>
-                    Delete
-                </span>
-                <span class="archive-hint">
-                    Archive
-                    <i class="material-icons">arrow_forward</i>
-                </span>
-            </div>
-            <div class="swipe-progress"></div>
+  {% for budget in budgets %}
+  <div class="col-md-3 mb-3">
+    <div
+      class="budget-item"
+      data-year-month="{{ budget.month|date:'Y-m' }}"
+      data-delete-url="{% url 'delete_budget' year_month=budget.month|date:'Y-m' %}"
+      data-archive-url="{% url 'archive_budget' year_month=budget.month|date:'Y-m' %}"
+    >
+    {% now "Y-m" as current_month %} {% with budget_month=budget.month|date:"Y-m" %}
+        <a
+        href="{% url 'budget_detail' year=budget.month.year month=budget.month.month %}"
+        class="btn btn-raised w-100 budget-button {% if budget_month == current_month %} btn-primary {% elif budget_month < current_month %} btn-danger {% else %} btn-success {% endif %}"
+        >
+        {{ budget.month|date:"F Y" }}
+        </a>
+    {% endwith %}
+        <div class="swipe-hint">
+            <span class="delete-hint">
+              <i class="material-icons">arrow_back</i>
+              Delete
+            </span>
+            <span class="archive-hint">
+              Archive
+              <i class="material-icons">arrow_forward</i>
+            </span>
         </div>
+        <div class="swipe-progress"></div>
     </div>
-    {% endfor %}
+  </div>
+  {% endfor %}
 </div>
 
 <div class="row mt-5">
-    <div class="col-md-8 mx-auto">
-        <hr>
-        <h3 class="text-center mb-4">
-            <i class="material-icons">history</i> Recent Updates
-        </h3>
-        <div class="timeline">
-            {% for budget in budgets %}
-                {% if budget.was_edited %}
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                {{ budget.month|date:"F Y" }}
-                                <small class="text-muted float-end">
-                                    {{ budget.updated_at|date:"M d, Y g:i A" }}
-                                </small>
-                            </h5>
-                            <ul class="list-unstyled">
-                                {% for expense in budget.expenses.all|slice:":3" %}
-                                    <li>
-                                        <i class="material-icons">fiber_manual_record</i>
-                                        {{ expense.name }} - {{ budget.currency }} {{ expense.amount }}
-                                        {% if expense.is_recurring %}
-                                            <span class="badge badge-success">Recurring</span>
-                                        {% endif %}
-                                    </li>
-                                {% endfor %}
-                                {% if budget.expenses.count > 3 %}
-                                    <li class="text-muted">
-                                        <i class="material-icons">more_horiz</i>
-                                        And {{ budget.expenses.count|add:"-3" }} more expenses...
-                                    </li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    </div>
-                {% endif %}
-            {% endfor %}
+  <div class="col-md-8 mx-auto">
+    <hr />
+    <h3 class="text-center mb-4">
+      <i class="material-icons">history</i> Recent Updates
+    </h3>
+    <div class="timeline">
+      {% for budget in budgets %} {% if budget.was_edited %}
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title">
+            {{ budget.month|date:"F Y" }}
+            <small class="text-muted float-end">
+              {{ budget.updated_at|date:"M d, Y g:i A" }}
+            </small>
+          </h5>
+          <ul class="list-unstyled">
+            {% for expense in budget.expenses.all|slice:":3" %}
+            <li>
+              <i class="material-icons">fiber_manual_record</i>
+              {{ expense.name }} - {{ budget.currency }} {{ expense.amount }} 
+              {% if expense.is_recurring %}
+              <span class="badge badge-success">Recurring</span>
+              {% endif %}
+            </li>
+            {% endfor %} {% if budget.expenses.count > 3 %}
+            <li class="text-muted">
+              <i class="material-icons">more_horiz</i>
+              And {{ budget.expenses.count|add:"-3" }} more expenses...
+            </li>
+            {% endif %}
+          </ul>
         </div>
+      </div>
+      {% endif %} {% endfor %}
     </div>
+  </div>
 </div>
-{% endblock content %}
-
-{% block extra_js %}
+{% endblock content %} {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener("DOMContentLoaded", function () {
     // Restore auto-dismiss alerts code
-    document.querySelectorAll('.alert').forEach(alert => {
+    document.querySelectorAll(".alert").forEach((alert) => {
+      setTimeout(() => {
+        alert.style.opacity = "0";
         setTimeout(() => {
-            alert.style.opacity = '0';
-            setTimeout(() => {
-                alert.remove();
-            }, 300);
-        }, 5000);
+          alert.remove();
+        }, 300);
+      }, 5000);
     });
 
-    const budgetItems = document.querySelectorAll('.budget-item');
-    
+    const budgetItems = document.querySelectorAll(".budget-item");
+
     async function showDeleteConfirmation(item) {
-        const yearMonth = item.dataset.yearMonth;
-        const deleteUrl = item.dataset.deleteUrl;
-        const budgetName = item.querySelector('.budget-button').textContent.trim();
-        
-        const result = await Swal.fire({
-            title: 'Delete Budget?',
-            text: "This action cannot be undone!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'No, keep it',
-            reverseButtons: true
-        });
-        
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(deleteUrl, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    }
-                });
-                
-                if (response.ok) {
-                    // Add deletion update to Recent Updates
-                    const timeline = document.querySelector('.timeline');
-                    const newCard = document.createElement('div');
-                    newCard.className = 'card mb-3 fade-in';
-                    newCard.style.opacity = '0';
-                    newCard.innerHTML = `
+      const yearMonth = item.dataset.yearMonth;
+      const deleteUrl = item.dataset.deleteUrl;
+      const budgetName = item
+        .querySelector(".budget-button")
+        .textContent.trim();
+
+      const result = await Swal.fire({
+        title: "Delete Budget?",
+        text: "This action cannot be undone!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#dc3545",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Yes, delete it!",
+        cancelButtonText: "No, keep it",
+        reverseButtons: true,
+      });
+
+      if (result.isConfirmed) {
+        try {
+          const response = await fetch(deleteUrl, {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": document.querySelector(
+                "[name=csrfmiddlewaretoken]"
+              ).value,
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.status === "success") {
+            // Add deletion update to Recent Updates
+            const timeline = document.querySelector(".timeline");
+            const newCard = document.createElement("div");
+            newCard.className = "card mb-3 fade-in";
+            newCard.style.opacity = "0";
+            newCard.innerHTML = `
                         <div class="card-body">
                             <h5 class="card-title">
                                 ${budgetName}
@@ -177,223 +175,252 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     `;
 
-                    // Remove the first update if it exists
-                    const firstUpdate = timeline.querySelector('.card');
-                    if (firstUpdate) {
-                        firstUpdate.style.opacity = '0';
-                        setTimeout(() => firstUpdate.remove(), 300);
-                    }
-
-                    // Insert new update at the beginning
-                    if (timeline.firstChild) {
-                        timeline.insertBefore(newCard, timeline.firstChild);
-                    } else {
-                        timeline.appendChild(newCard);
-                    }
-
-                    // Fade in the new card
-                    setTimeout(() => {
-                        newCard.style.opacity = '1';
-                        
-                        // Start countdown
-                        let timeLeft = 15;
-                        const countdownElement = newCard.querySelector('.countdown');
-                        const countdownInterval = setInterval(() => {
-                            timeLeft--;
-                            countdownElement.textContent = timeLeft;
-                            if (timeLeft <= 0) clearInterval(countdownInterval);
-                        }, 1000);
-                        
-                        // Remove after 15 seconds with fade out
-                        setTimeout(() => {
-                            newCard.style.opacity = '0';
-                            setTimeout(() => {
-                                newCard.remove();
-                            }, 300);
-                        }, 15000);
-                    }, 10);
-
-                    // Show success message with auto-dismiss
-                    const successAlert = document.createElement('div');
-                    successAlert.className = 'alert alert-success alert-dismissible fade show';
-                    successAlert.innerHTML = `
-                        Budget has been deleted successfully
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <i class="material-icons">close</i>
-                        </button>
-                    `;
-                    document.querySelector('.messages').appendChild(successAlert);
-
-                    // Auto dismiss after 5 seconds
-                    setTimeout(() => {
-                        successAlert.style.opacity = '0';
-                        setTimeout(() => {
-                            successAlert.remove();
-                        }, 300);
-                    }, 5000);
-
-                    // Remove the budget item
-                    item.style.opacity = '0';
-                    setTimeout(() => item.closest('.col-md-3').remove(), 300);
-                    
-                    Swal.fire('Deleted!', 'Budget has been deleted.', 'success');
-                } else {
-                    throw new Error('Failed to delete');
-                }
-            } catch (error) {
-                Swal.fire('Error!', 'Failed to delete budget.', 'error');
-                item.classList.remove('delete-ready');
+            // Remove the first update if it exists
+            const firstUpdate = timeline.querySelector(".card");
+            if (firstUpdate) {
+              firstUpdate.style.opacity = "0";
+              setTimeout(() => firstUpdate.remove(), 300);
             }
-        } else {
-            item.classList.remove('delete-ready');
+
+            // Insert new update at the beginning
+            if (timeline.firstChild) {
+              timeline.insertBefore(newCard, timeline.firstChild);
+            } else {
+              timeline.appendChild(newCard);
+            }
+
+            // Fade in the new card
+            setTimeout(() => {
+              newCard.style.opacity = "1";
+
+              // Start countdown
+              let timeLeft = 15;
+              const countdownElement = newCard.querySelector(".countdown");
+              const countdownInterval = setInterval(() => {
+                timeLeft--;
+                countdownElement.textContent = timeLeft;
+                if (timeLeft <= 0) clearInterval(countdownInterval);
+              }, 1000);
+
+              // Remove after 15 seconds with fade out
+              setTimeout(() => {
+                newCard.style.opacity = "0";
+                setTimeout(() => {
+                  newCard.remove();
+                }, 300);
+              }, 15000);
+            }, 10);
+
+            // Show success message with auto-dismiss
+            const messagesContainer = document.querySelector(".messages");
+            if (messagesContainer) {
+              const successAlert = document.createElement("div");
+              successAlert.className =
+                "alert alert-success alert-dismissible fade show";
+              successAlert.innerHTML = `
+                            Budget has been deleted successfully
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <i class="material-icons">close</i>
+                            </button>
+                        `;
+              messagesContainer.appendChild(successAlert);
+
+              // Auto dismiss after 5 seconds
+              setTimeout(() => {
+                successAlert.style.opacity = "0";
+                setTimeout(() => {
+                  successAlert.remove();
+                }, 300);
+              }, 5000);
+            }
+
+            // Remove the budget item
+            const budgetTile = item.closest(".col-md-3");
+            if (budgetTile) {
+              item.style.opacity = "0";
+              setTimeout(() => {
+                budgetTile.remove();
+              }, 300);
+            }
+
+            Swal.fire("Deleted!", "Budget has been deleted.", "success");
+          } else {
+            // Handle error response
+            const errorMessage = data.message || "Failed to delete budget";
+            Swal.fire("Error!", errorMessage, "error");
+            item.classList.remove("delete-ready");
+            resetItem(item);
+          }
+        } catch (error) {
+          console.error("Error deleting budget:", error);
+          Swal.fire(
+            "Error!",
+            "Failed to delete budget. Please try again.",
+            "error"
+          );
+          item.classList.remove("delete-ready");
+          resetItem(item);
         }
+      } else {
+        item.classList.remove("delete-ready");
+        resetItem(item);
+      }
     }
 
     async function showArchiveConfirmation(item) {
-        const yearMonth = item.dataset.yearMonth;
-        const archiveUrl = item.dataset.archiveUrl;
-        
-        const result = await Swal.fire({
-            title: 'Archive Budget?',
-            text: "You can access this budget later in the archives.",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#2196F3',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, archive it!',
-            cancelButtonText: 'No, keep it',
-            reverseButtons: true
-        });
-        
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(archiveUrl, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.status === 'warning') {
-                        Swal.fire('Already Archived', 'This budget is already in archives.', 'warning');
-                    } else {
-                        item.style.opacity = '0';
-                        setTimeout(() => item.closest('.col-md-3').remove(), 300);
-                        Swal.fire('Archived!', 'Budget has been archived.', 'success');
-                    }
-                } else {
-                    throw new Error('Failed to archive');
-                }
-            } catch (error) {
-                Swal.fire('Error!', 'Failed to archive budget.', 'error');
-            }
-            item.classList.remove('archive-ready');
-        } else {
-            item.classList.remove('archive-ready');
-        }
-    }
-    
-    budgetItems.forEach(item => {
-        let startX = 0;
-        let currentX = 0;
-        let isDragging = false;
-        const button = item.querySelector('.budget-button');
-        const progressBar = item.querySelector('.swipe-progress');
-        
-        function handleStart(e) {
-            if (e.type.includes('mouse') && e.button !== 0) return;
-            startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-            currentX = startX;
-            isDragging = true;
-            item.classList.remove('delete-ready', 'archive-ready');
-            item.classList.add('swiping');
-            e.preventDefault();
-        }
-        
-        function handleMove(e) {
-            if (!isDragging) return;
-            
-            currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-            const diff = currentX - startX;
-            const buttonWidth = button.offsetWidth;
-            const percentage = Math.abs(diff) / buttonWidth;
-            
-            requestAnimationFrame(() => {
-                // Set transform using CSS custom property
-                button.style.setProperty('--swipe-amount', `${diff}px`);
-                
-                // Limit progress bar to 30% width
-                const progressWidth = Math.min(percentage * 100, 30);
-                progressBar.style.width = `${progressWidth}%`;
-                
-                if (percentage >= 0.5) { // 50% threshold
-                    if (diff < 0) {
-                        item.classList.add('delete-ready');
-                        item.classList.remove('archive-ready');
-                    } else {
-                        item.classList.add('archive-ready');
-                        item.classList.remove('delete-ready');
-                    }
-                } else {
-                    item.classList.remove('delete-ready', 'archive-ready');
-                }
-            });
-            
-            e.preventDefault();
-        }
-        
-        function handleEnd() {
-            if (!isDragging) return;
-            isDragging = false;
-            item.classList.remove('swiping');
-            
-            if (item.classList.contains('delete-ready')) {
-                showDeleteConfirmation(item).then(() => {
-                    if (!item.classList.contains('delete-ready')) {
-                        resetItem(item);
-                    }
-                });
-            } else if (item.classList.contains('archive-ready')) {
-                showArchiveConfirmation(item).then(() => {
-                    if (!item.classList.contains('archive-ready')) {
-                        resetItem(item);
-                    }
-                });
+      const yearMonth = item.dataset.yearMonth;
+      const archiveUrl = item.dataset.archiveUrl;
+
+      const result = await Swal.fire({
+        title: "Archive Budget?",
+        text: "You can access this budget later in the archives.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#2196F3",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Yes, archive it!",
+        cancelButtonText: "No, keep it",
+        reverseButtons: true,
+      });
+
+      if (result.isConfirmed) {
+        try {
+          const response = await fetch(archiveUrl, {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": document.querySelector(
+                "[name=csrfmiddlewaretoken]"
+              ).value,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.status === "warning") {
+              Swal.fire(
+                "Already Archived",
+                "This budget is already in archives.",
+                "warning"
+              );
             } else {
-                resetItem(item);
+              item.style.opacity = "0";
+              setTimeout(() => item.closest(".col-md-3").remove(), 300);
+              Swal.fire("Archived!", "Budget has been archived.", "success");
             }
+          } else {
+            throw new Error("Failed to archive");
+          }
+        } catch (error) {
+          Swal.fire("Error!", "Failed to archive budget.", "error");
         }
-        
-        function resetItem(item) {
-            const button = item.querySelector('.budget-button');
-            requestAnimationFrame(() => {
-                item.classList.remove('swiping');
-                button.style.removeProperty('--swipe-amount');
-                item.querySelector('.swipe-progress').style.width = '0';
-                item.classList.remove('delete-ready', 'archive-ready');
-            });
-        }
-        
-        // Add event listeners
-        item.addEventListener('mousedown', handleStart);
-        document.addEventListener('mousemove', handleMove);
-        document.addEventListener('mouseup', handleEnd);
-        
-        item.addEventListener('touchstart', handleStart, { passive: false });
-        item.addEventListener('touchmove', handleMove, { passive: false });
-        item.addEventListener('touchend', handleEnd);
-        
-        // Prevent click when swiping
-        button.addEventListener('click', function(e) {
-            if (item.classList.contains('swiping') || 
-                item.classList.contains('delete-ready') || 
-                item.classList.contains('archive-ready')) {
-                e.preventDefault();
+        item.classList.remove("archive-ready");
+      } else {
+        item.classList.remove("archive-ready");
+      }
+    }
+
+    budgetItems.forEach((item) => {
+      let startX = 0;
+      let currentX = 0;
+      let isDragging = false;
+      const button = item.querySelector(".budget-button");
+      const progressBar = item.querySelector(".swipe-progress");
+
+      function handleStart(e) {
+        if (e.type.includes("mouse") && e.button !== 0) return;
+        startX = e.type.includes("mouse") ? e.clientX : e.touches[0].clientX;
+        currentX = startX;
+        isDragging = true;
+        item.classList.remove("delete-ready", "archive-ready");
+        item.classList.add("swiping");
+        e.preventDefault();
+      }
+
+      function handleMove(e) {
+        if (!isDragging) return;
+
+        currentX = e.type.includes("mouse") ? e.clientX : e.touches[0].clientX;
+        const diff = currentX - startX;
+        const buttonWidth = button.offsetWidth;
+        const percentage = Math.abs(diff) / buttonWidth;
+
+        requestAnimationFrame(() => {
+          // Set transform using CSS custom property
+          button.style.setProperty("--swipe-amount", `${diff}px`);
+
+          // Limit progress bar to 30% width
+          const progressWidth = Math.min(percentage * 100, 30);
+          progressBar.style.width = `${progressWidth}%`;
+
+          if (percentage >= 0.5) {
+            // 50% threshold
+            if (diff < 0) {
+              item.classList.add("delete-ready");
+              item.classList.remove("archive-ready");
+            } else {
+              item.classList.add("archive-ready");
+              item.classList.remove("delete-ready");
             }
+          } else {
+            item.classList.remove("delete-ready", "archive-ready");
+          }
         });
+
+        e.preventDefault();
+      }
+
+      function handleEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        item.classList.remove("swiping");
+
+        if (item.classList.contains("delete-ready")) {
+          showDeleteConfirmation(item).then(() => {
+            if (!item.classList.contains("delete-ready")) {
+              resetItem(item);
+            }
+          });
+        } else if (item.classList.contains("archive-ready")) {
+          showArchiveConfirmation(item).then(() => {
+            if (!item.classList.contains("archive-ready")) {
+              resetItem(item);
+            }
+          });
+        } else {
+          resetItem(item);
+        }
+      }
+
+      function resetItem(item) {
+        const button = item.querySelector(".budget-button");
+        requestAnimationFrame(() => {
+          item.classList.remove("swiping");
+          button.style.removeProperty("--swipe-amount");
+          item.querySelector(".swipe-progress").style.width = "0";
+          item.classList.remove("delete-ready", "archive-ready");
+        });
+      }
+
+      // Add event listeners
+      item.addEventListener("mousedown", handleStart);
+      document.addEventListener("mousemove", handleMove);
+      document.addEventListener("mouseup", handleEnd);
+
+      item.addEventListener("touchstart", handleStart, { passive: false });
+      item.addEventListener("touchmove", handleMove, { passive: false });
+      item.addEventListener("touchend", handleEnd);
+
+      // Prevent click when swiping
+      button.addEventListener("click", function (e) {
+        if (
+          item.classList.contains("swiping") ||
+          item.classList.contains("delete-ready") ||
+          item.classList.contains("archive-ready")
+        ) {
+          e.preventDefault();
+        }
+      });
     });
-});
+  });
 </script>
-{% endblock extra_js %} 
+{% endblock extra_js %}
