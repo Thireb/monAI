@@ -215,9 +215,20 @@
                                         <ul class="list-unstyled text-muted">
                                             {% for sub_expense in expense.sub_expenses.all %}
                                             <li>
-                                                <i class="material-icons">subdirectory_arrow_right</i>
-                                                {{ sub_expense.name }} - 
-                                                {{ budget.currency }} {{ sub_expense.amount }}
+                                                <i class="material-icons">
+                                                    {% if sub_expense.is_return %}
+                                                    keyboard_return
+                                                    {% else %}
+                                                    subdirectory_arrow_right
+                                                    {% endif %}
+                                                </i>
+                                                <span {% if sub_expense.is_return %}class="text-success"{% endif %}>
+                                                    {{ sub_expense.name }} - 
+                                                    {{ budget.currency }} {{ sub_expense.amount }}
+                                                    {% if sub_expense.is_return %}
+                                                    <span class="badge bg-success">Return</span>
+                                                    {% endif %}
+                                                </span>
                                             </li>
                                             {% endfor %}
                                         </ul>
@@ -230,6 +241,11 @@
                                     <div class="ms-3 mt-2 small text-muted">
                                         <i class="material-icons">arrow_right</i>
                                         Remaining: {{ budget.currency }} {{ expense.get_remaining_amount|floatformat:3 }}
+                                        {% if expense.get_total_returns > 0 %}
+                                        <br>
+                                        <i class="material-icons text-success">keyboard_return</i>
+                                        Returns: {{ budget.currency }} {{ expense.get_total_returns|floatformat:2 }}
+                                        {% endif %}
                                     </div>
                                     {% endif %}
                                 </td>

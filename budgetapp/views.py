@@ -262,6 +262,7 @@ def expense_detail(request, expense_id):
             if form.is_valid():
                 sub_expense = form.save(commit=False)
                 sub_expense.expense = expense
+                sub_expense.is_return = "is_return" in request.POST
                 # Validate that sub_expense amount doesn't exceed remaining amount
                 if sub_expense.amount <= expense.get_remaining_amount():
                     sub_expense.save()
@@ -278,6 +279,7 @@ def expense_detail(request, expense_id):
                 if new_amount <= max_amount:
                     sub_expense.name = request.POST.get("name")
                     sub_expense.amount = new_amount
+                    sub_expense.is_return = "is_return" in request.POST
                     sub_expense.save()
         elif form_type == "delete_sub_expense":
             sub_expense_id = request.POST.get("sub_expense_id")
