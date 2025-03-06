@@ -223,7 +223,7 @@ def budget_detail(request, year, month):
         "total_expenses": total_expenses,
         "expenses_by_category": expenses_by_category,
         "categories": Category.objects.all(),
-        "income_history": budget.income_history.all()[:5],
+        "income_history": IncomeHistory.objects.filter(budget=budget)[:5],
     }
 
     return render(request, f"{TEMPLATE_VERSION}/budget_detail.html", context)
