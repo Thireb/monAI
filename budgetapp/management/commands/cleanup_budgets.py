@@ -1,5 +1,4 @@
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 from budgetapp.models import Budget
 
@@ -13,6 +12,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Successfully removed {deleted_count} automatically created budgets. Only December 2024 remains."
+                f"Successfully removed {deleted_count} automatically created budgets. "
+                f"Only December 2024 remains."
             )
         )

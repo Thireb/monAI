@@ -29,42 +29,42 @@ class Command(BaseCommand):
 
         # Define transform functions for each model
         transforms = {
-            Budget: lambda b: {
-                "id": b.id,
-                "month": b.month.isoformat(),
-                "income": str(b.income),
-                "currency": b.currency,
-                "created_at": b.created_at.isoformat(),
-                "updated_at": b.updated_at.isoformat(),
+            Budget: lambda budget: {
+                "id": budget.id,
+                "month": budget.month.isoformat(),
+                "income": str(budget.income),
+                "currency": budget.currency,
+                "created_at": budget.created_at.isoformat(),
+                "updated_at": budget.updated_at.isoformat(),
             },
-            Expense: lambda e: {
-                "id": e.id,
-                "budget_id": e.budget_id,
-                "name": e.name,
-                "amount": str(e.amount),
-                "is_recurring": e.is_recurring,
-                "created_at": e.created_at.isoformat(),
-                "updated_at": e.updated_at.isoformat(),
+            Expense: lambda expense: {
+                "id": expense.id,
+                "budget_id": expense.budget_id,
+                "name": expense.name,
+                "amount": str(expense.amount),
+                "is_recurring": expense.is_recurring,
+                "created_at": expense.created_at.isoformat(),
+                "updated_at": expense.updated_at.isoformat(),
             },
-            SubExpense: lambda se: {
-                "id": se.id,
-                "expense_id": se.expense_id,
-                "name": se.name,
-                "amount": str(se.amount),
-                "created_at": se.created_at.isoformat(),
-                "updated_at": se.updated_at.isoformat(),
+            SubExpense: lambda sub_expense: {
+                "id": sub_expense.id,
+                "expense_id": sub_expense.expense_id,
+                "name": sub_expense.name,
+                "amount": str(sub_expense.amount),
+                "created_at": sub_expense.created_at.isoformat(),
+                "updated_at": sub_expense.updated_at.isoformat(),
             },
-            BudgetLog: lambda l: {
-                "id": l.id,
-                "month": l.month.isoformat(),
-                "action": l.action,
-                "timestamp": l.timestamp.isoformat(),
-                "details": l.details,
+            BudgetLog: lambda log_entry: {
+                "id": log_entry.id,
+                "month": log_entry.month.isoformat(),
+                "action": log_entry.action,
+                "timestamp": log_entry.timestamp.isoformat(),
+                "details": log_entry.details,
             },
-            ArchivedBudget: lambda a: {
-                "id": a.id,
-                "budget_id": a.budget_id,
-                "archived_date": a.archived_date.isoformat(),
+            ArchivedBudget: lambda archived_budget: {
+                "id": archived_budget.id,
+                "budget_id": archived_budget.budget_id,
+                "archived_date": archived_budget.archived_date.isoformat(),
             },
         }
 

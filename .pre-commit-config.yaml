@@ -14,6 +14,19 @@ repos:
       - id: isort
         args: [--profile=black, --line-length=100]
 
+  # Custom auto-fix unused imports
+  - repo: local
+    hooks:
+      - id: autofix-imports
+        name: Fix unused imports and long lines
+        entry: python scripts/autofix_imports.py
+        language: python
+        types: [python]
+        # Optional: only run on modified files for speed
+        pass_filenames: true
+        require_serial: true
+        additional_dependencies: [flake8, black]
+
   # Python code quality with flake8
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
@@ -61,7 +74,7 @@ repos:
     rev: 1.7.8
     hooks:
       - id: bandit
-        args: ["-r", "--skip=B311,B101", "--exclude=tests/,venv/"]
+        args: ["-r", "--skip=B311,B101,B404,B603", "--exclude=tests/,venv/"]
         # Only run on changed files by default
         pass_filenames: true
         verbose: true

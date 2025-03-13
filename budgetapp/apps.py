@@ -7,4 +7,4 @@ class BudgetappConfig(AppConfig):
 
     def ready(self):
         # Import tasks but don't execute them during app initialization
-        from .tasks import setup_periodic_tasks
+        pass  # No action needed after removing the unused import

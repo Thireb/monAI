@@ -2,7 +2,6 @@ from django.db import transaction
 from django.utils import timezone
 
 from celery import shared_task
-from celery.schedules import crontab
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
 from .models import ArchivedBudget, Budget
