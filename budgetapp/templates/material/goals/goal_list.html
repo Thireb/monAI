@@ -1,0 +1,188 @@
+{% extends "material/base.html" %}
+{% load static %}
+{% block content %}
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1 class="h2 mb-3">Financial Goals</h1>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="{% url 'goal_create' %}" class="btn btn-primary">
+                    <i class="material-icons align-middle">add</i> New Goal
+                </a>
+            </div>
+        </div>
+        <!-- Active Goals -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h2 class="h5 mb-0">Active Goals</h2>
+            </div>
+            <div class="card-body">
+                {% if active_goals %}
+                    <div class="row">
+                        {% for goal in active_goals %}
+                            <div class="col-lg-6 mb-4">
+                                <div class="card goal-card h-100">
+                                    <div class="card-body">
+                                        <h3 class="h5 card-title">{{ goal.name }}</h3>
+                                        <div class="mb-3">
+                                            <div class="progress goal-progress">
+                                                <div class="progress-bar
+                                                            {% if goal.is_on_track %}
+                                                                bg-success
+                                                            {% elif goal.is_on_track == False %}
+                                                                bg-warning
+                                                            {% else %}
+                                                                bg-info
+                                                            {% endif %}"
+                                                     role="progressbar"
+                                                     style="width: {{ goal.progress_percentage }}%"
+                                                     aria-valuenow="{{ goal.progress_percentage }}"
+                                                     aria-valuemin="0"
+                                                     aria-valuemax="100">{{ goal.progress_percentage }}%</div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="text-muted">Current:</span>
+                                            <span class="fw-bold">{{ goal.current_amount }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <span class="text-muted">Target:</span>
+                                            <span class="fw-bold">{{ goal.target_amount }}</span>
+                                        </div>
+                                        {% if goal.target_date %}
+                                            <div class="d-flex justify-content-between small text-muted mb-3">
+                                                <span>Target Date:</span>
+                                                <span>{{ goal.target_date|date:"M d, Y" }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between small mb-3">
+                                                <span class="text-muted">Monthly Needed:</span>
+                                                <span class="fw-bold
+                                                             {% if goal.is_on_track %}
+                                                                 text-success
+                                                             {% elif goal.is_on_track == False %}
+                                                                 text-warning
+                                                             {% endif %}">
+                                                    {{ goal.monthly_contribution_needed|default:"N/A" }}
+                                                </span>
+                                            </div>
+                                        {% endif %}
+                                        <div class="d-flex justify-content-between mt-3">
+                                            <a href="{% url 'goal_detail' goal_id=goal.id %}"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="material-icons align-middle small">visibility</i> Details
+                                            </a>
+                                            <a href="{% url 'goal_edit' goal_id=goal.id %}"
+                                               class="btn btn-sm btn-outline-secondary">
+                                                <i class="material-icons align-middle small">edit</i> Edit
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">
+                            You don't have any active goals yet. <a href="{% url 'goal_create' %}">Create your first goal</a> to start tracking your financial progress!
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Completed Goals -->
+        {% if completed_goals %}
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h2 class="h5 mb-0">Completed Goals</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for goal in completed_goals %}
+                            <div class="col-lg-6 mb-4">
+                                <div class="card goal-card h-100">
+                                    <div class="card-body">
+                                        <h3 class="h5 card-title">{{ goal.name }}</h3>
+                                        <div class="mb-3">
+                                            <div class="progress goal-progress">
+                                                <div class="progress-bar bg-success progress-bar-completed"
+                                                     role="progressbar"
+                                                     aria-valuenow="100"
+                                                     aria-valuemin="0"
+                                                     aria-valuemax="100">100%</div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="text-muted">Amount Saved:</span>
+                                            <span class="fw-bold">{{ goal.current_amount }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <span class="text-muted">Target:</span>
+                                            <span class="fw-bold">{{ goal.target_amount }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-3">
+                                            <a href="{% url 'goal_detail' goal_id=goal.id %}"
+                                               class="btn btn-sm btn-outline-success">
+                                                <i class="material-icons align-middle small">visibility</i> Details
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        <!-- Inactive Goals -->
+        {% if inactive_goals %}
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h2 class="h5 mb-0">Inactive Goals</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for goal in inactive_goals %}
+                            <div class="col-lg-6 mb-4">
+                                <div class="card goal-card h-100">
+                                    <div class="card-body">
+                                        <h3 class="h5 card-title">{{ goal.name }}</h3>
+                                        <div class="mb-3">
+                                            <div class="progress goal-progress">
+                                                <div class="progress-bar bg-secondary"
+                                                     role="progressbar"
+                                                     style="width: {{ goal.progress_percentage }}%"
+                                                     aria-valuenow="{{ goal.progress_percentage }}"
+                                                     aria-valuemin="0"
+                                                     aria-valuemax="100">{{ goal.progress_percentage }}%</div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="text-muted">Current:</span>
+                                            <span class="fw-bold">{{ goal.current_amount }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <span class="text-muted">Target:</span>
+                                            <span class="fw-bold">{{ goal.target_amount }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-3">
+                                            <a href="{% url 'goal_detail' goal_id=goal.id %}"
+                                               class="btn btn-sm btn-outline-secondary">
+                                                <i class="material-icons align-middle small">visibility</i> Details
+                                            </a>
+                                            <a href="{% url 'goal_edit' goal_id=goal.id %}"
+                                               class="btn btn-sm btn-outline-secondary">
+                                                <i class="material-icons align-middle small">edit</i> Edit
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock content %}

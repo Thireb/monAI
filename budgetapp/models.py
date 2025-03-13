@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.core.cache import cache
+from django.conf import settings
 from django.db import models
 from django.db.models import DecimalField, Sum, Value
 from django.db.models.functions import Coalesce
@@ -162,7 +162,7 @@ class BudgetLog(models.Model):
     month = models.DateField()
     action = models.CharField(max_length=10, choices=ACTIONS)
     timestamp = models.DateTimeField(auto_now_add=True)
-    details = models.TextField(blank=True, null=True)
+    details = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-timestamp"]
@@ -191,7 +191,10 @@ class BudgetDeletionLog(models.Model):
         ordering = ["-deleted_at"]
 
     def __str__(self):
-        return f"Budget for {self.month.strftime('%B %Y')} deleted on {self.deleted_at.strftime('%Y-%m-%d %H:%M')}"
+        return (
+            f"Budget for {self.month.strftime('%B %Y')} "
+            f"deleted on {self.deleted_at.strftime('%Y-%m-%d %H:%M')}"
+        )
 
 
 class IncomeHistory(models.Model):
@@ -201,7 +204,7 @@ class IncomeHistory(models.Model):
     old_currency = models.CharField(max_length=3)
     new_currency = models.CharField(max_length=3)
     changed_at = models.DateTimeField(auto_now_add=True)
-    reason = models.TextField(blank=True, null=True)
+    reason = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-changed_at"]
@@ -224,3 +227,122 @@ class RecentUpdate(models.Model):
 
     def __str__(self):
         return f"{self.action_type} - {self.description}"
+
+
+class Goal(models.Model):
+    """Financial goal that a user is saving towards."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    target_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    current_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    start_date = models.DateField(default=timezone.now)
+    target_date = models.DateField(null=True, blank=True)
+    category = models.ForeignKey("Category", on_delete=models.SET_NULL, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def progress_percentage(self):
+        """Return the percentage of progress towards the goal."""
+        if self.target_amount == 0:
+            return 100
+        return min(100, int((self.current_amount / self.target_amount) * 100))
+
+    def is_on_track(self):
+        """
+        Determine if the goal is on track to be completed by the target date.
+        Returns True if on track, False if behind, None if no target date.
+        """
+        if not self.target_date:
+            return None
+
+        # If already completed
+        if self.current_amount >= self.target_amount:
+            return True
+
+        # Calculate how much should be saved by now
+        total_days = (self.target_date - self.start_date).days
+        if total_days <= 0:
+            return False
+
+        days_passed = (timezone.now().date() - self.start_date).days
+        days_passed = max(0, min(days_passed, total_days))  # Clamp between 0 and total_days
+
+        # Calculate how much remains to be saved and how many days are left
+        remaining_amount = self.target_amount - self.current_amount
+        days_remaining = (self.target_date - timezone.now().date()).days
+
+        # If no days remaining but still money to save, definitely behind
+        if days_remaining <= 0 and remaining_amount > 0:
+            return False
+
+        # Special case for brand new goals with very little time
+        if days_passed == 0 and days_remaining <= 5:
+            # For extremely short timeframes, check if we're at least 50% there
+            if self.current_amount < (self.target_amount * Decimal("0.5")):
+                return False
+
+        # If days remaining, calculate daily rate needed
+        if days_remaining > 0:
+            daily_rate_needed = remaining_amount / Decimal(days_remaining)
+            # Get average daily contribution rate so far
+            if days_passed > 0:
+                daily_rate_so_far = self.current_amount / Decimal(days_passed)
+                # Behind if we need to save significantly more per day than we have been
+                if daily_rate_needed > daily_rate_so_far * Decimal("1.5"):
+                    return False
+
+        # Convert to Decimal to avoid type mixing
+        days_ratio = Decimal(days_passed) / Decimal(total_days)
+        expected_progress = days_ratio * self.target_amount
+
+        # At least 90% of expected progress is considered on track
+        return self.current_amount >= expected_progress * Decimal("0.9")
+
+    def monthly_contribution_needed(self):
+        """
+        Calculate the monthly contribution needed to reach the goal by the target date.
+        Returns None if target date is not set or has passed.
+        """
+        if not self.target_date:
+            return None
+
+        today = timezone.now().date()
+
+        # If target date has passed
+        if self.target_date <= today:
+            return None
+
+        # Amount still needed
+        amount_needed = self.target_amount - self.current_amount
+        if amount_needed <= 0:
+            return Decimal("0")
+
+        # Calculate months remaining (approximate)
+        months_remaining = (
+            (self.target_date.year - today.year) * 12 + self.target_date.month - today.month
+        )
+        if self.target_date.day < today.day:
+            months_remaining -= 1  # Adjust if we're past the day of month
+
+        months_remaining = max(1, months_remaining)  # At least 1 month
+
+        # Monthly contribution needed
+        return amount_needed / months_remaining
+
+
+class GoalContribution(models.Model):
+    """Contribution towards a financial goal."""
+
+    goal = models.ForeignKey(Goal, on_delete=models.CASCADE, related_name="contributions")
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateField(default=timezone.now)
+    source = models.CharField(max_length=100, blank=True)
+    notes = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.amount} contribution to {self.goal.name}"

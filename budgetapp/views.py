@@ -2,21 +2,20 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib import messages
-from django.core.cache import cache
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import DecimalField, F, Sum, Value
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import ListView
 
 from dateutil.relativedelta import relativedelta
 
-from .forms import CategoryForm, ExpenseForm, SubExpenseForm
+from .forms import CategoryForm, ExpenseForm, GoalContributionForm, GoalForm, SubExpenseForm
 from .models import (
     ArchivedBudget,
     Budget,
@@ -24,6 +23,7 @@ from .models import (
     BudgetLog,
     Category,
     Expense,
+    Goal,
     IncomeHistory,
     RecentUpdate,
     SubExpense,
@@ -335,42 +335,45 @@ def get_next_month(request):
 
 
 def archive_budget(request, year_month):
-    if request.method == "POST":
-        year, month = map(int, year_month.split("-"))
-        budget = get_object_or_404(Budget, month__year=year, month__month=month)
+    # Parse year and month from the year_month parameter
+    try:
+        year_month_parts = year_month.split("-")
+        year = int(year_month_parts[0])
+        month = int(year_month_parts[1])
+    except (ValueError, IndexError):
+        messages.error(request, "Invalid date format. Expected: YYYY-MM")
+        return redirect("home")
 
-        # Check if budget is already archived
-        if ArchivedBudget.objects.filter(budget=budget).exists():
-            messages.warning(
-                request,
-                f'Budget for {budget.month.strftime("%B %Y")} is already archived',
-            )
-            return JsonResponse({"status": "warning", "message": "Already archived"})
+    # Find budget by year and month
+    budget = get_object_or_404(Budget, month__year=year, month__month=month)
 
-        try:
-            # Create archive entry
-            ArchivedBudget.objects.create(budget=budget)
+    # Check if already archived
+    if budget.is_archived:
+        messages.info(request, f"Budget for {budget.month.strftime('%B %Y')} is already archived.")
+        return redirect("home")
 
-            # Log the archival
-            BudgetLog.objects.create(
-                month=budget.month,
-                action="update",
-                details=f"Budget for {budget.month.strftime('%B %Y')} was archived",
-            )
+    try:
+        # Mark as archived
+        budget.is_archived = True
+        budget.save(update_fields=["is_archived"])
 
-            # Remove budget from home page list by setting an archived flag
-            budget.is_archived = True
-            budget.save()
+        # Create archive entry
+        ArchivedBudget.objects.create(budget=budget)
 
-            messages.success(
-                request,
-                f'Budget for {budget.month.strftime("%B %Y")} has been archived',
-            )
-            return JsonResponse({"status": "success"})
-        except Exception as e:
-            messages.error(request, f"Error archiving budget: {str(e)}")
-            return JsonResponse({"status": "error", "message": str(e)}, status=400)
-    return JsonResponse({"status": "error"}, status=400)
+        # Create log entry
+        BudgetLog.objects.create(
+            month=budget.month,
+            action="update",
+            details=f"Budget archived on {timezone.now().strftime('%Y-%m-%d %H:%M')}",
+        )
+
+        messages.success(
+            request, f"Budget for {budget.month.strftime('%B %Y')} archived successfully."
+        )
+    except Exception as e:
+        messages.error(request, f"Error archiving budget: {str(e)}")
+
+    return redirect("home")
 
 
 def view_archives(request):
@@ -406,7 +409,7 @@ def delete_archived_budget(request, year_month):
             budget = archived_budget.budget
             archived_budget.delete()  # Delete the archive entry first
             budget.delete()  # Then delete the budget
-        except Exception as delete_error:
+        except Exception:
             raise
 
         messages.success(request, f"Archived budget for {month_str} has been deleted")
@@ -573,3 +576,156 @@ def handle_expense_delete(request, budget):
             messages.error(request, f"Error deleting expense: {str(e)}")
 
     return redirect("budget_detail", year=budget.month.year, month=budget.month.month)
+
+
+# Goal Views
+@login_required
+def goal_list(request):
+    """
+    Display a list of user's financial goals
+    """
+    goals = Goal.objects.filter(user=request.user)
+    active_goals = goals.filter(is_active=True)
+    completed_goals = goals.filter(current_amount__gte=F("target_amount"))
+    inactive_goals = goals.filter(is_active=False).exclude(id__in=completed_goals)
+
+    context = {
+        "active_goals": active_goals,
+        "completed_goals": completed_goals,
+        "inactive_goals": inactive_goals,
+    }
+
+    return render(request, f"{TEMPLATE_VERSION}/goals/goal_list.html", context)
+
+
+@login_required
+def goal_detail(request, goal_id):
+    """
+    Display details of a specific goal including contribution history
+    """
+    goal = get_object_or_404(Goal, id=goal_id, user=request.user)
+    contributions = goal.contributions.all().order_by("-date")
+
+    # Paginate contributions
+    paginator = Paginator(contributions, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    # Form for adding contributions
+    if request.method == "POST":
+        form = GoalContributionForm(request.POST)
+        if form.is_valid():
+            contribution = form.save(commit=False)
+            contribution.goal = goal
+            contribution.save()
+
+            # Update goal's current amount
+            goal.current_amount += contribution.amount
+            goal.save(update_fields=["current_amount"])
+
+            messages.success(request, f"Added contribution of {contribution.amount}")
+            return redirect("goal_detail", goal_id=goal.id)
+    else:
+        form = GoalContributionForm()
+
+    context = {
+        "goal": goal,
+        "contributions_page": page_obj,
+        "form": form,
+        "monthly_needed": goal.monthly_contribution_needed(),
+        "on_track": goal.is_on_track(),
+        "progress": goal.progress_percentage,
+    }
+
+    return render(request, f"{TEMPLATE_VERSION}/goals/goal_detail.html", context)
+
+
+@login_required
+def goal_create(request):
+    """
+    Create a new financial goal
+    """
+    if request.method == "POST":
+        form = GoalForm(request.POST, user=request.user)
+        if form.is_valid():
+            goal = form.save(commit=False)
+            goal.user = request.user
+            goal.save()
+
+            messages.success(request, f"Created new goal: {goal.name}")
+            return redirect("goal_detail", goal_id=goal.id)
+    else:
+        form = GoalForm(user=request.user)
+
+    context = {
+        "form": form,
+        "title": "Create New Goal",
+    }
+
+    return render(request, f"{TEMPLATE_VERSION}/goals/goal_form.html", context)
+
+
+@login_required
+def goal_edit(request, goal_id):
+    """
+    Edit an existing financial goal
+    """
+    goal = get_object_or_404(Goal, id=goal_id, user=request.user)
+
+    if request.method == "POST":
+        form = GoalForm(request.POST, instance=goal, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Updated goal: {goal.name}")
+            return redirect("goal_detail", goal_id=goal.id)
+    else:
+        form = GoalForm(instance=goal, user=request.user)
+
+    context = {
+        "form": form,
+        "goal": goal,
+        "title": "Edit Goal",
+    }
+
+    return render(request, f"{TEMPLATE_VERSION}/goals/goal_form.html", context)
+
+
+@login_required
+@require_POST
+def goal_delete(request, goal_id):
+    """
+    Delete a financial goal
+    """
+    goal = get_object_or_404(Goal, id=goal_id, user=request.user)
+    name = goal.name
+    goal.delete()
+
+    messages.success(request, f"Deleted goal: {name}")
+    return redirect("goal_list")
+
+
+@login_required
+@require_POST
+def add_contribution(request, goal_id):
+    """
+    Add a contribution to a goal from the goal detail page
+    """
+    goal = get_object_or_404(Goal, id=goal_id, user=request.user)
+
+    form = GoalContributionForm(request.POST)
+    if form.is_valid():
+        contribution = form.save(commit=False)
+        contribution.goal = goal
+        contribution.save()
+
+        # Update goal's current amount
+        goal.current_amount += contribution.amount
+        goal.save(update_fields=["current_amount"])
+
+        messages.success(request, f"Added contribution of {contribution.amount}")
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"Error in {field}: {error}")
+
+    return redirect("goal_detail", goal_id=goal.id)

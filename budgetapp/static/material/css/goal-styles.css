@@ -1,0 +1,64 @@
+/* Goal card styles */
+.goal-progress {
+  height: 15px;
+}
+
+.goal-card {
+  transition: transform 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.goal-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Progress bar styles */
+.progress-bar-completed {
+  width: 100%;
+}
+
+/* Progress circle styles */
+.progress-circle {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-text {
+  position: absolute;
+  font-weight: bold;
+}
+
+/* Goal detail page */
+.goal-detail-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Contribution history */
+.contribution-history th {
+  font-weight: 600;
+  background-color: #f8f9fa;
+}
+
+/* Pagination arrow styles */
+.pagination-arrow-first::before {
+  content: '«';
+}
+
+.pagination-arrow-prev::before {
+  content: '‹';
+}
+
+.pagination-arrow-next::before {
+  content: '›';
+}
+
+.pagination-arrow-last::before {
+  content: '»';
+}

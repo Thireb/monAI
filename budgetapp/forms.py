@@ -1,8 +1,7 @@
-from decimal import Decimal
-
 from django import forms
+from django.utils import timezone
 
-from .models import Category, Expense, SubExpense
+from .models import Category, Expense, Goal, GoalContribution, SubExpense
 
 
 class CategoryForm(forms.ModelForm):
@@ -78,5 +77,105 @@ class SubExpenseForm(forms.ModelForm):
         }
         labels = {"is_return": "Mark as Return/Refund"}
         help_texts = {
-            "is_return": "Check this if this is a return or refund that should be added back to the budget"
+            "is_return": "Check this if this is a return or refund that should be added "
+            "back to the budget"
         }
+
+
+class GoalForm(forms.ModelForm):
+    class Meta:
+        model = Goal
+        fields = [
+            "name",
+            "description",
+            "target_amount",
+            "current_amount",
+            "start_date",
+            "target_date",
+            "category",
+            "is_active",
+        ]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Enter goal name"}
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "Enter goal description",
+                }
+            ),
+            "target_amount": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0.01"}
+            ),
+            "current_amount": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+            ),
+            "start_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "target_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "category": forms.Select(attrs={"class": "form-select"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        self.fields["start_date"].initial = timezone.now().date()
+
+        # If category choices are available, filter by user
+        if self.user and "category" in self.fields:
+            self.fields["category"].queryset = Category.objects.filter(user=self.user)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get("start_date")
+        target_date = cleaned_data.get("target_date")
+        target_amount = cleaned_data.get("target_amount")
+        current_amount = cleaned_data.get("current_amount")
+
+        if target_date and start_date and target_date <= start_date:
+            self.add_error("target_date", "Target date must be after start date")
+
+        if target_amount is not None and target_amount <= 0:
+            self.add_error("target_amount", "Target amount must be greater than zero")
+
+        if current_amount is not None and current_amount < 0:
+            self.add_error("current_amount", "Current amount cannot be negative")
+
+        if current_amount and target_amount and current_amount > target_amount:
+            self.add_error("current_amount", "Current amount cannot exceed target amount")
+
+        return cleaned_data
+
+
+class GoalContributionForm(forms.ModelForm):
+    class Meta:
+        model = GoalContribution
+        fields = ["amount", "date", "source", "notes"]
+        widgets = {
+            "amount": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0.01"}
+            ),
+            "date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "source": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Source of funds"}
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 2,
+                    "placeholder": "Optional notes about this contribution",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["date"].initial = timezone.now().date()
+
+    def clean_amount(self):
+        amount = self.cleaned_data["amount"]
+        if amount <= 0:
+            raise forms.ValidationError("Contribution amount must be greater than zero")
+        return amount

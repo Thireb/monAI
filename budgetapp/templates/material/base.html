@@ -1,8 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
+    {% comment %} <head> {% endcomment %}
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description"
+              content="A personal budget tracking application to help manage expenses, income, and financial goals">
+        <meta name="keywords"
+              content="budget, expenses, income, finance, money, savings, goals, financial planning">
         <title>Budget Tracker - Material Design</title>
         <!-- Material Design Bootstrap CSS -->
         <link rel="stylesheet"
@@ -15,6 +19,7 @@
         {% load static %}
         <link rel="stylesheet" href="{% static 'material/css/style.css' %}">
         <link rel="stylesheet" href="{% static 'material/css/table-styles.css' %}">
+        <link rel="stylesheet" href="{% static 'material/css/goal-styles.css' %}">
         <!-- Add these lines in the <head> section -->
         <link rel="apple-touch-icon"
               sizes="180x180"
@@ -46,6 +51,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'goal_list' %}">
+                            <i class="material-icons">emoji_events</i> Goals
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <button id="theme-toggle" class="nav-link btn">
                             <i class="material-icons">dark_mode</i>
                             <span id="theme-text">Dark Mode</span>
@@ -70,12 +80,12 @@
                 document.addEventListener('DOMContentLoaded', function() {
                     // Initialize Material Design components with minimal options
                     $('body').bootstrapMaterialDesign({
-                        ripples: true,
+                        attenuateShadows: true,
                         validate: true
                     });
                 });
             </script>
-        {% endblock %}
+        {% endblock extra_js %}
         <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
         <script src="{% static 'material/js/alerts.js' %}"></script>
