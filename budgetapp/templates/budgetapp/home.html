@@ -33,14 +33,14 @@
 <div class="row mt-4">
     {% for budget in budgets %}
     <div class="col-md-3 mb-3">
-        <div class="budget-item" 
+        <div class="budget-item"
              data-year-month="{{ budget.month|date:'Y-m' }}"
              data-delete-url="{% url 'delete_budget' year_month=budget.month|date:'Y-m' %}"
              data-archive-url="{% url 'archive_budget' year_month=budget.month|date:'Y-m' %}">
             {% now "Y-m" as current_month %}
             {% with budget_month=budget.month|date:"Y-m" %}
-            <a href="{% url 'budget_detail' year=budget.month.year month=budget.month.month %}" 
-               class="btn btn-lg w-100 budget-button 
+            <a href="{% url 'budget_detail' year=budget.month.year month=budget.month.month %}"
+               class="btn btn-lg w-100 budget-button
                       {% if budget_month == current_month %}
                           btn-primary
                       {% elif budget_month < current_month %}
@@ -94,7 +94,7 @@
                                 {% endfor %}
                                 {% if budget.expenses.count > 3 %}
                                     <li class="text-muted">
-                                        <i class="bi bi-three-dots"></i> 
+                                        <i class="bi bi-three-dots"></i>
                                         And {{ budget.expenses.count|add:"-3" }} more expenses...
                                     </li>
                                 {% endif %}
@@ -123,7 +123,7 @@ function findCardByTitle(searchText) {
 
 document.addEventListener('DOMContentLoaded', function() {
     const budgetItems = document.querySelectorAll('.budget-item');
-    
+
     budgetItems.forEach(item => {
         let startX = 0;
         let currentX = 0;
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const threshold = 0.7; // 70% of width needed to trigger action
         const button = item.querySelector('.budget-button');
         const progressBar = item.querySelector('.swipe-progress');
-        
+
         function handleStart(e) {
             if (e.type.includes('mouse') && e.button !== 0) return;
             startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
@@ -142,18 +142,18 @@ document.addEventListener('DOMContentLoaded', function() {
             button.style.transition = 'none';
             e.preventDefault();
         }
-        
+
         function handleMove(e) {
             if (!isDragging) return;
-            
+
             currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
             const diff = startX - currentX;
             const buttonWidth = button.offsetWidth;
             const percentage = Math.abs(diff) / buttonWidth;
-            
+
             const direction = diff > 0 ? -1 : 1;
             button.style.transform = `translateX(${direction * percentage * 100}%)`;
-            
+
             progressBar.style.width = `${percentage * 100}%`;
             if (diff > 0) {
                 progressBar.style.left = '0';
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 progressBar.style.left = 'auto';
                 progressBar.style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
             }
-            
+
             if (percentage >= threshold) {
                 if (diff > 0) {
                     item.classList.add('delete-ready');
@@ -176,16 +176,16 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 item.classList.remove('delete-ready', 'archive-ready');
             }
-            
+
             e.preventDefault();
         }
-        
+
         function handleEnd() {
             if (!isDragging) return;
             isDragging = false;
             item.classList.remove('swiping');
             button.style.transition = 'transform 0.2s ease';
-            
+
             if (item.classList.contains('delete-ready')) {
                 showDeleteConfirmation(item);
             } else if (item.classList.contains('archive-ready')) {
@@ -194,17 +194,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 resetItem();
             }
         }
-        
+
         function resetItem() {
             button.style.transform = 'translateX(0)';
             progressBar.style.width = '0';
             item.classList.remove('delete-ready', 'archive-ready', 'swiping');
         }
-        
+
         async function showArchiveConfirmation(item) {
             const yearMonth = item.dataset.yearMonth;
             const archiveUrl = item.dataset.archiveUrl;
-            
+
             const result = await Swal.fire({
                 title: 'Archive Budget?',
                 text: "You can access this budget later in the archives.",
@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Yes, archive it!'
             });
-            
+
             if (result.isConfirmed) {
                 try {
                     const response = await fetch(archiveUrl, {
@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                         }
                     });
-                    
+
                     if (response.ok) {
                         const data = await response.json();
                         if (data.status === 'warning') {
@@ -243,14 +243,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 resetItem();
             }
         }
-        
+
         async function showDeleteConfirmation(item) {
             const yearMonth = item.dataset.yearMonth;
             const deleteUrl = item.dataset.deleteUrl;
-            
+
             // Format the month name for display
             const displayMonth = new Date(yearMonth + '-01').toLocaleString('default', { month: 'long', year: 'numeric' });
-            
+
             const result = await Swal.fire({
                 title: 'Delete Budget?',
                 text: "This action cannot be undone!",
@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Yes, delete it!'
             });
-            
+
             if (result.isConfirmed) {
                 try {
                     const response = await fetch(deleteUrl, {
@@ -269,12 +269,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                         }
                     });
-                    
+
                     if (response.ok) {
                         item.closest('.col-md-3').style.opacity = '0';
                         setTimeout(() => {
                             item.closest('.col-md-3').remove();
-                            
+
                             // Update Recent Updates section
                             const titleElement = findCardByTitle(displayMonth);
                             const timelineItem = titleElement?.closest('.card');
@@ -298,12 +298,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                         </p>
                                     </div>
                                 `;
-                                
+
                                 timelineItem.style.opacity = '0';
                                 setTimeout(() => {
                                     timelineItem.replaceWith(newCard);
                                     newCard.style.opacity = '1';
-                                    
+
                                     // Update countdown every second
                                     const countdownElement = newCard.querySelector('.dismiss-countdown');
                                     let timeLeft = dismissTime;
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         countdownElement.textContent = timeLeft;
                                         if (timeLeft <= 0) clearInterval(countdownInterval);
                                     }, 1000);
-                                    
+
                                     // Auto dismiss after 30 seconds
                                     setTimeout(() => {
                                         newCard.style.opacity = '0';
@@ -322,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     }, 30000);
                                 }, 300);
                             }
-                            
+
                             fetch('/get-next-month/')
                                 .then(response => response.json())
                                 .then(data => {
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     }
                                 });
                         }, 300);
-                        
+
                         Swal.fire('Deleted!', 'Budget has been deleted.', 'success');
                     }
                 } catch (error) {
@@ -342,19 +342,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 resetItem();
             }
         }
-        
+
         // Add event listeners
         item.addEventListener('mousedown', handleStart, true);
         document.addEventListener('mousemove', handleMove, true);
         document.addEventListener('mouseup', handleEnd, true);
-        
+
         item.addEventListener('touchstart', handleStart, { passive: false });
         item.addEventListener('touchmove', handleMove, { passive: false });
         item.addEventListener('touchend', handleEnd);
-        
+
         button.addEventListener('click', (e) => {
-            if (item.classList.contains('swiping') || 
-                item.classList.contains('delete-ready') || 
+            if (item.classList.contains('swiping') ||
+                item.classList.contains('delete-ready') ||
                 item.classList.contains('archive-ready')) {
                 e.preventDefault();
             }
@@ -373,4 +373,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-{% endblock extra_js %} 
+{% endblock extra_js %}

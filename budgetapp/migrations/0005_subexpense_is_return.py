@@ -6,13 +6,16 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('budgetapp', '0004_recentupdate'),
+        ("budgetapp", "0004_recentupdate"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='subexpense',
-            name='is_return',
-            field=models.BooleanField(default=False, help_text='Mark as return/refund to add this amount back to the remaining budget'),
+            model_name="subexpense",
+            name="is_return",
+            field=models.BooleanField(
+                default=False,
+                help_text="Mark as return/refund to add this amount back to the remaining budget",
+            ),
         ),
     ]

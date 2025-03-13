@@ -86,7 +86,7 @@
             {% for expense in budget.expenses.all|slice:":3" %}
             <li>
               <i class="material-icons">fiber_manual_record</i>
-              {{ expense.name }} - {{ budget.currency }} {{ expense.amount }} 
+              {{ expense.name }} - {{ budget.currency }} {{ expense.amount }}
               {% if expense.is_recurring %}
               <span class="badge badge-success">Recurring</span>
               {% endif %}

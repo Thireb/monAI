@@ -17,12 +17,12 @@
                                     {{ category.name }}
                                 </h5>
                                 <div class="action-buttons">
-                                    <a href="{% url 'category_edit' category.slug %}" 
+                                    <a href="{% url 'category_edit' category.slug %}"
                                        class="action-btn action-edit"
                                        data-tooltip="Edit category">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <button type="button" 
+                                    <button type="button"
                                             class="action-btn action-delete"
                                             onclick="deleteCategory('{{ category.slug }}')"
                                             data-tooltip="Delete category">
@@ -78,4 +78,4 @@ function deleteCategory(slug) {
     });
 }
 </script>
-{% endblock content %} 
+{% endblock content %}

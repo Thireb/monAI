@@ -1,7 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
 
-from dateutil.relativedelta import relativedelta
 from django.contrib import messages
 from django.core.cache import cache
 from django.core.paginator import Paginator
@@ -14,6 +13,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import ListView
+
+from dateutil.relativedelta import relativedelta
 
 from .forms import CategoryForm, ExpenseForm, SubExpenseForm
 from .models import (
@@ -41,9 +42,7 @@ class HomeView(ListView):
         context = super().get_context_data(**kwargs)
         # Auto-archive old budgets
         current_date = timezone.now().date()
-        old_budgets = Budget.objects.filter(
-            is_archived=False, month__year__lt=current_date.year
-        )
+        old_budgets = Budget.objects.filter(is_archived=False, month__year__lt=current_date.year)
 
         with transaction.atomic():
             for budget in old_budgets:
@@ -59,13 +58,9 @@ class HomeView(ListView):
 
         if not first_budget:
             # No active budgets, use earliest archived budget's month or system date
-            archived_budget = (
-                Budget.objects.filter(is_archived=True).order_by("month").first()
-            )
+            archived_budget = Budget.objects.filter(is_archived=True).order_by("month").first()
             current_date = (
-                archived_budget.month
-                if archived_budget
-                else timezone.now().date().replace(day=1)
+                archived_budget.month if archived_budget else timezone.now().date().replace(day=1)
             )
         else:
             current_date = last_budget.month + relativedelta(months=1)
@@ -99,14 +94,12 @@ class HomeView(ListView):
         active_budget_months = set(budget.month for budget in budgets)
 
         # Get logs only for existing budgets
-        context["budget_logs"] = BudgetLog.objects.filter(
-            month__in=active_budget_months
-        ).order_by("-timestamp")
-
-        # Paginate budget logs
-        logs = BudgetLog.objects.filter(month__in=active_budget_months).order_by(
+        context["budget_logs"] = BudgetLog.objects.filter(month__in=active_budget_months).order_by(
             "-timestamp"
         )
+
+        # Paginate budget logs
+        logs = BudgetLog.objects.filter(month__in=active_budget_months).order_by("-timestamp")
         paginator = Paginator(logs, 5)
         page = self.request.GET.get("page")
         context["budget_logs"] = paginator.get_page(page)
@@ -146,9 +139,7 @@ def create_next_budget(request):
         )
 
         # Clean success message without any special characters
-        messages.success(
-            request, f'Budget for {next_month.strftime("%B %Y")} has been created'
-        )
+        messages.success(request, f'Budget for {next_month.strftime("%B %Y")} has been created')
         return redirect("home")
 
     return redirect("home")
@@ -237,9 +228,7 @@ def calculate_category_stats(expenses, total_expenses):
             stats[category_name] = {
                 "amount": Decimal("0"),
                 "color": expense.category.color if expense.category else "#95A5A6",
-                "icon": (
-                    expense.category.icon if expense.category else "fa-question-circle"
-                ),
+                "icon": (expense.category.icon if expense.category else "fa-question-circle"),
             }
         stats[category_name]["amount"] += expense.amount
 
@@ -269,9 +258,7 @@ def expense_detail(request, expense_id):
         elif form_type == "edit_sub_expense":
             sub_expense_id = request.POST.get("sub_expense_id")
             if sub_expense_id:
-                sub_expense = get_object_or_404(
-                    SubExpense, id=sub_expense_id, expense=expense
-                )
+                sub_expense = get_object_or_404(SubExpense, id=sub_expense_id, expense=expense)
                 # Calculate the maximum allowed amount for this edit
                 max_amount = expense.get_remaining_amount() + sub_expense.amount
                 new_amount = Decimal(request.POST.get("amount", 0))
@@ -284,9 +271,7 @@ def expense_detail(request, expense_id):
         elif form_type == "delete_sub_expense":
             sub_expense_id = request.POST.get("sub_expense_id")
             if sub_expense_id:
-                sub_expense = get_object_or_404(
-                    SubExpense, id=sub_expense_id, expense=expense
-                )
+                sub_expense = get_object_or_404(SubExpense, id=sub_expense_id, expense=expense)
                 sub_expense.delete()
 
         return redirect("expense_detail", expense_id=expense_id)
@@ -339,13 +324,9 @@ def get_next_month(request):
 
     if not first_budget:
         # No active budgets, use earliest archived budget's month or system date
-        archived_budget = (
-            Budget.objects.filter(is_archived=True).order_by("month").first()
-        )
+        archived_budget = Budget.objects.filter(is_archived=True).order_by("month").first()
         current_date = (
-            archived_budget.month
-            if archived_budget
-            else timezone.now().date().replace(day=1)
+            archived_budget.month if archived_budget else timezone.now().date().replace(day=1)
         )
     else:
         current_date = last_budget.month + relativedelta(months=1)

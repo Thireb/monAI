@@ -1,10 +1,11 @@
-from django.db import models
-from django.utils import timezone
 from decimal import Decimal
+
 from django.core.cache import cache
-from django.utils.text import slugify
-from django.db.models import Sum, Value, DecimalField
+from django.db import models
+from django.db.models import DecimalField, Sum, Value
 from django.db.models.functions import Coalesce
+from django.utils import timezone
+from django.utils.text import slugify
 
 
 class Budget(models.Model):
@@ -13,7 +14,7 @@ class Budget(models.Model):
     """
 
     month = models.DateField()
-    income = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
+    income = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0"))
     currency = models.CharField(max_length=3, default="PKR")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -37,17 +38,17 @@ class Budget(models.Model):
         """Calculate remaining budget after all expenses, accounting for returns"""
         # Get all expenses
         expenses = self.expenses.all()
-        
+
         # Calculate total expense amounts
         total_expenses = expenses.aggregate(
             total=Coalesce(Sum("amount"), Value(0), output_field=DecimalField())
         )["total"]
-        
+
         # Calculate total returns from all sub-expenses
         total_returns = Decimal("0")
         for expense in expenses:
             total_returns += expense.get_total_returns()
-        
+
         # Remaining is: income - expenses + returns
         return self.income - total_expenses + total_returns
 
@@ -81,12 +82,8 @@ class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True)
     description = models.TextField(blank=True)
-    icon = models.CharField(
-        max_length=50, blank=True, help_text="Font Awesome icon class"
-    )
-    color = models.CharField(
-        max_length=7, default="#000000", help_text="Hex color code"
-    )
+    icon = models.CharField(max_length=50, blank=True, help_text="Font Awesome icon class")
+    color = models.CharField(max_length=7, default="#000000", help_text="Hex color code")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -103,9 +100,7 @@ class Category(models.Model):
 
 
 class Expense(models.Model):
-    budget = models.ForeignKey(
-        Budget, on_delete=models.CASCADE, related_name="expenses"
-    )
+    budget = models.ForeignKey(Budget, on_delete=models.CASCADE, related_name="expenses")
     name = models.CharField(max_length=200)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     is_recurring = models.BooleanField(default=False)
@@ -127,10 +122,8 @@ class Expense(models.Model):
         sub_expenses = self.sub_expenses.all()
 
         # Calculate total spent (all sub-expenses, including returns)
-        total_spent = sub_expenses.aggregate(
-            total=models.Sum("amount")
-        )["total"] or Decimal("0")
-        
+        total_spent = sub_expenses.aggregate(total=models.Sum("amount"))["total"] or Decimal("0")
+
         # Remaining is simply: original amount - all spent (including returns)
         # Returns don't increase the remaining amount of the expense itself
         return self.amount - total_spent
@@ -144,9 +137,7 @@ class Expense(models.Model):
 
 
 class SubExpense(models.Model):
-    expense = models.ForeignKey(
-        Expense, on_delete=models.CASCADE, related_name="sub_expenses"
-    )
+    expense = models.ForeignKey(Expense, on_delete=models.CASCADE, related_name="sub_expenses")
     name = models.CharField(max_length=200)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     is_return = models.BooleanField(
@@ -204,9 +195,7 @@ class BudgetDeletionLog(models.Model):
 
 
 class IncomeHistory(models.Model):
-    budget = models.ForeignKey(
-        Budget, on_delete=models.CASCADE, related_name="income_history"
-    )
+    budget = models.ForeignKey(Budget, on_delete=models.CASCADE, related_name="income_history")
     old_amount = models.DecimalField(max_digits=10, decimal_places=2)
     new_amount = models.DecimalField(max_digits=10, decimal_places=2)
     old_currency = models.CharField(max_length=3)
@@ -223,18 +212,12 @@ class IncomeHistory(models.Model):
 
 
 class RecentUpdate(models.Model):
-    budget = models.ForeignKey(
-        "Budget", on_delete=models.CASCADE, related_name="recent_updates"
-    )
-    action_type = models.CharField(
-        max_length=50
-    )  # e.g., 'expense_added', 'income_updated'
+    budget = models.ForeignKey("Budget", on_delete=models.CASCADE, related_name="recent_updates")
+    action_type = models.CharField(max_length=50)  # e.g., 'expense_added', 'income_updated'
     description = models.TextField()
     timestamp = models.DateTimeField(default=timezone.now)
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    category = models.ForeignKey(
-        "Category", on_delete=models.SET_NULL, null=True, blank=True
-    )
+    category = models.ForeignKey("Category", on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ["-timestamp"]

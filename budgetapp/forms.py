@@ -1,6 +1,8 @@
-from django import forms
-from .models import Expense, SubExpense, Category
 from decimal import Decimal
+
+from django import forms
+
+from .models import Category, Expense, SubExpense
 
 
 class CategoryForm(forms.ModelForm):
@@ -71,9 +73,7 @@ class SubExpenseForm(forms.ModelForm):
         fields = ["name", "amount", "is_return"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control"}),
-            "amount": forms.NumberInput(
-                attrs={"class": "form-control", "step": "0.01"}
-            ),
+            "amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
             "is_return": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         labels = {"is_return": "Mark as Return/Refund"}

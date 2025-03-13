@@ -9,7 +9,7 @@
         <a
           href="{% url 'budget_detail' year=expense.budget.month.year month=expense.budget.month.month %}"
         >
-          <i class="material-icons">calendar_today</i> 
+          <i class="material-icons">calendar_today</i>
           {{ expense.budget.month|date:"F Y" }}
         </a>
       </li>
@@ -78,7 +78,7 @@
               />
               <small class="form-text text-muted">
                 <i class="material-icons">info</i>
-                Amount for this breakdown (Available: 
+                Amount for this breakdown (Available:
                 {{ expense.get_remaining_amount|floatformat:2|intcomma }})
               </small>
             </div>
@@ -138,7 +138,7 @@
                 >
                   <td>{{ sub_expense.name }}</td>
                   <td>
-                    {{ expense.budget.currency }} 
+                    {{ expense.budget.currency }}
                     {{ sub_expense.amount|floatformat:2|intcomma }}
                   </td>
                   <td>

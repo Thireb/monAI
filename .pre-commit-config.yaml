@@ -1,0 +1,61 @@
+repos:
+  # Python formatting with Black
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=100]
+
+  # Import sorting with isort
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=100]
+
+  # Format JavaScript and CSS with prettier
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types_or: [javascript, css]
+        additional_dependencies:
+          - prettier@3.2.5
+
+  # Check for trailing whitespace, EOF newlines, debug statements
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: debug-statements
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+
+  # Python code quality with flake8 (disabled by default)
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        additional_dependencies: [flake8-django]
+        args: [--max-line-length=100]
+        stages: [manual]  # Only run manually, not on pre-commit
+
+  # Format Django HTML templates with djLint (disabled by default)
+  - repo: https://github.com/Riverside-Healthcare/djLint
+    rev: v1.36.3
+    hooks:
+      - id: djlint-django
+        args: [--profile=django, --indent=2, --preserve-blank-lines]
+        types_or: [html]
+        stages: [manual]  # Only run manually, not on pre-commit
+
+  # Check for security issues (disabled by default)
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: ["-r", "--skip=B311,B101", "--exclude=tests/,venv/"]
+        stages: [manual]  # Only run manually, not on pre-commit

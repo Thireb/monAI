@@ -8,23 +8,46 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('budgetapp', '0003_incomehistory'),
+        ("budgetapp", "0003_incomehistory"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='RecentUpdate',
+            name="RecentUpdate",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('action_type', models.CharField(max_length=50)),
-                ('description', models.TextField()),
-                ('timestamp', models.DateTimeField(default=django.utils.timezone.now)),
-                ('amount', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
-                ('budget', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='recent_updates', to='budgetapp.budget')),
-                ('category', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='budgetapp.category')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("action_type", models.CharField(max_length=50)),
+                ("description", models.TextField()),
+                ("timestamp", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "amount",
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True),
+                ),
+                (
+                    "budget",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="recent_updates",
+                        to="budgetapp.budget",
+                    ),
+                ),
+                (
+                    "category",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="budgetapp.category",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-timestamp'],
+                "ordering": ["-timestamp"],
             },
         ),
     ]

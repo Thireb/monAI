@@ -30,8 +30,8 @@
                     {% csrf_token %}
                     <div class="form-group mb-3">
                         <label for="income">Monthly Income</label>
-                        <input type="number" step="0.01" name="income" id="income" 
-                               value="{{ budget.income }}" class="form-control" 
+                        <input type="number" step="0.01" name="income" id="income"
+                               value="{{ budget.income }}" class="form-control"
                                placeholder="Enter your monthly income" required>
                         <small class="form-text text-muted">Enter your total monthly income before expenses</small>
                     </div>
@@ -47,7 +47,7 @@
                     </div>
                     <div class="form-group mb-3">
                         <label for="reason">Reason for Change</label>
-                        <textarea name="reason" id="reason" class="form-control" rows="3" 
+                        <textarea name="reason" id="reason" class="form-control" rows="3"
                                   placeholder="e.g., Salary increase, Additional income source"></textarea>
                         <small class="form-text text-muted">Helps you track why income changes over time</small>
                     </div>
@@ -76,9 +76,9 @@
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="mb-0">Income Details</h3>
-                <button type="button" 
-                        class="btn btn-raised btn-primary" 
-                        data-bs-toggle="modal" 
+                <button type="button"
+                        class="btn btn-raised btn-primary"
+                        data-bs-toggle="modal"
                         data-bs-target="#incomeModal"
                         id="updateIncomeBtn">
                     <i class="material-icons">edit</i> Update Income
@@ -107,8 +107,8 @@
                     </div>
                     <div class="form-group mb-3">
                         <label for="{{ form.amount.id_for_label }}">Amount</label>
-                        <input type="number" step="0.01" name="amount" class="form-control" 
-                               id="{{ form.amount.id_for_label }}" 
+                        <input type="number" step="0.01" name="amount" class="form-control"
+                               id="{{ form.amount.id_for_label }}"
                                placeholder="Enter amount" required>
                         <small class="form-text text-muted">Enter the expense amount in {{ budget.currency }}</small>
                     </div>
@@ -117,7 +117,7 @@
                         <select name="category" id="{{ form.category.id_for_label }}" class="form-control">
                             <option value="">Select a category</option>
                             {% for category in categories %}
-                            <option value="{{ category.id }}" 
+                            <option value="{{ category.id }}"
                                     {% if form.category.value == category.id %}selected{% endif %}>
                                 {{ category.name }}
                             </option>
@@ -132,17 +132,17 @@
                         </label>
                         <small class="form-text text-muted d-block">Check if this is a monthly recurring expense</small>
                     </div>
-                    <button type="submit" name="form_type" value="expense" 
+                    <button type="submit" name="form_type" value="expense"
                             class="btn btn-raised btn-primary" id="expense-submit-btn">
                         <i class="material-icons">add</i> Add Expense
                     </button>
-                    <button type="button" class="btn btn-secondary d-none" 
+                    <button type="button" class="btn btn-secondary d-none"
                             id="cancel-edit-btn">Cancel</button>
                 </form>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-8">
         <!-- Category Statistics Card -->
         <div class="card mb-4">
@@ -162,11 +162,11 @@
                             <div class="flex-grow-1 ms-3">
                                 <h6 class="mb-0">{{ category_name }}</h6>
                                 <div class="progress">
-                                    <div class="progress-bar" 
+                                    <div class="progress-bar"
                                          role="progressbar"
                                          style="width: {{ data.percentage }}%; background-color: {{ data.color }}"
-                                         aria-valuenow="{{ data.percentage }}" 
-                                         aria-valuemin="0" 
+                                         aria-valuenow="{{ data.percentage }}"
+                                         aria-valuemin="0"
                                          aria-valuemax="100">
                                     </div>
                                 </div>
@@ -267,7 +267,7 @@
                                                     {% endif %}
                                                 </i>
                                                 <span {% if sub_expense.is_return %}class="text-success"{% endif %}>
-                                                    {{ sub_expense.name }} - 
+                                                    {{ sub_expense.name }} -
                                                     {{ budget.currency }} {{ sub_expense.amount }}
                                                     {% if sub_expense.is_return %}
                                                     <span class="badge bg-success">Return</span>
@@ -315,9 +315,9 @@
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="{% url 'expense_detail' expense_id=expense.id %}" 
+                                        <a href="{% url 'expense_detail' expense_id=expense.id %}"
                                            class="action-btn action-view"
-                                           data-bs-toggle="tooltip" 
+                                           data-bs-toggle="tooltip"
                                            title="View breakdown">
                                             <i class="material-icons">list</i>
                                         </a>
@@ -327,7 +327,7 @@
                                                 data-expense-amount="{{ expense.amount }}"
                                                 data-expense-category="{{ expense.category.id|default:'' }}"
                                                 data-expense-recurring="{{ expense.is_recurring|lower }}"
-                                                data-bs-toggle="tooltip" 
+                                                data-bs-toggle="tooltip"
                                                 title="Edit expense">
                                             <i class="material-icons">edit</i>
                                         </button>
@@ -335,9 +335,9 @@
                                             {% csrf_token %}
                                             <input type="hidden" name="form_type" value="delete_expense">
                                             <input type="hidden" name="expense_id" value="{{ expense.id }}">
-                                            <button type="submit" 
+                                            <button type="submit"
                                                     class="action-btn action-delete"
-                                                    data-bs-toggle="tooltip" 
+                                                    data-bs-toggle="tooltip"
                                                     title="Delete expense">
                                                 <i class="material-icons">delete</i>
                                             </button>
@@ -406,36 +406,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const expenseFormTitle = document.getElementById('expense-form-title');
     const submitBtn = document.getElementById('expense-submit-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
-    
+
     editButtons.forEach(button => {
         button.addEventListener('click', function() {
             const expenseData = this.dataset;
-            
+
             // Update form fields with expense data
             document.getElementById('expense_id').value = expenseData.expenseId;
             document.querySelector('input[name="name"]').value = expenseData.expenseName;
             document.querySelector('input[name="amount"]').value = expenseData.expenseAmount;
             document.querySelector('select[name="category"]').value = expenseData.expenseCategory;
-            document.querySelector('input[name="is_recurring"]').checked = 
+            document.querySelector('input[name="is_recurring"]').checked =
                 expenseData.expenseRecurring === 'true';
-            
+
             // Update form appearance
             expenseFormTitle.textContent = 'Edit Expense';
             submitBtn.innerHTML = '<i class="material-icons">save</i> Update Expense';
             cancelEditBtn.classList.remove('d-none');
-            
+
             // Scroll to form
             expenseForm.scrollIntoView({ behavior: 'smooth' });
         });
     });
-    
+
     // Handle cancel edit button
     if (cancelEditBtn) {
         cancelEditBtn.addEventListener('click', function() {
             // Reset form
             expenseForm.reset();
             document.getElementById('expense_id').value = '';
-            
+
             // Reset form appearance
             expenseFormTitle.textContent = 'Add New Expense';
             submitBtn.innerHTML = '<i class="material-icons">add</i> Add Expense';
@@ -471,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function handleDelete(event, expenseName) {
     event.preventDefault();
-    
+
     const result = await Swal.fire({
         title: 'Delete Expense?',
         text: `Are you sure you want to delete "${expenseName}"?`,
@@ -490,4 +490,4 @@ async function handleDelete(event, expenseName) {
     return false;
 }
 </script>
-{% endblock extra_js %} 
+{% endblock extra_js %}

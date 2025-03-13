@@ -55,6 +55,42 @@ python manage.py runserver
 
 The application will be available at `http://127.0.0.1:8000/`
 
+## Code Formatting with Pre-commit
+
+This project uses [pre-commit](https://pre-commit.com/) hooks to automatically format and check code before committing. This ensures consistent code style and quality across the project.
+
+### Setup
+
+1. Install pre-commit:
+   ```bash
+   pip install pre-commit
+   ```
+
+2. Install the git hooks:
+   ```bash
+   pre-commit install
+   ```
+
+### Usage
+
+Pre-commit will automatically run on `git commit`. If any checks fail, the commit will be aborted and the issues will be fixed or reported. After the issues are fixed, you can add the changes and try committing again.
+
+To manually run pre-commit on all files:
+```bash
+pre-commit run --all-files
+```
+
+### Features
+
+The pre-commit configuration includes:
+- Python formatting with Black
+- Import sorting with isort
+- Python code quality with flake8
+- Django HTML template formatting with djLint
+- JavaScript and CSS formatting with prettier
+- Trailing whitespace and end-of-file fixing
+- Security checking with bandit
+
 ## Usage
 
 1. Log in with your superuser credentials

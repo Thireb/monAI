@@ -7,25 +7,37 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('budgetapp', '0002_category_expense_category'),
+        ("budgetapp", "0002_category_expense_category"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='IncomeHistory',
+            name="IncomeHistory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('old_amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('new_amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('old_currency', models.CharField(max_length=3)),
-                ('new_currency', models.CharField(max_length=3)),
-                ('changed_at', models.DateTimeField(auto_now_add=True)),
-                ('reason', models.TextField(blank=True, null=True)),
-                ('budget', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='income_history', to='budgetapp.budget')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("old_amount", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("new_amount", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("old_currency", models.CharField(max_length=3)),
+                ("new_currency", models.CharField(max_length=3)),
+                ("changed_at", models.DateTimeField(auto_now_add=True)),
+                ("reason", models.TextField(blank=True, null=True)),
+                (
+                    "budget",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="income_history",
+                        to="budgetapp.budget",
+                    ),
+                ),
             ],
             options={
-                'verbose_name_plural': 'Income histories',
-                'ordering': ['-changed_at'],
+                "verbose_name_plural": "Income histories",
+                "ordering": ["-changed_at"],
             },
         ),
     ]

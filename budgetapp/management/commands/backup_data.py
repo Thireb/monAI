@@ -3,13 +3,8 @@ from datetime import datetime
 
 from django.core.management.base import BaseCommand
 from django.db.utils import OperationalError
-from budgetapp.models import (
-    ArchivedBudget,
-    Budget,
-    BudgetLog,
-    Expense,
-    SubExpense,
-)
+
+from budgetapp.models import ArchivedBudget, Budget, BudgetLog, Expense, SubExpense
 
 
 class Command(BaseCommand):
@@ -21,9 +16,7 @@ class Command(BaseCommand):
             for item in model.objects.all():
                 data[data_key].append(transform_func(item))
         except OperationalError as e:
-            self.stdout.write(
-                self.style.WARNING(f"Skipping {model.__name__}: {str(e)}")
-            )
+            self.stdout.write(self.style.WARNING(f"Skipping {model.__name__}: {str(e)}"))
 
     def handle(self, *args, **options):
         data = {
@@ -92,6 +85,4 @@ class Command(BaseCommand):
         with open(filename, "w") as f:
             json.dump(data, f, indent=2)
 
-        self.stdout.write(
-            self.style.SUCCESS(f"Successfully backed up data to {filename}")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Successfully backed up data to {filename}"))

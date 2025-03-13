@@ -8,84 +8,142 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='BudgetDeletionLog',
+            name="BudgetDeletionLog",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('month', models.DateField()),
-                ('deleted_at', models.DateTimeField(auto_now_add=True)),
-                ('expires_at', models.DateTimeField()),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("month", models.DateField()),
+                ("deleted_at", models.DateTimeField(auto_now_add=True)),
+                ("expires_at", models.DateTimeField()),
             ],
             options={
-                'ordering': ['-deleted_at'],
+                "ordering": ["-deleted_at"],
             },
         ),
         migrations.CreateModel(
-            name='BudgetLog',
+            name="BudgetLog",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('month', models.DateField()),
-                ('action', models.CharField(choices=[('create', 'Created'), ('update', 'Updated'), ('delete', 'Deleted')], max_length=10)),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('details', models.TextField(blank=True, null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("month", models.DateField()),
+                (
+                    "action",
+                    models.CharField(
+                        choices=[
+                            ("create", "Created"),
+                            ("update", "Updated"),
+                            ("delete", "Deleted"),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                ("timestamp", models.DateTimeField(auto_now_add=True)),
+                ("details", models.TextField(blank=True, null=True)),
             ],
             options={
-                'ordering': ['-timestamp'],
+                "ordering": ["-timestamp"],
             },
         ),
         migrations.CreateModel(
-            name='Budget',
+            name="Budget",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('month', models.DateField()),
-                ('income', models.DecimalField(decimal_places=2, default=0, max_digits=10)),
-                ('currency', models.CharField(default='PKR', max_length=3)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('is_archived', models.BooleanField(default=False)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("month", models.DateField()),
+                ("income", models.DecimalField(decimal_places=2, default=0, max_digits=10)),
+                ("currency", models.CharField(default="PKR", max_length=3)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("is_archived", models.BooleanField(default=False)),
             ],
             options={
-                'verbose_name_plural': 'Budgets',
-                'ordering': ['-month'],
-                'indexes': [models.Index(fields=['-month'], name='budgetapp_b_month_92dcea_idx')],
+                "verbose_name_plural": "Budgets",
+                "ordering": ["-month"],
+                "indexes": [models.Index(fields=["-month"], name="budgetapp_b_month_92dcea_idx")],
             },
         ),
         migrations.CreateModel(
-            name='ArchivedBudget',
+            name="ArchivedBudget",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('archived_date', models.DateTimeField(auto_now_add=True)),
-                ('budget', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='budgetapp.budget')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("archived_date", models.DateTimeField(auto_now_add=True)),
+                (
+                    "budget",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE, to="budgetapp.budget"
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-budget__month'],
+                "ordering": ["-budget__month"],
             },
         ),
         migrations.CreateModel(
-            name='Expense',
+            name="Expense",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200)),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('is_recurring', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('budget', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='expenses', to='budgetapp.budget')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("name", models.CharField(max_length=200)),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("is_recurring", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "budget",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="expenses",
+                        to="budgetapp.budget",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='SubExpense',
+            name="SubExpense",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200)),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('expense', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sub_expenses', to='budgetapp.expense')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("name", models.CharField(max_length=200)),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "expense",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="sub_expenses",
+                        to="budgetapp.expense",
+                    ),
+                ),
             ],
         ),
     ]

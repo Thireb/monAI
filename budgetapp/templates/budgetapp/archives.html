@@ -31,7 +31,7 @@
                                         Archived: {{ archive.archived_date|date:"M d, Y" }}
                                     </small>
                                 </p>
-                                <a href="{% url 'budget_detail' year=archive.budget.month.year month=archive.budget.month.month %}" 
+                                <a href="{% url 'budget_detail' year=archive.budget.month.year month=archive.budget.month.month %}"
                                    class="btn btn-sm btn-primary">
                                     View Details
                                 </a>
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', async function() {
             const yearMonth = this.dataset.yearMonth;
             const deleteUrl = this.dataset.deleteUrl;
-            
+
             const result = await Swal.fire({
                 title: 'Delete Archived Budget?',
                 text: "This action cannot be undone!",
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Yes, delete it!'
             });
-            
+
             if (result.isConfirmed) {
                 try {
                     const response = await fetch(deleteUrl, {
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                         }
                     });
-                    
+
                     if (response.ok) {
                         Swal.fire('Deleted!', 'Archived budget has been deleted.', 'success')
                             .then(() => {
@@ -105,4 +105,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-{% endblock extra_js %} 
+{% endblock extra_js %}
