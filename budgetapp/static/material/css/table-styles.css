@@ -1,0 +1,64 @@
+/* Table column width classes for budget detail page */
+.col-name {
+  width: 30%;
+}
+
+.col-amount {
+  width: 15%;
+}
+
+.col-category {
+  width: 20%;
+}
+
+.col-recurring {
+  width: 15%;
+}
+
+.col-actions {
+  width: 20%;
+}
+
+/* General table styling */
+.budget-summary-table thead th {
+  font-weight: 600;
+  color: #495057;
+  background-color: #f8f9fa;
+}
+
+.budget-summary-table td {
+  vertical-align: middle;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  border: none;
+  background: none;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.action-view {
+  color: #007bff;
+}
+
+.action-edit {
+  color: #28a745;
+}
+
+.action-delete {
+  color: #dc3545;
+}
