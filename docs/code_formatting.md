@@ -20,38 +20,35 @@ The project uses [pre-commit](https://pre-commit.com/) to automatically format a
 
 ### Active Hooks
 
-By default, the following hooks are active and will run on every commit:
+The following hooks run automatically on every commit and only on the files you've changed:
 
 1. **Black** - Python code formatter
 2. **isort** - Python import sorter
-3. **Prettier** - JavaScript and CSS formatter
-4. **Pre-commit-hooks** - Various small checks for:
+3. **flake8** - Python code linter with Django-specific checks
+4. **djLint** - Django HTML template linter and formatter
+5. **Prettier** - JavaScript and CSS formatter
+6. **bandit** - Python security linter
+7. **Pre-commit-hooks** - Various small checks for:
    - Trailing whitespace
    - End-of-file fixing
    - Debug statements
    - YAML syntax
    - Large file additions
 
-### Manual Hooks
+### Running Hooks Manually
 
-The following hooks are available but disabled by default. They can be run manually:
-
-1. **flake8** - Python code linter with Django-specific checks
-2. **djLint** - Django HTML template linter and formatter
-3. **bandit** - Python security linter
-
-To run any of these manual hooks:
+You can run any hook manually on specific files:
 
 ```bash
-pre-commit run flake8 --all-files
-pre-commit run djlint-django --all-files
-pre-commit run bandit --all-files
+pre-commit run flake8 --files path/to/file.py
+pre-commit run djlint-django --files path/to/template.html
+pre-commit run bandit --files path/to/file.py
 ```
 
-Or run all hooks (including manual ones):
+Or run all hooks on all files:
 
 ```bash
-pre-commit run --all-hooks --all-files
+pre-commit run --all-files
 ```
 
 ## Common Issues and Solutions
@@ -94,18 +91,54 @@ pre-commit run --all-hooks --all-files
    - Use double quotes in template tags: `{% extends "base.html" %}`
    - Add block names to endblock tags: `{% endblock content %}`
 
-## Gradual Integration
+## Fixing Common Linting Errors
 
-If you're working with an existing codebase, it's recommended to:
+### HTML Template Errors
 
-1. Start with automatic formatters only (the default configuration)
-2. Gradually fix linting issues in small batches
-3. Enable stricter checks as the codebase improves
+1. **Meta description (H030) and meta keywords (H031)**:
+   Add meta tags in the head section:
+   ```html
+   <head>
+     <meta name="description" content="A personal budget tracking application to help manage expenses and income">
+     <meta name="keywords" content="budget, expenses, finance, tracking, money management">
+     <!-- other meta tags -->
+   </head>
+   ```
 
-To enable more strict checking for new files while ignoring existing issues:
+2. **Orphan tag (H025)**:
+   This usually means a tag is misplaced or not closed properly.
+
+3. **Endblock with name (T003)**:
+   ```html
+   <!-- Instead of -->
+   {% endblock %}
+
+   <!-- Use -->
+   {% endblock content %}
+   ```
+
+### Python Errors
+
+1. **Fix all flake8 issues in a file**:
+   ```bash
+   python scripts/lint_fix.py -f path/to/file.py
+   ```
+
+## Helper Tools
+
+### Using the lint_fix.py Script
+
+The project includes a helper script to assist with fixing linting issues:
 
 ```bash
-pre-commit run --hook-stage manual --files path/to/new/file.py
+# Fix issues in specific files
+python scripts/lint_fix.py -f file1.py file2.py
+
+# Check all files in the project
+python scripts/lint_fix.py -a
+
+# Check and fix all files in the project
+python scripts/lint_fix.py -a -f
 ```
 
 ## Custom Configuration
