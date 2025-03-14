@@ -107,7 +107,7 @@ class GoalSerializer(serializers.ModelSerializer):
             "is_on_track",
             "monthly_contribution_needed",
         ]
-        read_only_fields = ["user", "progress_percentage"]
+        read_only_fields = ["progress_percentage"]
 
     def validate(self, data):
         if "target_amount" in data and data["target_amount"] <= 0:
@@ -130,11 +130,6 @@ class GoalSerializer(serializers.ModelSerializer):
             )
 
         return data
-
-    def create(self, validated_data):
-        # Set the user from the request
-        validated_data["user"] = self.context["request"].user
-        return super().create(validated_data)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

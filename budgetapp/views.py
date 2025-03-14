@@ -2,7 +2,6 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import DecimalField, F, Sum, Value
@@ -579,138 +578,96 @@ def handle_expense_delete(request, budget):
 
 
 # Goal Views
-@login_required
 def goal_list(request):
-    """
-    Display a list of user's financial goals
-    """
-    goals = Goal.objects.filter(user=request.user)
-    active_goals = goals.filter(is_active=True)
-    completed_goals = goals.filter(current_amount__gte=F("target_amount"))
-    inactive_goals = goals.filter(is_active=False).exclude(id__in=completed_goals)
+    """Display a list of financial goals."""
+    active_goals = Goal.objects.filter(is_active=True)
+    completed_goals = Goal.objects.filter(current_amount__gte=F("target_amount"), is_active=True)
+    inactive_goals = Goal.objects.filter(is_active=False)
 
     context = {
-        "active_goals": active_goals,
+        "active_goals": active_goals.exclude(id__in=completed_goals),
         "completed_goals": completed_goals,
         "inactive_goals": inactive_goals,
     }
-
     return render(request, f"{TEMPLATE_VERSION}/goals/goal_list.html", context)
 
 
-@login_required
 def goal_detail(request, goal_id):
-    """
-    Display details of a specific goal including contribution history
-    """
-    goal = get_object_or_404(Goal, id=goal_id, user=request.user)
+    """Display details for a specific goal."""
+    goal = get_object_or_404(Goal, id=goal_id)
     contributions = goal.contributions.all().order_by("-date")
 
-    # Paginate contributions
+    # Calculate additional statistics
+    total_contributed = sum(c.amount for c in contributions)
+    contribution_form = GoalContributionForm()
+
     paginator = Paginator(contributions, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    # Form for adding contributions
-    if request.method == "POST":
-        form = GoalContributionForm(request.POST)
-        if form.is_valid():
-            contribution = form.save(commit=False)
-            contribution.goal = goal
-            contribution.save()
-
-            # Update goal's current amount
-            goal.current_amount += contribution.amount
-            goal.save(update_fields=["current_amount"])
-
-            messages.success(request, f"Added contribution of {contribution.amount}")
-            return redirect("goal_detail", goal_id=goal.id)
-    else:
-        form = GoalContributionForm()
-
     context = {
         "goal": goal,
-        "contributions_page": page_obj,
-        "form": form,
-        "monthly_needed": goal.monthly_contribution_needed(),
-        "on_track": goal.is_on_track(),
-        "progress": goal.progress_percentage,
+        "contributions": page_obj,
+        "total_contributed": total_contributed,
+        "contribution_form": contribution_form,
     }
-
     return render(request, f"{TEMPLATE_VERSION}/goals/goal_detail.html", context)
 
 
-@login_required
 def goal_create(request):
-    """
-    Create a new financial goal
-    """
+    """Create a new financial goal."""
     if request.method == "POST":
-        form = GoalForm(request.POST, user=request.user)
+        form = GoalForm(request.POST)
         if form.is_valid():
             goal = form.save(commit=False)
-            goal.user = request.user
+            # No need to set user here
             goal.save()
-
-            messages.success(request, f"Created new goal: {goal.name}")
+            messages.success(request, f'Goal "{goal.name}" created successfully!')
             return redirect("goal_detail", goal_id=goal.id)
     else:
-        form = GoalForm(user=request.user)
+        form = GoalForm()
 
     context = {
         "form": form,
         "title": "Create New Goal",
     }
-
     return render(request, f"{TEMPLATE_VERSION}/goals/goal_form.html", context)
 
 
-@login_required
 def goal_edit(request, goal_id):
-    """
-    Edit an existing financial goal
-    """
-    goal = get_object_or_404(Goal, id=goal_id, user=request.user)
+    """Edit an existing financial goal."""
+    goal = get_object_or_404(Goal, id=goal_id)
 
     if request.method == "POST":
-        form = GoalForm(request.POST, instance=goal, user=request.user)
+        form = GoalForm(request.POST, instance=goal)
         if form.is_valid():
             form.save()
-            messages.success(request, f"Updated goal: {goal.name}")
+            messages.success(request, f'Goal "{goal.name}" updated successfully!')
             return redirect("goal_detail", goal_id=goal.id)
     else:
-        form = GoalForm(instance=goal, user=request.user)
+        form = GoalForm(instance=goal)
 
     context = {
         "form": form,
-        "goal": goal,
         "title": "Edit Goal",
     }
-
     return render(request, f"{TEMPLATE_VERSION}/goals/goal_form.html", context)
 
 
-@login_required
 @require_POST
 def goal_delete(request, goal_id):
-    """
-    Delete a financial goal
-    """
-    goal = get_object_or_404(Goal, id=goal_id, user=request.user)
+    """Delete a financial goal."""
+    goal = get_object_or_404(Goal, id=goal_id)
     name = goal.name
     goal.delete()
-
-    messages.success(request, f"Deleted goal: {name}")
+    messages.success(request, f'Goal "{name}" was deleted successfully.')
     return redirect("goal_list")
 
 
-@login_required
 @require_POST
 def add_contribution(request, goal_id):
-    """
-    Add a contribution to a goal from the goal detail page
-    """
-    goal = get_object_or_404(Goal, id=goal_id, user=request.user)
+    """Add a contribution to a goal."""
+    goal = get_object_or_404(Goal, id=goal_id)
 
     form = GoalContributionForm(request.POST)
     if form.is_valid():
@@ -718,14 +675,14 @@ def add_contribution(request, goal_id):
         contribution.goal = goal
         contribution.save()
 
-        # Update goal's current amount
+        # Update the goal's current amount
         goal.current_amount += contribution.amount
-        goal.save(update_fields=["current_amount"])
+        goal.save()
 
-        messages.success(request, f"Added contribution of {contribution.amount}")
+        messages.success(request, f'Added {contribution.amount} contribution to "{goal.name}"')
     else:
         for field, errors in form.errors.items():
             for error in errors:
-                messages.error(request, f"Error in {field}: {error}")
+                messages.error(request, f"{field}: {error}")
 
     return redirect("goal_detail", goal_id=goal.id)

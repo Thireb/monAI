@@ -1,7 +1,7 @@
 from django.db.models import Sum
 from django.utils import timezone
 
-from rest_framework import permissions, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -15,11 +15,12 @@ class GoalViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = GoalSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """Return goals for the authenticated user only."""
-        return Goal.objects.filter(user=self.request.user)
+        """
+        Return all goals without filtering by user.
+        """
+        return Goal.objects.all()
 
     def get_serializer_class(self):
         if self.action in ["retrieve", "detail"]:
@@ -151,15 +152,19 @@ class GoalContributionViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = GoalContributionSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """Return contributions for the authenticated user's goals only."""
-        return GoalContribution.objects.filter(goal__user=self.request.user)
+        """
+        Return all goal contributions or filter by goal if specified.
+        """
+        goal_id = self.request.query_params.get("goal", None)
+        if goal_id:
+            return GoalContribution.objects.filter(goal_id=goal_id)
+        return GoalContribution.objects.all()
 
     def perform_create(self, serializer):
         """
-        When creating a contribution, update the goal's current amount.
+        Save the contribution and update the goal's current amount.
         """
         contribution = serializer.save()
 

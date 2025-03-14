@@ -119,13 +119,11 @@ class GoalForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)
+        # Remove user parameter if it exists
+        if "user" in kwargs:
+            kwargs.pop("user")
         super().__init__(*args, **kwargs)
         self.fields["start_date"].initial = timezone.now().date()
-
-        # If category choices are available, filter by user
-        if self.user and "category" in self.fields:
-            self.fields["category"].queryset = Category.objects.filter(user=self.user)
 
     def clean(self):
         cleaned_data = super().clean()

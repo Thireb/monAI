@@ -20,7 +20,6 @@ class ExpenseAdmin(admin.ModelAdmin):
 class GoalAdmin(admin.ModelAdmin):
     list_display = (
         "name",
-        "user",
         "target_amount",
         "current_amount",
         "progress_percentage",
@@ -29,7 +28,7 @@ class GoalAdmin(admin.ModelAdmin):
         "is_active",
     )
     list_filter = ("category", "is_active")
-    search_fields = ("name", "description", "user__username")
+    search_fields = ("name", "description")
 
 
 @admin.register(GoalContribution)

@@ -162,7 +162,7 @@ class BudgetLog(models.Model):
     month = models.DateField()
     action = models.CharField(max_length=10, choices=ACTIONS)
     timestamp = models.DateTimeField(auto_now_add=True)
-    details = models.TextField(blank=True)
+    details = models.TextField(blank=True, default="")
 
     class Meta:
         ordering = ["-timestamp"]
@@ -204,7 +204,7 @@ class IncomeHistory(models.Model):
     old_currency = models.CharField(max_length=3)
     new_currency = models.CharField(max_length=3)
     changed_at = models.DateTimeField(auto_now_add=True)
-    reason = models.TextField(blank=True)
+    reason = models.TextField(blank=True, default="")
 
     class Meta:
         ordering = ["-changed_at"]
@@ -232,7 +232,9 @@ class RecentUpdate(models.Model):
 class Goal(models.Model):
     """Financial goal that a user is saving towards."""
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True
+    )
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     target_amount = models.DecimalField(max_digits=10, decimal_places=2)
