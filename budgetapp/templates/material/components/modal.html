@@ -1,0 +1,36 @@
+{% comment %}
+Usage:
+{% include "material/components/modal.html" with
+    modal_id="modal_id"
+    modal_title="Modal Title"
+    modal_class="additional-classes"
+    modal_size="modal-lg|modal-sm"
+    modal_static=True
+    show_close_button=True
+    modal_footer=footer_html
+%}
+    Modal content goes here
+{% endinclude %}
+{% endcomment %}
+<div class="modal fade {{ modal_class|default:'' }}"
+     id="{{ modal_id }}"
+     {% if modal_static %}data-bs-backdrop="static" data-bs-keyboard="false"{% endif %}
+     tabindex="-1"
+     aria-labelledby="{{ modal_id }}Label"
+     aria-hidden="true">
+    <div class="modal-dialog {{ modal_size|default:'' }}">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="{{ modal_id }}Label">{{ modal_title }}</h5>
+                {% if show_close_button %}
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                {% endif %}
+            </div>
+            <div class="modal-body">{{ content|safe }}</div>
+            {% if modal_footer %}<div class="modal-footer">{{ modal_footer|safe }}</div>{% endif %}
+        </div>
+    </div>
+</div>

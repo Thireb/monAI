@@ -1,0 +1,23 @@
+{% load humanize %}
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Old Amount</th>
+                <th>New Amount</th>
+                <th>Reason</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for history in income_history %}
+                <tr>
+                    <td>{{ history.changed_at|date:"M d, Y H:i" }}</td>
+                    <td>{{ history.old_currency }} {{ history.old_amount }}</td>
+                    <td>{{ history.new_currency }} {{ history.new_amount }}</td>
+                    <td>{{ history.reason|default:"No reason provided" }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,22 @@
+{% comment %}
+Usage:
+{% include "material/components/stats_card.html" with
+    stat_label="Stat Label"
+    stat_value=value
+    stat_currency=currency
+    stat_class="text-success|text-danger"
+    stat_icon="material_icon_name"
+    stat_help_text="Additional information"
+%}
+{% endcomment %}
+<div class="budget-stat">
+    <h6 class="text-muted">
+        {% if stat_icon %}<i class="material-icons align-middle">{{ stat_icon }}</i>{% endif %}
+        {{ stat_label }}
+    </h6>
+    <h3 class="{{ stat_class|default:'' }}">
+        {% if stat_currency %}{{ stat_currency }}{% endif %}
+        {{ stat_value|floatformat:2|intcomma }}
+    </h3>
+    {% if stat_help_text %}<small class="text-muted">{{ stat_help_text }}</small>{% endif %}
+</div>

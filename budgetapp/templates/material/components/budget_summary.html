@@ -1,0 +1,159 @@
+{% load humanize %}
+{% load budget_filters %}
+<div class="budget-summary">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="budget-stat">
+                <h6 class="text-muted">Income</h6>
+                <h3>{{ budget.currency }} {{ budget.income|floatformat:2|intcomma }}</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="budget-stat">
+                <h6 class="text-muted">Total Expenses</h6>
+                <h3>{{ budget.currency }} {{ total_expenses|floatformat:2|intcomma }}</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="budget-stat">
+                <h6 class="text-muted">Total Returns</h6>
+                <h3 class="text-success">{{ budget.currency }} {{ budget.get_total_returns|floatformat:2|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <div class="budget-stat">
+                <h6 class="text-muted">Remaining (with returns)</h6>
+                <h3 class="{% if budget.get_remaining_budget > 0 %}
+                               text-success
+                           {% else %}
+                               text-danger
+                           {% endif %}">
+                    {{ budget.currency }} {{ budget.get_remaining_budget|floatformat:2|intcomma }}
+                </h3>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="budget-stat">
+                <h6 class="text-muted">Remaining (without returns)</h6>
+                {% with remaining_without_returns=budget.income|subtract:total_expenses %}
+                    <h3 class="{% if remaining_without_returns > 0 %}
+                                   text-success
+                               {% else %}
+                                   text-danger
+                               {% endif %}">
+                        {{ budget.currency }} {{ remaining_without_returns|floatformat:2|intcomma }}
+                    </h3>
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+    <h3 class="mt-4">Expenses</h3>
+    <div class="table-responsive">
+        <table class="table budget-summary-table">
+            <thead>
+                <tr>
+                    <th class="col-name">Name</th>
+                    <th class="col-amount">Amount</th>
+                    <th class="col-category">Category</th>
+                    <th class="col-recurring">Recurring</th>
+                    <th class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                    <tr>
+                        <td>
+                            {{ expense.name }}
+                            {% if expense.sub_expenses.exists %}
+                                <div class="ms-3 mt-2 small">
+                                    <ul class="list-unstyled text-muted">
+                                        {% for sub_expense in expense.sub_expenses.all %}
+                                            <li>
+                                                <i class="material-icons">
+                                                    {{ sub_expense.is_return|yesno:"keyboard_return,subdirectory_arrow_right" }}
+                                                </i>
+                                                <span {% if sub_expense.is_return %}class="text-success"{% endif %}>
+                                                    {{ sub_expense.name }} -
+                                                    {{ budget.currency }} {{ sub_expense.amount }}
+                                                    {% if sub_expense.is_return %}<span class="badge bg-success">Return</span>{% endif %}
+                                                </span>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ budget.currency }} {{ expense.amount }}
+                            {% if expense.sub_expenses.exists %}
+                                <div class="ms-3 mt-2 small text-muted">
+                                    <i class="material-icons">arrow_right</i>
+                                    Remaining: {{ budget.currency }} {{ expense.get_remaining_amount|floatformat:3 }}
+                                    {% if expense.get_total_returns > 0 %}
+                                        <br>
+                                        <i class="material-icons text-success">keyboard_return</i>
+                                        Returns: {{ budget.currency }} {{ expense.get_total_returns|floatformat:2 }}
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if expense.category %}
+                                <span class="badge" style="background-color: {{ expense.category.color }}">
+                                    <i class="material-icons">category</i>
+                                    {{ expense.category.name }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="material-icons">help</i>
+                                    Uncategorized
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {{ expense.is_recurring|yesno:'bg-success,bg-secondary' }}">
+                                {{ expense.is_recurring|yesno:"Yes,No" }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{% url 'expense_detail' expense_id=expense.id %}"
+                                   class="action-btn action-view"
+                                   data-bs-toggle="tooltip"
+                                   title="View breakdown">
+                                    <i class="material-icons">list</i>
+                                </a>
+                                <button type="button"
+                                        class="action-btn action-edit edit-expense"
+                                        data-expense-id="{{ expense.id }}"
+                                        data-expense-name="{{ expense.name }}"
+                                        data-expense-amount="{{ expense.amount }}"
+                                        data-expense-category="{{ expense.category.id|default:'' }}"
+                                        data-expense-recurring="{{ expense.is_recurring|yesno:'true,false' }}"
+                                        data-bs-toggle="tooltip"
+                                        title="Edit expense">
+                                    <i class="material-icons">edit</i>
+                                </button>
+                                <form method="post"
+                                      class="delete-form d-inline"
+                                      data-expense-name="{{ expense.name }}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="form_type" value="delete_expense">
+                                    <input type="hidden" name="expense_id" value="{{ expense.id }}">
+                                    <button type="submit"
+                                            class="action-btn action-delete"
+                                            data-bs-toggle="tooltip"
+                                            title="Delete expense">
+                                        <i class="material-icons">delete</i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

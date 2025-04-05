@@ -1,0 +1,51 @@
+{% load humanize %}
+<form method="post" id="expense-form" class="expense-form">
+    {% csrf_token %}
+    <input type="hidden" name="form_type" value="expense">
+    <input type="hidden" name="expense_id" id="expense_id" value="">
+    <div class="mb-3">
+        <label for="expense_name" class="form-label">Name</label>
+        <input type="text"
+               name="name"
+               class="form-control"
+               id="expense_name"
+               placeholder="e.g., Rent, Groceries, Utilities"
+               required>
+        <div class="form-text">Enter a clear, descriptive name for the expense</div>
+    </div>
+    <div class="mb-3">
+        <label for="expense_amount" class="form-label">Amount</label>
+        <input type="number"
+               step="0.01"
+               name="amount"
+               class="form-control"
+               id="expense_amount"
+               placeholder="Enter amount"
+               required>
+        <div class="form-text">Enter the expense amount in {{ budget.currency }}</div>
+    </div>
+    <div class="mb-3">
+        <label for="expense_category" class="form-label">Category</label>
+        <select name="category" id="expense_category" class="form-select">
+            <option value="">Select a category</option>
+            {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+        </select>
+        <div class="form-text">Group your expenses for better tracking</div>
+    </div>
+    <div class="mb-3 form-check">
+        <input type="checkbox"
+               name="is_recurring"
+               class="form-check-input"
+               id="expense_recurring">
+        <label class="form-check-label" for="expense_recurring">Recurring Expense</label>
+        <div class="form-text">Check if this is a monthly recurring expense</div>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary" id="expense-submit-btn">
+            <i class="material-icons align-middle">add</i> Add Expense
+        </button>
+        <button type="button" class="btn btn-secondary d-none" id="cancel-edit-btn">
+            <i class="material-icons align-middle">close</i> Cancel
+        </button>
+    </div>
+</form>

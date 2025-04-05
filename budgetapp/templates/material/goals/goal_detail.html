@@ -83,41 +83,90 @@
                                 <h3 class="h5 mb-3">Timeline</h3>
                                 {% if goal.target_date %}
                                     <div class="d-flex justify-content-between mb-2">
-                                        <span class="text-muted">Start:</span>
+                                        <span class="text-muted">Start Date:</span>
                                         <span class="fw-bold">{{ goal.start_date|date:"M d, Y" }}</span>
                                     </div>
                                     <div class="d-flex justify-content-between mb-2">
-                                        <span class="text-muted">Target:</span>
+                                        <span class="text-muted">Target Date:</span>
                                         <span class="fw-bold">{{ goal.target_date|date:"M d, Y" }}</span>
                                     </div>
+                                    <hr class="my-3">
+                                    <h4 class="h6 mb-2">Ideal Path</h4>
                                     <div class="d-flex justify-content-between mb-2">
                                         <span class="text-muted">Monthly Needed:</span>
-                                        <span class="fw-bold
-                                                     {% if on_track %}
-                                                         text-success
-                                                     {% elif on_track == False %}
-                                                         text-warning
-                                                     {% endif %}">{{ monthly_needed|default:"N/A" }}</span>
+                                        <span class="fw-bold text-primary">{{ monthly_needed|default:"N/A" }}</span>
                                     </div>
-                                    {% if not on_track == None %}
-                                        <div class="text-center mt-3">
-                                            <span class="badge
-                                                         {% if on_track %}
-                                                             bg-success
-                                                         {% else %}
-                                                             bg-warning
-                                                         {% endif %}">
-                                                {% if on_track %}
-                                                    On Track
+                                    <hr class="my-3">
+                                    <h4 class="h6 mb-2">Current Path</h4>
+                                    {% if avg_contribution %}
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="text-muted">Avg. Contribution:</span>
+                                            <span class="fw-bold">{{ avg_contribution|floatformat:2 }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="text-muted">Frequency:</span>
+                                            <span class="fw-bold">
+                                                {% if avg_frequency < 30 %}
+                                                    Every {{ avg_frequency|floatformat:0 }} days
                                                 {% else %}
-                                                    Behind Schedule
+                                                    Monthly
                                                 {% endif %}
                                             </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="text-muted">Monthly Rate:</span>
+                                            <span class="fw-bold">{{ current_monthly_rate|floatformat:2 }}</span>
+                                        </div>
+                                        {% if projected_date %}
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span class="text-muted">Projected Completion:</span>
+                                                <span class="fw-bold
+                                                             {% if is_on_target %}
+                                                                 text-success
+                                                             {% else %}
+                                                                 text-warning
+                                                             {% endif %}">{{ projected_date|date:"M d, Y" }}</span>
+                                            </div>
+                                            {% if not is_on_target %}
+                                                <div class="small text-warning mt-2">
+                                                    <i class="material-icons align-middle fs-6">info</i>
+                                                    {% with days_late=projected_date|timeuntil:goal.target_date %}{{ days_late }} after target{% endwith %}
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="text-muted small">
+                                            <i class="material-icons align-middle fs-6">info</i>
+                                            Add contributions to see projections
                                         </div>
                                     {% endif %}
                                 {% else %}
                                     <div class="text-center">
-                                        <p class="text-muted">No target date set</p>
+                                        <p class="text-muted mb-0">No target date set</p>
+                                        {% if avg_contribution %}
+                                            <hr class="my-3">
+                                            <h4 class="h6 mb-2">Current Progress</h4>
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span class="text-muted">Avg. Contribution:</span>
+                                                <span class="fw-bold">{{ avg_contribution|floatformat:2 }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span class="text-muted">Frequency:</span>
+                                                <span class="fw-bold">
+                                                    {% if avg_frequency < 30 %}
+                                                        Every {{ avg_frequency|floatformat:0 }} days
+                                                    {% else %}
+                                                        Monthly
+                                                    {% endif %}
+                                                </span>
+                                            </div>
+                                            {% if projected_date %}
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span class="text-muted">Est. Completion:</span>
+                                                    <span class="fw-bold">{{ projected_date|date:"M d, Y" }}</span>
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
                                     </div>
                                 {% endif %}
                             </div>

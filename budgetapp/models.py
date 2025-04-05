@@ -254,6 +254,69 @@ class Goal(models.Model):
             return 100
         return min(100, int((self.current_amount / self.target_amount) * 100))
 
+    def get_average_contribution(self):
+        """
+        Calculate the average contribution amount based on contribution history.
+        Returns tuple of (amount, frequency_in_days)
+        """
+        contributions = self.contributions.all().order_by("date")
+        if not contributions:
+            return Decimal("0"), None
+
+        # Get all contribution amounts
+        amounts = [c.amount for c in contributions]
+
+        # Calculate average amount
+        avg_amount = sum(amounts) / len(amounts)
+
+        # Calculate average frequency in days
+        if len(contributions) > 1:
+            # Get all dates
+            dates = [c.date for c in contributions]
+            # Calculate differences between consecutive dates
+            intervals = [(dates[i + 1] - dates[i]).days for i in range(len(dates) - 1)]
+            # Calculate average interval
+            avg_frequency = sum(intervals) / len(intervals)
+        else:
+            # If only one contribution, use days since that contribution
+            first_contrib_date = contributions[0].date
+            days_since = (timezone.now().date() - first_contrib_date).days
+            avg_frequency = max(days_since, 30)  # Use at least 30 days if very recent
+
+        return avg_amount, avg_frequency
+
+    def get_projected_completion(self):
+        """
+        Calculate projected completion date and final amount based on contribution patterns.
+        Returns tuple of (projected_date, monthly_rate, is_on_target)
+        """
+        if self.current_amount >= self.target_amount:
+            return None, Decimal("0"), True
+
+        avg_amount, avg_frequency = self.get_average_contribution()
+
+        if not avg_amount or not avg_frequency:
+            return None, Decimal("0"), False
+
+        # Calculate remaining amount needed
+        remaining = self.target_amount - self.current_amount
+
+        # Convert to monthly rate for comparison
+        monthly_rate = (avg_amount * 30) / avg_frequency
+
+        # Calculate number of days needed at current rate
+        days_needed = (remaining / avg_amount) * avg_frequency
+
+        # Calculate projected completion date
+        projected_date = timezone.now().date() + timezone.timedelta(days=int(days_needed))
+
+        # Determine if we're on target (if target date exists)
+        is_on_target = True
+        if self.target_date:
+            is_on_target = projected_date <= self.target_date
+
+        return projected_date, monthly_rate, is_on_target
+
     def is_on_track(self):
         """
         Determine if the goal is on track to be completed by the target date.

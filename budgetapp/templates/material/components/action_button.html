@@ -1,0 +1,19 @@
+{% comment %}
+Usage:
+{% include "material/components/action_button.html" with
+    button_type="button|submit"
+    button_class="additional-classes"
+    button_id="button_id"
+    button_name="button_name"
+    button_value="button_value"
+    button_icon="material_icon_name"
+    button_text="Button Text"
+    button_title="Tooltip text"
+    data_attributes="data-attr1='val1' data-attr2='val2'"
+    onclick="javascript_function"
+%}
+{% endcomment %}
+<button type="{{ button_type|default:'button' }}" class="action-btn {{ button_class|default:'' }}" {% if button_id %}id="{{ button_id }}"{% endif %} {% if button_name %}name="{{ button_name }}"{% endif %} {% if button_value %}value="{{ button_value }}"{% endif %} {% if button_title %}data-bs-toggle="tooltip" title="{{ button_title }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} {{ data_attributes|safe }}>
+    {% if button_icon %}<i class="material-icons align-middle">{{ button_icon }}</i>{% endif %}
+    {% if button_text %}<span class="button-text">{{ button_text }}</span>{% endif %}
+</button>

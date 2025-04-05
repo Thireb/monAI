@@ -1,0 +1,29 @@
+{% comment %}
+Usage:
+{% include "material/components/card.html" with
+    card_title="Card Title"
+    card_subtitle=subtitle
+    card_icon=icon
+    card_class="additional-classes"
+    card_header_class="header-classes"
+    card_body_class="body-classes"
+    card_header_actions=header_actions_html
+%}
+    Content goes here
+{% endinclude %}
+{% endcomment %}
+<div class="card {{ card_class|default:'' }}">
+    {% if card_title or card_header_actions %}
+        <div class="card-header {{ card_header_class|default:'' }}">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">
+                    {% if card_icon %}<i class="material-icons align-middle">{{ card_icon }}</i>{% endif %}
+                    {{ card_title }}
+                    {% if card_subtitle %}<small class="text-muted">{{ card_subtitle }}</small>{% endif %}
+                </h3>
+                {% if card_header_actions %}<div class="card-actions">{{ card_header_actions|safe }}</div>{% endif %}
+            </div>
+        </div>
+    {% endif %}
+    <div class="card-body {{ card_body_class|default:'' }}">{{ content|safe }}</div>
+</div>

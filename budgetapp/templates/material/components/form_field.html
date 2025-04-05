@@ -1,0 +1,47 @@
+{% comment %}
+Usage:
+{% include "material/components/form_field.html" with
+    field_type="text|number|select|checkbox"
+    field_id="field_id"
+    field_name="field_name"
+    field_label="Field Label"
+    field_placeholder="Placeholder text"
+    field_help_text="Help text"
+    field_required=True
+    field_value=value
+    field_options=options_list (for select)
+    field_step="0.01" (for number)
+    field_class="additional-classes"
+%}
+{% endcomment %}
+<div class="mb-3 {% if field_type == 'checkbox' %}form-check{% endif %}">
+    <label for="{{ field_id }}" class="form-label">{{ field_label }}</label>
+    {% if field_type == "select" %}
+        <select name="{{ field_name }}"
+                id="{{ field_id }}"
+                class="form-select {{ field_class|default:'' }}"
+                {% if field_required %}required{% endif %}>
+            <option value="">Select {{ field_label }}</option>
+            {% for option in field_options %}
+                <option value="{{ option.id }}"
+                        {% if field_value == option.id %}selected{% endif %}>{{ option.name }}</option>
+            {% endfor %}
+        </select>
+    {% elif field_type == "checkbox" %}
+        <input type="checkbox"
+               name="{{ field_name }}"
+               id="{{ field_id }}"
+               class="form-check-input {{ field_class|default:'' }}"
+               {% if field_value %}checked{% endif %}>
+    {% else %}
+        <input type="{{ field_type }}"
+               name="{{ field_name }}"
+               id="{{ field_id }}"
+               class="form-control {{ field_class|default:'' }}"
+               value="{{ field_value|default:'' }}"
+               placeholder="{{ field_placeholder|default:'' }}"
+               {% if field_step %}step="{{ field_step }}"{% endif %}
+               {% if field_required %}required{% endif %}>
+    {% endif %}
+    {% if field_help_text %}<div class="form-text">{{ field_help_text }}</div>{% endif %}
+</div>

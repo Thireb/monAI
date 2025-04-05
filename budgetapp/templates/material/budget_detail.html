@@ -1,6 +1,7 @@
 {% extends "material/base.html" %}
 {% load humanize %}
 {% load budget_filters %}
+{% load static %}
 {% block content %}
     {% if messages %}
         {% for message in messages %}
@@ -15,7 +16,57 @@
         {% endfor %}
     {% endif %}
     <h1 class="mb-4">Budget for {{ budget.month|date:"F Y" }}</h1>
-    <!-- Income Modal -->
+    <div class="row">
+        <div class="col-md-4">
+            {# Income Details Card #}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">Income Details</h3>
+                    <button type="button"
+                            class="btn btn-raised btn-primary"
+                            data-bs-toggle="modal"
+                            data-bs-target="#incomeModal">
+                        <i class="material-icons">edit</i> Update Income
+                    </button>
+                </div>
+                <div class="card-body">
+                    <h4>Monthly Income: {{ budget.currency }} {{ budget.income|floatformat:2|intcomma }}</h4>
+                </div>
+            </div>
+            {# Expense Form Card #}
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0" id="expense-form-title">Add New Expense</h3>
+                </div>
+                <div class="card-body">{% include "material/components/expense_form.html" %}</div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            {# Category Statistics Card #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Expense Categories</h5>
+                </div>
+                <div class="card-body">{% include "material/components/category_stats.html" %}</div>
+            </div>
+            {# Budget Summary Card #}
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">Budget Summary</h3>
+                </div>
+                <div class="card-body">{% include "material/components/budget_summary.html" %}</div>
+            </div>
+        </div>
+    </div>
+    {% if income_history %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Income History</h5>
+            </div>
+            <div class="card-body">{% include "material/components/income_history.html" %}</div>
+        </div>
+    {% endif %}
+    {# Income Modal #}
     <div class="modal fade"
          id="incomeModal"
          data-bs-backdrop="static"
@@ -40,500 +91,366 @@
                                 aria-label="Close"></button>
                     {% endif %}
                 </div>
-                <div class="modal-body">
-                    <form method="post" class="income-form">
-                        {% csrf_token %}
-                        <div class="form-group mb-3">
-                            <label for="income">Monthly Income</label>
-                            <input type="number"
-                                   step="0.01"
-                                   name="income"
-                                   id="income"
-                                   value="{{ budget.income }}"
-                                   class="form-control"
-                                   placeholder="Enter your monthly income"
-                                   required>
-                            <small class="form-text text-muted">Enter your total monthly income before expenses</small>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label for="currency">Currency</label>
-                            <select name="currency" id="currency" class="form-control">
-                                {% for code, name in currency_choices %}
-                                    <option value="{{ code }}"
-                                            {% if budget.currency == code %}selected{% endif %}>{{ name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label for="reason">Reason for Change</label>
-                            <textarea name="reason"
-                                      id="reason"
-                                      class="form-control"
-                                      rows="3"
-                                      placeholder="e.g., Salary increase, Additional income source"></textarea>
-                            <small class="form-text text-muted">Helps you track why income changes over time</small>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            {% if budget.income == 0 %}
-                                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
-                                <button type="submit"
-                                        name="form_type"
-                                        value="income"
-                                        class="btn btn-raised btn-primary">
-                                    <i class="material-icons">save</i> Set Income
-                                </button>
-                            {% else %}
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit"
-                                        name="form_type"
-                                        value="income"
-                                        class="btn btn-raised btn-primary">
-                                    <i class="material-icons">save</i> Update Income
-                                </button>
-                            {% endif %}
-                        </div>
-                    </form>
-                </div>
+                <div class="modal-body">{% include "material/components/income_form.html" %}</div>
             </div>
         </div>
     </div>
-    <div class="row">
-        <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3 class="mb-0">Income Details</h3>
-                        <button type="button"
-                                class="btn btn-raised btn-primary"
-                                data-bs-toggle="modal"
-                                data-bs-target="#incomeModal"
-                                id="updateIncomeBtn">
-                            <i class="material-icons">edit</i> Update Income
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <h4>Monthly Income: {{ budget.currency }} {{ budget.income|floatformat:2|intcomma }}</h4>
-                    </div>
-                </div>
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0" id="expense-form-title">Add New Expense</h3>
-                </div>
-                <div class="card-body">
-                    <form method="post" id="expense-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="form_type" value="expense">
-                        <input type="hidden" name="expense_id" id="expense_id">
-                        <div class="form-group mb-3">
-                            <label for="{{ form.name.id_for_label }}">Name</label>
-                            <input type="text"
-                                   name="name"
-                                   class="form-control"
-                                   id="{{ form.name.id_for_label }}"
-                                   placeholder="e.g., Rent, Groceries, Utilities"
-                                   required>
-                            <small class="form-text text-muted">Enter a clear, descriptive name for the expense</small>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label for="{{ form.amount.id_for_label }}">Amount</label>
-                            <input type="number"
-                                   step="0.01"
-                                   name="amount"
-                                   class="form-control"
-                                   id="{{ form.amount.id_for_label }}"
-                                   placeholder="Enter amount"
-                                   required>
-                            <small class="form-text text-muted">Enter the expense amount in {{ budget.currency }}</small>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label for="{{ form.category.id_for_label }}">Category</label>
-                            <select name="category"
-                                    id="{{ form.category.id_for_label }}"
-                                    class="form-control">
-                                <option value="">Select a category</option>
-                                {% for category in categories %}
-                                    <option value="{{ category.id }}"
-                                            {% if form.category.value == category.id %}selected{% endif %}>{{ category.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <small class="form-text text-muted">Group your expenses for better tracking</small>
-                        </div>
-                        <div class="checkbox mb-3">
-                            <label class="form-check-label">
-                                {{ form.is_recurring }}
-                                Recurring Expense
-                            </label>
-                            <small class="form-text text-muted d-block">Check if this is a monthly recurring expense</small>
-                        </div>
-                        <button type="submit"
-                                name="form_type"
-                                value="expense"
-                                class="btn btn-raised btn-primary"
-                                id="expense-submit-btn">
-                            <i class="material-icons">add</i> Add Expense
-                        </button>
-                        <button type="button" class="btn btn-secondary d-none" id="cancel-edit-btn">Cancel</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-8">
-            <!-- Category Statistics Card -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Expense Categories</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% for category_name, data in expenses_by_category.items %}
-                            <div class="col-md-6 mb-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-shrink-0">
-                                        <i class="material-icons" style="color: {{ data.color }}">
-                                            {% if data.icon == 'fa-question-circle' %}
-                                                help
-                                            {% else %}
-                                                category
-                                            {% endif %}
-                                        </i>
-                                    </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <h6 class="mb-0">{{ category_name }}</h6>
-                                        <div class="progress">
-                                            <div class="progress-bar"
-                                                 role="progressbar"
-                                                 style="width: {{ data.percentage }}%;
-                                                        background-color: {{ data.color }}"
-                                                 aria-valuenow="{{ data.percentage }}"
-                                                 aria-valuemin="0"
-                                                 aria-valuemax="100"></div>
-                                        </div>
-                                        <small class="text-muted">{{ data.amount }} {{ budget.currency }} ({{ data.percentage|floatformat:1 }}%)</small>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            <!-- Expenses List Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0">Budget Summary</h3>
-                </div>
-                <div class="card-body">
-                    <div class="card mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">
-                                <i class="material-icons">account_balance_wallet</i>
-                                Account Insights
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="budget-stat">
-                                        <h6 class="text-muted">Income</h6>
-                                        <h3>{{ budget.currency }} {{ budget.income|floatformat:2|intcomma }}</h3>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="budget-stat">
-                                        <h6 class="text-muted">Total Expenses</h6>
-                                        <h3>{{ budget.currency }} {{ total_expenses|floatformat:2|intcomma }}</h3>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="budget-stat">
-                                        <h6 class="text-muted">Total Returns</h6>
-                                        <h3 class="text-success">{{ budget.currency }} {{ budget.get_total_returns|floatformat:2|intcomma }}</h3>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-md-6">
-                                    <div class="budget-stat">
-                                        <h6 class="text-muted">Remaining (with returns)</h6>
-                                        <h3 class="{% if budget.get_remaining_budget > 0 %}
-                                                       text-success
-                                                   {% else %}
-                                                       text-danger
-                                                   {% endif %}">
-                                            {{ budget.currency }} {{ budget.get_remaining_budget|floatformat:2|intcomma }}
-                                        </h3>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="budget-stat">
-                                        <h6 class="text-muted">Remaining (without returns)</h6>
-                                        {% with remaining_without_returns=budget.income|subtract:total_expenses %}
-                                            <h3 class="{% if remaining_without_returns > 0 %}
-                                                           text-success
-                                                       {% else %}
-                                                           text-danger
-                                                       {% endif %}">
-                                                {{ budget.currency }} {{ remaining_without_returns|floatformat:2|intcomma }}
-                                            </h3>
-                                        {% endwith %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <h3>Expenses</h3>
-                    <div class="table-responsive">
-                        <table class="table budget-summary-table">
-                            <thead>
-                                <tr>
-                                    <th class="col-name">Name</th>
-                                    <th class="col-amount">Amount</th>
-                                    <th class="col-category">Category</th>
-                                    <th class="col-recurring">Recurring</th>
-                                    <th class="col-actions">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for expense in expenses %}
-                                    <tr>
-                                        <td>
-                                            {{ expense.name }}
-                                            {% if expense.sub_expenses.exists %}
-                                                <div class="ms-3 mt-2 small">
-                                                    <ul class="list-unstyled text-muted">
-                                                        {% for sub_expense in expense.sub_expenses.all %}
-                                                            <li>
-                                                                <i class="material-icons">
-                                                                    {% if sub_expense.is_return %}
-                                                                        keyboard_return
-                                                                    {% else %}
-                                                                        subdirectory_arrow_right
-                                                                    {% endif %}
-                                                                </i>
-                                                                <span {% if sub_expense.is_return %}class="text-success"{% endif %}>
-                                                                    {{ sub_expense.name }} -
-                                                                    {{ budget.currency }} {{ sub_expense.amount }}
-                                                                    {% if sub_expense.is_return %}<span class="badge bg-success">Return</span>{% endif %}
-                                                                </span>
-                                                            </li>
-                                                        {% endfor %}
-                                                    </ul>
-                                                </div>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {{ budget.currency }} {{ expense.amount }}
-                                            {% if expense.sub_expenses.exists %}
-                                                <div class="ms-3 mt-2 small text-muted">
-                                                    <i class="material-icons">arrow_right</i>
-                                                    Remaining: {{ budget.currency }} {{ expense.get_remaining_amount|floatformat:3 }}
-                                                    {% if expense.get_total_returns > 0 %}
-                                                        <br>
-                                                        <i class="material-icons text-success">keyboard_return</i>
-                                                        Returns: {{ budget.currency }} {{ expense.get_total_returns|floatformat:2 }}
-                                                    {% endif %}
-                                                </div>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if expense.category %}
-                                                <span class="badge" style="background-color: {{ expense.category.color }}">
-                                                    <i class="material-icons">category</i>
-                                                    {{ expense.category.name }}
-                                                </span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">
-                                                    <i class="material-icons">help</i>
-                                                    Uncategorized
-                                                </span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if expense.is_recurring %}
-                                                <span class="badge bg-success">Yes</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">No</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div class="action-buttons">
-                                                <a href="{% url 'expense_detail' expense_id=expense.id %}"
-                                                   class="action-btn action-view"
-                                                   data-bs-toggle="tooltip"
-                                                   title="View breakdown">
-                                                    <i class="material-icons">list</i>
-                                                </a>
-                                                <button class="action-btn action-edit edit-expense"
-                                                        data-expense-id="{{ expense.id }}"
-                                                        data-expense-name="{{ expense.name }}"
-                                                        data-expense-amount="{{ expense.amount }}"
-                                                        data-expense-category="{{ expense.category.id|default:'' }}"
-                                                        data-expense-recurring="{{ expense.is_recurring|lower }}"
-                                                        data-bs-toggle="tooltip"
-                                                        title="Edit expense">
-                                                    <i class="material-icons">edit</i>
-                                                </button>
-                                                <form method="post"
-                                                      class="delete-form"
-                                                      onsubmit="return handleDelete(event, '{{ expense.name }}')">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="form_type" value="delete_expense">
-                                                    <input type="hidden" name="expense_id" value="{{ expense.id }}">
-                                                    <button type="submit"
-                                                            class="action-btn action-delete"
-                                                            data-bs-toggle="tooltip"
-                                                            title="Delete expense">
-                                                        <i class="material-icons">delete</i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% if income_history %}
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="mb-0">Income History</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Old Amount</th>
-                                <th>New Amount</th>
-                                <th>Reason</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for history in income_history %}
-                                <tr>
-                                    <td>{{ history.changed_at|date:"M d, Y H:i" }}</td>
-                                    <td>{{ history.old_currency }} {{ history.old_amount }}</td>
-                                    <td>{{ history.new_currency }} {{ history.new_amount }}</td>
-                                    <td>{{ history.reason|default:"No reason provided" }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    {% endif %}
 {% endblock content %}
 {% block extra_js %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Material Design components
-            $('body').bootstrapMaterialDesign();
-
-            // Initialize tooltips
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-
-            // Handle edit expense button clicks
-            const editButtons = document.querySelectorAll('.edit-expense');
-            const expenseForm = document.getElementById('expense-form');
-            const expenseFormTitle = document.getElementById('expense-form-title');
-            const submitBtn = document.getElementById('expense-submit-btn');
-            const cancelEditBtn = document.getElementById('cancel-edit-btn');
-
-            editButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const expenseData = this.dataset;
-
-                    // Update form fields with expense data
-                    document.getElementById('expense_id').value = expenseData.expenseId;
-                    document.querySelector('input[name="name"]').value = expenseData.expenseName;
-                    document.querySelector('input[name="amount"]').value = expenseData.expenseAmount;
-                    document.querySelector('select[name="category"]').value = expenseData.expenseCategory;
-                    document.querySelector('input[name="is_recurring"]').checked =
-                        expenseData.expenseRecurring === 'true';
-
-                    // Update form appearance
-                    expenseFormTitle.textContent = 'Edit Expense';
-                    submitBtn.innerHTML = '<i class="material-icons">save</i> Update Expense';
-                    cancelEditBtn.classList.remove('d-none');
-
-                    // Scroll to form
-                    expenseForm.scrollIntoView({
-                        behavior: 'smooth'
-                    });
-                });
-            });
-
-            // Handle cancel edit button
-            if (cancelEditBtn) {
-                cancelEditBtn.addEventListener('click', function() {
-                    // Reset form
-                    expenseForm.reset();
-                    document.getElementById('expense_id').value = '';
-
-                    // Reset form appearance
-                    expenseFormTitle.textContent = 'Add New Expense';
-                    submitBtn.innerHTML = '<i class="material-icons">add</i> Add Expense';
-                    cancelEditBtn.classList.add('d-none');
-                });
-            }
-
-            // Initialize Bootstrap modal
-            const incomeModalEl = document.getElementById('incomeModal');
-            if (incomeModalEl) {
-                const incomeModal = new bootstrap.Modal(incomeModalEl, {
-                    keyboard: false,
-                    backdrop: 'static'
-                });
-
-                {
-                    %
-                    if budget.income == 0 %
-                }
-                incomeModal.show();
-                {
-                    % endif %
-                }
-
-                const updateIncomeBtn = document.querySelector('[data-bs-target="#incomeModal"]');
-                if (updateIncomeBtn) {
-                    updateIncomeBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        incomeModal.show();
-                    });
-                }
-
-                incomeModalEl.addEventListener('hidden.bs.modal', function() {
-                    document.querySelector('.income-form').reset();
-                });
-            }
-        });
-
-        async function handleDelete(event, expenseName) {
-            event.preventDefault();
-
-            const result = await Swal.fire({
-                title: 'Delete Expense?',
-                text: `Are you sure you want to delete "${expenseName}"?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'No, keep it',
-                reverseButtons: true
-            });
-
-            if (result.isConfirmed) {
-                event.target.submit();
-            }
-            return false;
-        }
-    </script>
+    <script src="{% static 'js/budget.js' %}"></script>
 {% endblock extra_js %}
+{# Template fragments for components #}
+{% comment %}Income Form Fragment{% endcomment %}
+{% block income_form_html %}
+    <form method="post" class="income-form">
+        {% csrf_token %}
+        {% include "material/components/form_field.html" with
+        field_type="number"
+        field_id="income"
+        field_name="income"
+        field_label="Monthly Income"
+        field_value=budget.income
+        field_step="0.01"
+        field_required=True
+        field_help_text="Enter your total monthly income before expenses"
+        %}
+        {% include "material/components/form_field.html" with
+        field_type="select"
+        field_id="currency"
+        field_name="currency"
+        field_label="Currency"
+        field_value=budget.currency
+        field_options=currency_choices
+        %}
+        {% include "material/components/form_field.html" with
+        field_type="textarea"
+        field_id="reason"
+        field_name="reason"
+        field_label="Reason for Change"
+        field_placeholder="e.g., Salary increase, Additional income source"
+        field_help_text="Helps you track why income changes over time"
+        %}
+        <div class="d-flex justify-content-between">
+            {% if budget.income == 0 %}
+                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+                {% include "material/components/action_button.html" with
+                button_type="submit"
+                button_class="btn-raised btn-primary"
+                button_name="form_type"
+                button_value="income"
+                button_icon="save"
+                button_text="Set Income"
+                %}
+            {% else %}
+                {% include "material/components/action_button.html" with
+                button_type="button"
+                button_class="btn-secondary"
+                button_text="Cancel"
+                data_attributes="data-bs-dismiss=&quot;modal&quot;"
+                %}
+                {% include "material/components/action_button.html" with
+                button_type="submit"
+                button_class="btn-raised btn-primary"
+                button_name="form_type"
+                button_value="income"
+                button_icon="save"
+                button_text="Update Income"
+                %}
+            {% endif %}
+        </div>
+    </form>
+{% endblock income_form_html %}
+{% comment %}Income Details Fragment{% endcomment %}
+{% block income_details_html %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        {% include "material/components/stats_card.html" with
+        stat_label="Monthly Income"
+        stat_value=budget.income
+        stat_currency=budget.currency
+        %}
+        {% include "material/components/action_button.html" with
+        button_type="button"
+        button_class="btn-raised btn-primary"
+        button_icon="edit"
+        button_text="Update Income"
+        data_attributes="data-bs-toggle=&quot;modal&quot; data-bs-target=&quot;#incomeModal&quot;"
+        %}
+    </div>
+{% endblock income_details_html %}
+{% comment %}Expense Form Fragment{% endcomment %}
+{% block expense_form_html %}
+    <form method="post" id="expense-form" class="expense-form">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="expense">
+        <input type="hidden" name="expense_id" id="expense_id" value="">
+        {% include "material/components/form_field.html" with
+        field_type="text"
+        field_id="expense_name"
+        field_name="name"
+        field_label="Name"
+        field_placeholder="e.g., Rent, Groceries, Utilities"
+        field_required=True
+        field_help_text="Enter a clear, descriptive name for the expense"
+        %}
+        {% include "material/components/form_field.html" with
+        field_type="number"
+        field_id="expense_amount"
+        field_name="amount"
+        field_label="Amount"
+        field_placeholder="Enter amount"
+        field_step="0.01"
+        field_required=True
+        field_help_text="Enter the expense amount in "|add:budget.currency
+        %}
+        {% include "material/components/form_field.html" with
+        field_type="select"
+        field_id="expense_category"
+        field_name="category"
+        field_label="Category"
+        field_options=categories
+        field_help_text="Group your expenses for better tracking"
+        %}
+        {% include "material/components/form_field.html" with
+        field_type="checkbox"
+        field_id="expense_recurring"
+        field_name="is_recurring"
+        field_label="Recurring Expense"
+        field_help_text="Check if this is a monthly recurring expense"
+        %}
+        <div class="d-flex gap-2">
+            {% include "material/components/action_button.html" with
+            button_type="submit"
+            button_class="btn-primary"
+            button_id="expense-submit-btn"
+            button_icon="add"
+            button_text="Add Expense"
+            %}
+            {% include "material/components/action_button.html" with
+            button_type="button"
+            button_class="btn-secondary d-none"
+            button_id="cancel-edit-btn"
+            button_icon="close"
+            button_text="Cancel"
+            %}
+        </div>
+    </form>
+{% endblock expense_form_html %}
+{% comment %}Category Stats Fragment{% endcomment %}
+{% block category_stats_html %}
+    <div class="row">
+        {% for category_name, data in expenses_by_category.items %}
+            <div class="col-md-6 mb-3">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="material-icons" style="color: {{ data.color }}">
+                            {% if data.icon == 'fa-question-circle' %}
+                                help
+                            {% else %}
+                                category
+                            {% endif %}
+                        </i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">{{ category_name }}</h6>
+                        <div class="progress">
+                            <div class="progress-bar"
+                                 role="progressbar"
+                                 style="width: {{ data.percentage }}%;
+                                        background-color: {{ data.color }}"
+                                 aria-valuenow="{{ data.percentage }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"></div>
+                        </div>
+                        <small class="text-muted">{{ data.amount }} {{ budget.currency }} ({{ data.percentage|floatformat:1 }}%)</small>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock category_stats_html %}
+{% comment %}Budget Summary Fragment{% endcomment %}
+{% block budget_summary_html %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="material-icons">account_balance_wallet</i>
+                Account Insights
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    {% include "material/components/stats_card.html" with
+                    stat_label="Income"
+                    stat_value=budget.income
+                    stat_currency=budget.currency
+                    %}
+                </div>
+                <div class="col-md-4">
+                    {% include "material/components/stats_card.html" with
+                    stat_label="Total Expenses"
+                    stat_value=total_expenses
+                    stat_currency=budget.currency
+                    %}
+                </div>
+                <div class="col-md-4">
+                    {% include "material/components/stats_card.html" with
+                    stat_label="Total Returns"
+                    stat_value=budget.get_total_returns
+                    stat_currency=budget.currency
+                    stat_class="text-success"
+                    %}
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    {% include "material/components/stats_card.html" with
+                    stat_label="Remaining (with returns)"
+                    stat_value=budget.get_remaining_budget
+                    stat_currency=budget.currency
+                    stat_class=budget.get_remaining_budget|yesno:"text-success,text-danger"
+                    %}
+                </div>
+                <div class="col-md-6">
+                    {% with remaining_without_returns=budget.income|subtract:total_expenses %}
+                        {% include "material/components/stats_card.html" with
+                        stat_label="Remaining (without returns)"
+                        stat_value=remaining_without_returns
+                        stat_currency=budget.currency
+                        stat_class=remaining_without_returns|yesno:"text-success,text-danger"
+                        %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <h3>Expenses</h3>
+    <div class="table-responsive">
+        <table class="table budget-summary-table">
+            <thead>
+                <tr>
+                    <th class="col-name">Name</th>
+                    <th class="col-amount">Amount</th>
+                    <th class="col-category">Category</th>
+                    <th class="col-recurring">Recurring</th>
+                    <th class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                    <tr>
+                        <td>
+                            {{ expense.name }}
+                            {% if expense.sub_expenses.exists %}
+                                <div class="ms-3 mt-2 small">
+                                    <ul class="list-unstyled text-muted">
+                                        {% for sub_expense in expense.sub_expenses.all %}
+                                            <li>
+                                                <i class="material-icons">
+                                                    {{ sub_expense.is_return|yesno:"keyboard_return,subdirectory_arrow_right" }}
+                                                </i>
+                                                <span {% if sub_expense.is_return %}class="text-success"{% endif %}>
+                                                    {{ sub_expense.name }} -
+                                                    {{ budget.currency }} {{ sub_expense.amount }}
+                                                    {% if sub_expense.is_return %}<span class="badge bg-success">Return</span>{% endif %}
+                                                </span>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ budget.currency }} {{ expense.amount }}
+                            {% if expense.sub_expenses.exists %}
+                                <div class="ms-3 mt-2 small text-muted">
+                                    <i class="material-icons">arrow_right</i>
+                                    Remaining: {{ budget.currency }} {{ expense.get_remaining_amount|floatformat:3 }}
+                                    {% if expense.get_total_returns > 0 %}
+                                        <br>
+                                        <i class="material-icons text-success">keyboard_return</i>
+                                        Returns: {{ budget.currency }} {{ expense.get_total_returns|floatformat:2 }}
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if expense.category %}
+                                <span class="badge" style="background-color: {{ expense.category.color }}">
+                                    <i class="material-icons">category</i>
+                                    {{ expense.category.name }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="material-icons">help</i>
+                                    Uncategorized
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {{ expense.is_recurring|yesno:'bg-success,bg-secondary' }}">
+                                {{ expense.is_recurring|yesno:"Yes,No" }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                {% include "material/components/action_button.html" with
+                                button_type="link"
+                                button_class="action-btn action-view"
+                                button_icon="list"
+                                button_title="View breakdown"
+                                button_url=expense.get_absolute_url
+                                %}
+                                {% include "material/components/action_button.html" with
+                                button_type="button"
+                                button_class="action-btn action-edit edit-expense"
+                                button_icon="edit"
+                                button_title="Edit expense"
+                                data_attributes="data-expense-id=&quot;"|add:expense.id|stringformat:"s"|add:"&quot; "|add:"data-expense-name=&quot;"|add:expense.name|add:"&quot; "|add:"data-expense-amount=&quot;"|add:expense.amount|stringformat:"s"|add:"&quot; "|add:"data-expense-category=&quot;"|add:expense.category.id|default:""|stringformat:"s"|add:"&quot; "|add:"data-expense-recurring=&quot;"|add:expense.is_recurring|yesno:"true,false"|add:"&quot;"
+                                %}
+                                <form method="post"
+                                      class="delete-form d-inline"
+                                      data-expense-name="{{ expense.name }}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="form_type" value="delete_expense">
+                                    <input type="hidden" name="expense_id" value="{{ expense.id }}">
+                                    {% include "material/components/action_button.html" with
+                                    button_type="submit"
+                                    button_class="action-btn action-delete"
+                                    button_icon="delete"
+                                    button_title="Delete expense"
+                                    %}
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock budget_summary_html %}
+{% comment %}Income History Fragment{% endcomment %}
+{% block income_history_html %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Old Amount</th>
+                    <th>New Amount</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for history in income_history %}
+                    <tr>
+                        <td>{{ history.changed_at|date:"M d, Y H:i" }}</td>
+                        <td>{{ history.old_currency }} {{ history.old_amount }}</td>
+                        <td>{{ history.new_currency }} {{ history.new_amount }}</td>
+                        <td>{{ history.reason|default:"No reason provided" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock income_history_html %}

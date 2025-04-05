@@ -604,8 +604,14 @@ def goal_detail(request, goal_id):
     # Calculate progress percentage
     progress = goal.progress_percentage
 
-    # Calculate monthly contribution needed
+    # Calculate monthly contribution needed (ideal path)
     monthly_needed = goal.monthly_contribution_needed()
+
+    # Calculate projected completion (realistic path)
+    projected_date, current_monthly_rate, is_on_target = goal.get_projected_completion()
+
+    # Get average contribution pattern
+    avg_amount, avg_frequency = goal.get_average_contribution()
 
     # Check if goal is on track
     on_track = goal.is_on_track()
@@ -623,6 +629,11 @@ def goal_detail(request, goal_id):
         "progress": progress,
         "monthly_needed": monthly_needed,
         "on_track": on_track,
+        "projected_date": projected_date,
+        "current_monthly_rate": current_monthly_rate,
+        "is_on_target": is_on_target,
+        "avg_contribution": avg_amount,
+        "avg_frequency": avg_frequency,
     }
     return render(request, f"{TEMPLATE_VERSION}/goals/goal_detail.html", context)
 
