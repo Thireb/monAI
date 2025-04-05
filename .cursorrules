@@ -1,0 +1,494 @@
+# Code Review and Development Rules
+
+## Priority Order for Problem Solving
+
+### 1. Understanding Existing Code (MUST DO FIRST)
+1. Current File Analysis
+   - Read entire file carefully
+   - Note existing functionality
+   - Identify current patterns
+   - Map local dependencies
+
+2. Inheritance Chain Analysis
+   - Map complete parent → child chain
+   - Review all parent class implementations
+   - Check abstract/interface requirements
+   - Understand override patterns
+   - Note protected/private methods
+
+3. Related Code Review
+   - Check sibling class implementations
+   - Review similar features elsewhere
+   - Map feature patterns across versions
+   - Identify utility functions/helpers
+   - Note common implementation approaches
+
+### 2. Solution Approach (IN THIS ORDER)
+1. Leverage Existing Code
+   - Extend parent class methods
+   - Reuse existing utilities
+   - Adapt sibling class solutions
+   - Follow established patterns
+
+2. Modify Current Code
+   - Minimal necessary changes
+   - Preserve functionality
+   - Follow existing patterns
+   - Consider inheritance impact
+
+3. New Implementation (ONLY IF ABOVE NOT POSSIBLE)
+   - Match codebase patterns
+   - Follow inheritance rules
+   - Consider future extensibility
+   - Document thoroughly
+
+4. Pattern Detection Workflow
+   - Identify at least 2-3 similar implementations before creating new code
+   - Create a pattern map showing how similar features are implemented
+   - Document any variations in pattern implementation and their reasons
+   - Ensure new implementations follow the majority pattern unless there's a compelling reason not to
+   - Verify URL routing consistency with similar feature implementations
+
+## 1. Code Analysis Guidelines
+### Before making changes:
+- Read the entire file carefully
+- Note existing functionality
+- Look for recent changes
+- Identify related code patterns
+- Analyze dependencies between components
+- Review existing documentation
+- Analyze class inheritance hierarchy
+- Check parent class implementations
+- Review all related files (imports, parent classes, mixins)
+- Look for similar implementations in sibling classes
+- Identify existing utilities or helpers that could be leveraged
+- Map out the full dependency tree of affected components
+
+### Method Signature and Return Value Consistency
+- Check similar models/classes for method signature patterns
+- Ensure return value formats match across related classes (e.g., dictionaries vs lists)
+- Standardize parameter naming across similar methods (e.g., `pk` vs `home_id`)
+- Maintain consistent URL/path patterns within the same module
+- Document any intentional deviations from established patterns
+
+### Import and Dependency Management
+- Before removing imports, verify they're not used by other components in the file
+- When removing code elements, check for dependencies in other files
+- Analyze import patterns to identify standard project conventions
+- Map shared resource usage before modifying globally imported elements
+- Document import dependencies when adding new components
+
+### When suggesting changes:
+- Preserve existing functionality
+- Add rather than delete code
+- Document why changes are needed
+- Specify exact locations for changes
+- Look at linked code that should also get updated
+- Look at related code to find existing code that can work
++ Before suggesting new code:
+    1. Check if similar functionality exists elsewhere
+    2. Review parent class methods that could be extended
+    3. Look for existing patterns that solve similar problems
+    4. Identify reusable components or utilities
+    5. Map all inheritance-based restrictions or requirements
++ Request additional context if:
+    1. Parent class implementation is not visible
+    2. Related files are not provided
+    3. Inheritance hierarchy is unclear
+    4. Dependencies are not fully mapped
++ Leverage existing code:
+    1. Prefer extending existing methods over creating new ones
+    2. Use established patterns found in the codebase
+    3. Maintain consistency with similar implementations
+    4. Consider impact on child classes
+
+## 2. Implementation Standards
+
+### Python Standards
+- Follow PEP 8 style guide
+- Use type hints for function parameters and returns
+- Maximum line length: 120 characters
+- Use snake_case for functions and variables
+- Use CamelCase for classes
+- Include docstrings for classes and public methods
+
+### Component Implementation Standards
+- **Verify Import Paths**: Always check existing similar files to confirm exact import paths
+  - Use concrete examples from the codebase rather than making assumptions
+  - Verify correct module structure (e.g., base vs core, generic vs specific)
+  - Confirm authentication/permission class imports exactly as they appear elsewhere
+- **Enum and Choice Field Usage**:
+  - Use model enum values directly: `(Model.EnumClass.VALUE, "Display Name")`
+  - Don't use string literals where enum classes exist: `("value", "Display Name")` is incorrect
+  - Maintain consistency with similar implementations in the codebase
+- **Data Transformation and Mapping**:
+  - Follow established patterns for data transformation and mapping
+  - Keep mapping structures simple and consistent with similar components
+  - Don't overcomplicate by adding dynamic logic unless there's clear precedent
+  - Follow existing patterns and avoid architectural assumptions
+- **Feature Flag Handling**:
+  - Implement feature flag logic at the appropriate component level
+  - Understand how feature flags affect component structure and behavior
+  - Follow existing patterns for conditional behavior based on feature flags
+- **Pattern Recognition**:
+  - Examine at least 3 similar implementations before creating new components
+  - Verify correct routing and registration with multiple examples
+  - Compare at least 2 similar components to understand consistent naming and formatting
+
+### Model Implementation Consistency
+- URL-related methods should follow consistent patterns within model types
+- Method naming, signatures, and return values should be consistent across similar models
+- Ensure model field definitions follow established patterns
+- Maintain consistent parameter naming in class methods
+- Follow established skip logic and form layout patterns for UI elements
+
+### JavaScript Standards
+- Follow established plugin patterns
+- Maintain jQuery compatibility where used
+- Proper error handling and logging
+- Clear function and variable naming
+- Comment complex logic
+- Maintain browser compatibility
+
+### General Code Style
+- Consistent indentation
+- Clear variable naming
+- Logical code organization
+- Minimize code duplication
+- Proper error handling
+- Performance considerations
+
+## 3. Review Process
+### Analysis Steps
+1. Analyze current implementation
+2. Identify improvement areas
+3. Check for similar patterns elsewhere
+4. Consider impact on other files
+5. Suggest minimal, non-destructive changes
+
+### Change Implementation
+     #### Suggest changes
+        1. Provide specific file paths and methods
+        2. Include detailed inline comments
+        3. Explain why each change is needed
+        4. Show exactly where to paste new code
+
+     #### Track dependencies
+        1. List all affected files
+        2. Identify dependent functionality
+        3. Document potential side effects
+        4. Suggest testing scenarios
+
+## 4. Documentation Requirements
+### Code Documentation
+- Clear inline comments
+- Function/method documentation
+- Complex logic explanation
+- API documentation
+- Usage examples
+- Update relevant README files
+
+### Change Documentation
+- Detailed change descriptions
+- Impact analysis
+- Testing requirements
+- Rollback procedures
+- Dependencies affected
+
+## 5. Quality Assurance
+### Testing Requirements
+- Unit test coverage
+- Integration test updates
+- Browser compatibility testing
+- Performance impact assessment
+- Security considerations
+
+### Code Quality Checks
+- Linting compliance
+- Type checking
+- Security best practices
+- Performance optimization
+- Memory management
+
+## 6. Best Practices
+### Remember to:
+1. Make incremental changes
+2. Preserve existing functionality
+3. Add clear documentation
+4. Consider backwards compatibility
+5. Identify all usage locations
+6. Test thoroughly before implementing
+
+### Before Providing Code
+    1. Ask clarifying questions
+    2. Request missing context
+    3. Suggest alternative approaches
+    4. Confirm understanding
+
+### Code Implementation Strategy
+    1. Start with minimal changes
+    2. Test each modification
+    3. Document side effects
+    4. Provide rollback options
+    5. Include usage examples
+
+## 7. Version Control
+### Git Practices
+- Clear commit messages
+- Logical commit grouping
+- Branch naming conventions
+- PR documentation
+- Code review responses
+
+### Release Management
+- Version tagging
+- Changelog updates
+- Migration scripts
+- Deployment considerations
+- Rollback procedures
+
+## 8. Security Considerations
+- Input validation
+- Data sanitization
+- Authentication checks
+- Authorization validation
+- Security best practices
+- Vulnerability prevention
+
+## 9. Performance Guidelines
+- Query optimization
+- Cache utilization
+- Resource management
+- Load time optimization
+- Memory efficiency
+- Browser performance
+
+## 10. Maintenance
+- Code cleanup
+- Documentation updates
+- Dependency management
+- Technical debt reduction
+- Legacy code handling
+
+## 11. Context and Goal Management
+### Context Retention
+- Always maintain awareness of the original question/goal
+- Document the primary objective at the start of interaction
+- Reference back to original context before suggesting solutions
+- Track conversation history and purpose
+
+### Goal-Focused Problem Solving
+1. Primary Goal Management
+   - Keep main objective visible and referenced
+   - Evaluate all suggestions against original goal
+   - Prevent unnecessary deviation from core purpose
+   - Regular goal-alignment checks
+
+2. Handling Secondary Issues
+   - Explicitly identify tangential problems
+   - Ask for permission before addressing side issues
+   - Document relationship to main goal
+   - Provide options to:
+     * Address now if blocking
+     * Defer for later if non-critical
+     * Skip if unrelated
+
+3. Progress Tracking
+   - Regular progress updates toward main goal
+   - Clear marking of temporary deviations
+   - Return paths to main objective
+   - Status checks on original requirement
+
+4. Communication Structure
+   - Start responses with goal restatement
+   - Clearly separate main and secondary issues
+   - Explicit transition markers when switching context
+   - Confirmation checks before context switches
+
+### Implementation Strategy
+1. Before each response:
+   - Review original question/goal
+   - Evaluate relevance of proposed solution
+   - Check for context drift
+   - Confirm alignment with primary objective
+
+2. During problem-solving:
+   - Maintain visible connection to main goal
+   - Flag potential diversions
+   - Get user confirmation for context switches
+   - Document path back to primary objective
+
+3. Quality Checks:
+   - Does the solution address the original problem?
+   - Are deviations necessary and acknowledged?
+   - Is the primary goal still in focus?
+   - Are side issues properly managed?
+
+## 12. Codebase Analysis and Inheritance Management
+### Initial Code Review
+1. File Relationship Mapping
+   - Map complete inheritance chain (parent → child)
+   - Identify all mixins and their purposes
+   - List all imported modules and their usage
+   - Document sibling classes and their relationships
+   - Note any abstract classes or interfaces
+
+2. Pattern Recognition
+   - Identify recurring design patterns
+   - Document common implementation approaches
+   - Map feature implementation across versions
+   - Note variation patterns between similar classes
+   - Track override patterns in child classes
+
+### Inheritance Analysis
+1. Parent Class Review
+   - Analyze all parent class methods thoroughly
+   - Document method override patterns
+   - Note any abstract methods requiring implementation
+   - Identify protected/private methods and their usage
+   - Map attribute inheritance and modifications
+
+2. Sibling Class Analysis
+   - Compare implementations across sibling classes
+   - Note shared functionality and variations
+   - Identify common extension points
+   - Document version-specific differences
+   - Map feature distribution across class hierarchy
+
+### Before Implementation
+1. Required Context Checklist
+   - [ ] Parent class source code available
+   - [ ] All referenced mixins accessible
+   - [ ] Import chain fully mapped
+   - [ ] Sibling class implementations visible
+   - [ ] Version-specific variations documented
+
+2. Existing Solution Search
+   - Search in parent classes first
+   - Check sibling class implementations
+   - Review similar feature implementations
+   - Look for utility functions/helpers
+   - Check for version-specific solutions
+
+3. Constraint Identification
+   - List parent class constraints
+   - Document interface requirements
+   - Note version-specific limitations
+   - Identify cross-dependency restrictions
+   - Map backward compatibility requirements
+
+### Implementation Approach
+1. Code Reuse Priority
+   - Extend existing parent methods first
+   - Leverage shared utility functions
+   - Adapt sibling class solutions
+   - Follow established override patterns
+   - Maintain consistent implementation style
+
+2. New Code Guidelines
+   - Match existing pattern style
+   - Follow inheritance conventions
+   - Maintain override consistency
+   - Consider impact on child classes
+   - Document inheritance requirements
+
+3. Required Documentation
+   - Document inheritance chain impacts
+   - Note override justifications
+   - Explain pattern adherence
+   - List affected child classes
+   - Detail version compatibility
+
+### Quality Verification
+1. Inheritance Checks
+   - Verify parent class contract adherence
+   - Validate override implementations
+   - Check mixin requirement fulfillment
+   - Test child class compatibility
+   - Confirm interface compliance
+
+2. Pattern Compliance
+   - Match existing code style
+   - Follow established patterns
+   - Maintain consistency with siblings
+   - Adhere to version standards
+   - Support inheritance extensibility
+
+3. Impact Assessment
+   - Document child class effects
+   - Note breaking changes
+   - List required child updates
+   - Map dependency impacts
+   - Detail version compatibility
+
+# Django Project Development Guidelines
+
+## General Django Coding Strategy
+
+1. Always study existing implementations before creating new code.
+   - Review similar files in the same module to understand patterns
+   - Use established naming conventions and code organization
+   - Read entire files, not just fragments when analyzing code
+   - Identify existing feature flags and patterns before implementing new ones
+
+2. Understand model relationships before writing tests or new features.
+   - Check for ForeignKey, ManyToMany, and other relationships
+   - Verify field types and constraints (CharField vs IntegerField, etc.)
+   - Pay attention to special fields like QuestionOption references
+   - Follow Django convention: use blank=True (not null=True) for CharField
+
+3. Follow existing patterns for data access.
+   - Use consistent query methods (e.g., for QuestionOption retrievals)
+   - Maintain API field name to model field name mappings
+   - Use existing feature flags rather than creating new ones
+   - Preserve existing structural layout patterns
+
+4. Keep implementations simple and focused.
+   - Test one aspect of functionality at a time
+   - Only mock/create what is necessary for the test
+   - Avoid overcomplicated implementations when simpler solutions exist
+   - Provide exact commands for migrations and other operations
+
+## Testing Strategy
+
+1. When implementing a new test:
+   - Start by examining similar test files in the same module
+   - Follow the established test structure and assertions
+   - Use the same authentication and permission patterns
+
+2. When a test fails:
+   - Check existing working tests for the correct approach
+   - Verify model relationships and field types
+   - Add debugging assertions to pinpoint the issue
+
+3. Use proper URL construction:
+   - Follow project-specific URL namespacing
+   - Use the correct version identifiers
+   - Use helper methods like reverse_url_for_test consistently
+
+4. Follow project-specific field access patterns:
+   - Use the right serializer field names in API tests
+   - Map correctly between API names and model field names
+   - Handle special fields (like QuestionOption foreign keys) correctly
+
+## Implementation Pitfalls to Avoid
+
+1. Field Definition Errors:
+   - Don't use null=True for CharField or TextField (use blank=True only)
+   - Don't invent new field types that differ from established patterns
+   - Don't change field parameters without understanding their purpose
+
+2. Feature Flag Mistakes:
+   - Don't create new feature flags when existing ones can be used
+   - Always check for existing feature flags in imports and conditionals
+   - Follow the pattern for how feature flags control behavior
+
+3. Layout and Structure Issues:
+   - Don't modify existing layouts without preserving their structure
+   - Maintain all existing fields in skip logic even when adding new ones
+   - Keep additions consistent with existing UI patterns
+
+4. Documentation and Migration Guidance:
+   - Always provide exact commands for migrations (not placeholders)
+   - Specify all files that need to be changed
+   - Document any potential side effects of changes
