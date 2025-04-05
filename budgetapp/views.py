@@ -601,15 +601,28 @@ def goal_detail(request, goal_id):
     total_contributed = sum(c.amount for c in contributions)
     contribution_form = GoalContributionForm()
 
+    # Calculate progress percentage
+    progress = goal.progress_percentage
+
+    # Calculate monthly contribution needed
+    monthly_needed = goal.monthly_contribution_needed()
+
+    # Check if goal is on track
+    on_track = goal.is_on_track()
+
+    # Paginate contributions
     paginator = Paginator(contributions, 10)
     page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    contributions_page = paginator.get_page(page_number)
 
     context = {
         "goal": goal,
-        "contributions": page_obj,
+        "contributions_page": contributions_page,
         "total_contributed": total_contributed,
         "contribution_form": contribution_form,
+        "progress": progress,
+        "monthly_needed": monthly_needed,
+        "on_track": on_track,
     }
     return render(request, f"{TEMPLATE_VERSION}/goals/goal_detail.html", context)
 
@@ -668,6 +681,7 @@ def goal_delete(request, goal_id):
 def add_contribution(request, goal_id):
     """Add a contribution to a goal."""
     goal = get_object_or_404(Goal, id=goal_id)
+    contributions = goal.contributions.all().order_by("-date")
 
     form = GoalContributionForm(request.POST)
     if form.is_valid():
@@ -680,9 +694,29 @@ def add_contribution(request, goal_id):
         goal.save()
 
         messages.success(request, f'Added {contribution.amount} contribution to "{goal.name}"')
+        return redirect("goal_detail", goal_id=goal.id)
     else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                messages.error(request, f"{field}: {error}")
+        # If form is invalid, re-render the page with the form errors
+        # Calculate all the same context data as goal_detail view
+        total_contributed = sum(c.amount for c in contributions)
+        progress = goal.progress_percentage
+        monthly_needed = goal.monthly_contribution_needed()
+        on_track = goal.is_on_track()
+
+        # Paginate contributions
+        paginator = Paginator(contributions, 10)
+        page_number = request.GET.get("page")
+        contributions_page = paginator.get_page(page_number)
+
+        context = {
+            "goal": goal,
+            "contributions_page": contributions_page,
+            "total_contributed": total_contributed,
+            "contribution_form": form,  # Use the form with errors
+            "progress": progress,
+            "monthly_needed": monthly_needed,
+            "on_track": on_track,
+        }
+        return render(request, f"{TEMPLATE_VERSION}/goals/goal_detail.html", context)
 
     return redirect("goal_detail", goal_id=goal.id)

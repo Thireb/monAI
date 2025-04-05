@@ -33,8 +33,28 @@
                             <div class="card-body text-center">
                                 <h3 class="h5 mb-3">Progress</h3>
                                 <div class="progress-circle mx-auto" data-value="{{ progress }}">
-                                    <span class="progress-text display-4">{{ progress }}%</span>
+                                    <span class="progress-text h4">{{ progress }}%</span>
                                 </div>
+                                {% if goal.target_date %}
+                                    <div class="mt-3">
+                                        <span class="badge
+                                                     {% if on_track %}
+                                                         bg-success
+                                                     {% elif on_track == False %}
+                                                         bg-warning
+                                                     {% else %}
+                                                         bg-secondary
+                                                     {% endif %}">
+                                            {% if on_track %}
+                                                <i class="material-icons align-middle fs-6">check_circle</i> On Track
+                                            {% elif on_track == False %}
+                                                <i class="material-icons align-middle fs-6">warning</i> Behind Schedule
+                                            {% else %}
+                                                <i class="material-icons align-middle fs-6">help</i> No Timeline Set
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -116,25 +136,33 @@
                     {% csrf_token %}
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label for="{{ form.amount.id_for_label }}" class="form-label">Amount</label>
-                            {{ form.amount }}
-                            {% if form.amount.errors %}<div class="invalid-feedback d-block">{{ form.amount.errors.0 }}</div>{% endif %}
+                            <label for="{{ contribution_form.amount.id_for_label }}" class="form-label">Amount</label>
+                            {{ contribution_form.amount }}
+                            {% if contribution_form.amount.errors %}
+                                <div class="invalid-feedback d-block">{{ contribution_form.amount.errors.0 }}</div>
+                            {% endif %}
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label for="{{ form.date.id_for_label }}" class="form-label">Date</label>
-                            {{ form.date }}
-                            {% if form.date.errors %}<div class="invalid-feedback d-block">{{ form.date.errors.0 }}</div>{% endif %}
+                            <label for="{{ contribution_form.date.id_for_label }}" class="form-label">Date</label>
+                            {{ contribution_form.date }}
+                            {% if contribution_form.date.errors %}
+                                <div class="invalid-feedback d-block">{{ contribution_form.date.errors.0 }}</div>
+                            {% endif %}
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label for="{{ form.source.id_for_label }}" class="form-label">Source</label>
-                            {{ form.source }}
-                            {% if form.source.errors %}<div class="invalid-feedback d-block">{{ form.source.errors.0 }}</div>{% endif %}
+                            <label for="{{ contribution_form.source.id_for_label }}" class="form-label">Source</label>
+                            {{ contribution_form.source }}
+                            {% if contribution_form.source.errors %}
+                                <div class="invalid-feedback d-block">{{ contribution_form.source.errors.0 }}</div>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
-                        {{ form.notes }}
-                        {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>{% endif %}
+                        <label for="{{ contribution_form.notes.id_for_label }}" class="form-label">Notes</label>
+                        {{ contribution_form.notes }}
+                        {% if contribution_form.notes.errors %}
+                            <div class="invalid-feedback d-block">{{ contribution_form.notes.errors.0 }}</div>
+                        {% endif %}
                     </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-success">
@@ -290,52 +318,93 @@
                     const value = circle.getAttribute('data-value');
                     const radius = 70;
                     const circumference = 2 * Math.PI * radius;
+                    const strokeWidth = 12; // Increased stroke width for better visibility
 
                     // Create SVG
                     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                     svg.setAttribute('width', '150');
                     svg.setAttribute('height', '150');
                     svg.setAttribute('viewBox', '0 0 150 150');
+                    svg.style.transform = 'rotate(-90deg)'; // Rotate SVG to start from top
 
-                    // Background circle
+                    // Add gradient definitions
+                    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                    const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                    gradient.setAttribute('id', 'progressGradient');
+
+                    // Set gradient colors based on progress
+                    let startColor, endColor;
+                    if (value >= 100) {
+                        startColor = '#28a745'; // Success green
+                        endColor = '#20c997'; // Lighter success green
+                    } else if (value >= 75) {
+                        startColor = '#007bff'; // Primary blue
+                        endColor = '#0dcaf0'; // Info blue
+                    } else if (value >= 50) {
+                        startColor = '#fd7e14'; // Warning orange
+                        endColor = '#ffc107'; // Warning yellow
+                    } else {
+                        startColor = '#dc3545'; // Danger red
+                        endColor = '#fd7e14'; // Warning orange
+                    }
+
+                    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                    stop1.setAttribute('offset', '0%');
+                    stop1.setAttribute('stop-color', startColor);
+
+                    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                    stop2.setAttribute('offset', '100%');
+                    stop2.setAttribute('stop-color', endColor);
+
+                    gradient.appendChild(stop1);
+                    gradient.appendChild(stop2);
+                    defs.appendChild(gradient);
+                    svg.appendChild(defs);
+
+                    // Background circle with subtle animation
                     const bgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                     bgCircle.setAttribute('cx', '75');
                     bgCircle.setAttribute('cy', '75');
                     bgCircle.setAttribute('r', radius);
                     bgCircle.setAttribute('fill', 'none');
                     bgCircle.setAttribute('stroke', '#e9ecef');
-                    bgCircle.setAttribute('stroke-width', '10');
+                    bgCircle.setAttribute('stroke-width', strokeWidth);
+                    bgCircle.setAttribute('stroke-linecap', 'round');
+                    bgCircle.style.transition = 'stroke-dashoffset 0.5s ease-in-out';
 
-                    // Progress circle
+                    // Progress circle with gradient and animation
                     const progressCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                     progressCircle.setAttribute('cx', '75');
                     progressCircle.setAttribute('cy', '75');
                     progressCircle.setAttribute('r', radius);
                     progressCircle.setAttribute('fill', 'none');
-                    progressCircle.setAttribute('stroke', '#007bff');
-                    progressCircle.setAttribute('stroke-width', '10');
+                    progressCircle.setAttribute('stroke', 'url(#progressGradient)');
+                    progressCircle.setAttribute('stroke-width', strokeWidth);
+                    progressCircle.setAttribute('stroke-linecap', 'round');
                     progressCircle.setAttribute('stroke-dasharray', circumference);
-                    progressCircle.setAttribute('stroke-dashoffset', circumference - (value / 100) * circumference);
-                    progressCircle.setAttribute('transform', 'rotate(-90, 75, 75)');
+                    progressCircle.style.transition = 'stroke-dashoffset 1s ease-in-out';
 
                     // Add circles to SVG
                     svg.appendChild(bgCircle);
                     svg.appendChild(progressCircle);
 
-                    // Replace progress text with SVG
-                    const progressText = circle.querySelector('.progress-text');
-                    circle.insertBefore(svg, progressText);
+                    // Replace progress circle content with SVG
+                    circle.innerHTML = '';
+                    circle.appendChild(svg);
 
-                    // Set color based on progress
-                    if (value >= 100) {
-                        progressCircle.setAttribute('stroke', '#28a745'); // green for 100%
-                    } else if (value >= 50) {
-                        progressCircle.setAttribute('stroke', '#007bff'); // blue for >=50%
-                    } else if (value >= 25) {
-                        progressCircle.setAttribute('stroke', '#fd7e14'); // orange for >=25%
-                    } else {
-                        progressCircle.setAttribute('stroke', '#dc3545'); // red for <25%
-                    }
+                    // Add progress text
+                    const textContainer = document.createElement('div');
+                    textContainer.className = 'progress-text position-absolute top-50 start-50 translate-middle';
+                    textContainer.innerHTML = `
+                        <div class="h3 mb-0">${value}%</div>
+                        <div class="small text-muted">Complete</div>
+                    `;
+                    circle.appendChild(textContainer);
+
+                    // Animate progress
+                    setTimeout(() => {
+                        progressCircle.style.strokeDashoffset = circumference - (value / 100) * circumference;
+                    }, 100);
                 });
             });
         </script>
