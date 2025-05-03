@@ -205,6 +205,18 @@ def budget_detail(request, year, month):
     # Calculate category statistics
     expenses_by_category = calculate_category_stats(expenses, total_expenses)
 
+    cash_total = expenses.filter(tag="cash").aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    nayapay_total = expenses.filter(tag="nayapay").aggregate(total=Sum("amount"))[
+        "total"
+    ] or Decimal("0")
+    meezan_total = expenses.filter(tag="meezan").aggregate(total=Sum("amount"))["total"] or Decimal(
+        "0"
+    )
+    transferred_total = expenses.filter(tag="transferred").aggregate(total=Sum("amount"))[
+        "total"
+    ] or Decimal("0")
+    none_total = expenses.filter(tag="none").aggregate(total=Sum("amount"))["total"] or Decimal("0")
+
     context = {
         "budget": budget,
         "form": ExpenseForm(),
@@ -214,6 +226,11 @@ def budget_detail(request, year, month):
         "expenses_by_category": expenses_by_category,
         "categories": Category.objects.all(),
         "income_history": IncomeHistory.objects.filter(budget=budget)[:5],
+        "cash_total": cash_total,
+        "nayapay_total": nayapay_total,
+        "meezan_total": meezan_total,
+        "transferred_total": transferred_total,
+        "none_total": none_total,
     }
 
     return render(request, f"{TEMPLATE_VERSION}/budget_detail.html", context)
@@ -502,6 +519,7 @@ def handle_expense_update(request, budget):
     amount = request.POST.get("amount")
     is_recurring = request.POST.get("is_recurring") == "on"
     category_id = request.POST.get("category")
+    tag = request.POST.get("tag")
 
     try:
         if expense_id:
@@ -514,6 +532,7 @@ def handle_expense_update(request, budget):
                 "amount": expense.amount,
                 "category_id": expense.category_id,
                 "is_recurring": expense.is_recurring,
+                "tag": expense.tag,
             }
 
             # Update fields
@@ -521,6 +540,7 @@ def handle_expense_update(request, budget):
             expense.amount = Decimal(amount)
             expense.is_recurring = is_recurring
             expense.category_id = category_id if category_id else None
+            expense.tag = tag if tag else "cash"
             expense.save()
 
             # Log the update
@@ -534,6 +554,8 @@ def handle_expense_update(request, budget):
                 )
             if old_values["category_id"] != category_id:
                 changes.append("category")
+            if old_values["tag"] != (tag if tag else "cash"):
+                changes.append(f"tag from '{old_values['tag']}' to '{tag}'")
 
             if changes:
                 RecentUpdate.objects.create(
@@ -554,6 +576,7 @@ def handle_expense_update(request, budget):
                 amount=Decimal(amount),
                 is_recurring=is_recurring,
                 category_id=category_id if category_id else None,
+                tag=tag if tag else "cash",
             )
             messages.success(request, "Expense added successfully!")
 

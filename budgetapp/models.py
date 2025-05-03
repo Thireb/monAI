@@ -113,6 +113,14 @@ class Expense(models.Model):
         blank=True,
         related_name="expenses",
     )
+    TAG_CHOICES = [
+        ("nayapay", "Nayapay"),
+        ("meezan", "Meezan"),
+        ("cash", "Cash"),
+        ("none", "None"),
+        ("transferred", "Transferred"),
+    ]
+    tag = models.CharField(max_length=255, choices=TAG_CHOICES, default="meezan")
 
     def __str__(self):
         return f"{self.name} - {self.amount}"
@@ -134,6 +142,10 @@ class Expense(models.Model):
             total=models.Sum("amount")
         )["total"] or Decimal("0")
         return total_returns
+
+    def get_net_amount(self):
+        """Return the net amount (amount minus returns) for this expense."""
+        return self.amount - self.get_remaining_amount()
 
 
 class SubExpense(models.Model):

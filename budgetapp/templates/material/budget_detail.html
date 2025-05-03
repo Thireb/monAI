@@ -332,6 +332,7 @@
                     <th class="col-name">Name</th>
                     <th class="col-amount">Amount</th>
                     <th class="col-category">Category</th>
+                    <th class="col-tag">Tag</th>
                     <th class="col-recurring">Recurring</th>
                     <th class="col-actions">Actions</th>
                 </tr>
@@ -386,6 +387,17 @@
                                     Uncategorized
                                 </span>
                             {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info text-dark">
+                                {% if expense.tag == 'nayapay' %}
+                                    Nayapay
+                                {% elif expense.tag == 'meezan' %}
+                                    Meezan
+                                {% else %}
+                                    Cash
+                                {% endif %}
+                            </span>
                         </td>
                         <td>
                             <span class="badge {{ expense.is_recurring|yesno:'bg-success,bg-secondary' }}">

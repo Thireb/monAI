@@ -49,7 +49,7 @@ class CategoryForm(forms.ModelForm):
 class ExpenseForm(forms.ModelForm):
     class Meta:
         model = Expense
-        fields = ["name", "amount", "category", "is_recurring"]
+        fields = ["name", "amount", "category", "is_recurring", "tag"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control"}),
             "amount": forms.NumberInput(
@@ -57,6 +57,7 @@ class ExpenseForm(forms.ModelForm):
             ),
             "category": forms.Select(attrs={"class": "form-control"}),
             "is_recurring": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "tag": forms.Select(attrs={"class": "form-select"}),
         }
 
     def clean_amount(self):

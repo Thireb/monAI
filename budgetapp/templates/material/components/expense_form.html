@@ -32,6 +32,17 @@
         </select>
         <div class="form-text">Group your expenses for better tracking</div>
     </div>
+    <div class="mb-3">
+        <label for="expense_tag" class="form-label">Account Tag</label>
+        <select name="tag" id="expense_tag" class="form-select">
+            <option value="none">None</option>
+            <option value="cash">Cash</option>
+            <option value="nayapay">Nayapay</option>
+            <option value="meezan">Meezan</option>
+            <option value="transferred">Transferred</option>
+        </select>
+        <div class="form-text">Select the account for this expense</div>
+    </div>
     <div class="mb-3 form-check">
         <input type="checkbox"
                name="is_recurring"
