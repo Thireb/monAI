@@ -209,9 +209,7 @@ def budget_detail(request, year, month):
     nayapay_total = expenses.filter(tag="nayapay").aggregate(total=Sum("amount"))[
         "total"
     ] or Decimal("0")
-    meezan_total = expenses.filter(tag="meezan").aggregate(total=Sum("amount"))["total"] or Decimal(
-        "0"
-    )
+
     transferred_total = expenses.filter(tag="transferred").aggregate(total=Sum("amount"))[
         "total"
     ] or Decimal("0")
@@ -228,7 +226,6 @@ def budget_detail(request, year, month):
         "income_history": IncomeHistory.objects.filter(budget=budget)[:5],
         "cash_total": cash_total,
         "nayapay_total": nayapay_total,
-        "meezan_total": meezan_total,
         "transferred_total": transferred_total,
         "none_total": none_total,
     }

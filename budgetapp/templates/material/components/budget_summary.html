@@ -68,14 +68,6 @@
         </div>
         <div class="col-md-4">
             <div class="budget-stat">
-                <h6 class="text-muted">Money in Meezan</h6>
-                <h3>
-                    <i class="material-icons align-middle">account_balance</i> {{ budget.currency }} {{ meezan_total|floatformat:2|intcomma }}
-                </h3>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="budget-stat">
                 <h6 class="text-muted">Money in Transferred</h6>
                 <h3>
                     <i class="material-icons align-middle">account_balance</i> {{ budget.currency }} {{ transferred_total|floatformat:2|intcomma }}
@@ -85,13 +77,21 @@
     </div>
     <h3 class="mt-4">Expenses</h3>
     <div class="table-responsive">
-        <table class="table budget-summary-table">
+        <table id="expenses-table" class="table budget-summary-table">
             <thead>
                 <tr>
-                    <th class="col-name">Name</th>
-                    <th class="col-amount">Amount</th>
-                    <th class="col-category">Category</th>
-                    <th class="col-tag">Tag</th>
+                    <th class="col-name" data-sort="name">
+                        Name <span class="sort-indicator"></span>
+                    </th>
+                    <th class="col-amount" data-sort="amount">
+                        Amount <span class="sort-indicator"></span>
+                    </th>
+                    <th class="col-category" data-sort="category">
+                        Category <span class="sort-indicator"></span>
+                    </th>
+                    <th class="col-tag" data-sort="tag">
+                        Tag <span class="sort-indicator"></span>
+                    </th>
                     <th class="col-recurring">Recurring</th>
                     <th class="col-actions">Actions</th>
                 </tr>
@@ -148,7 +148,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            <span class="badge bg-info text-dark">
+                            <span class="badge bg-secondary">
                                 {% if expense.tag == 'nayapay' %}
                                     Nayapay
                                 {% elif expense.tag == 'meezan' %}
@@ -207,3 +207,55 @@
         </table>
     </div>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const table = document.getElementById('expenses-table');
+        if (!table) return;
+
+        const getCellValue = (row, idx, type) => {
+            let cell = row.children[idx];
+            if (!cell) return '';
+            let text = cell.textContent.trim();
+            if (type === 'amount') {
+                // Remove currency prefix and commas, parse as float
+                return parseFloat(text.replace(/[^\d.-]/g, '')) || 0;
+            }
+            return text.toLowerCase();
+        };
+
+        let sortDirection = {};
+        let lastSortedIdx = null;
+
+        table.querySelectorAll('th[data-sort]').forEach((th, idx) => {
+            th.style.cursor = 'pointer';
+            th.addEventListener('click', function() {
+                const type = th.getAttribute('data-sort');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                const dir = sortDirection[type] === 'asc' ? 'desc' : 'asc';
+                sortDirection[type] = dir;
+
+                // Remove indicators from all headers
+                table.querySelectorAll('th[data-sort] .sort-indicator').forEach(span => span.textContent = '');
+                // Set indicator for this header
+                const indicator = th.querySelector('.sort-indicator');
+                if (indicator) indicator.textContent = dir === 'asc' ? '▲' : '▼';
+
+                rows.sort((a, b) => {
+                    let valA = getCellValue(a, idx, type);
+                    let valB = getCellValue(b, idx, type);
+                    if (type === 'amount') {
+                        return dir === 'asc' ? valA - valB : valB - valA;
+                    } else {
+                        if (valA < valB) return dir === 'asc' ? -1 : 1;
+                        if (valA > valB) return dir === 'asc' ? 1 : -1;
+                        return 0;
+                    }
+                });
+
+                // Re-append sorted rows
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+    });
+</script>
