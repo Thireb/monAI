@@ -119,6 +119,11 @@ class Expense(models.Model):
         ("cash", "Cash"),
         ("none", "None"),
         ("transferred", "Transferred"),
+        ("jazzcash", "Jazzcash"),
+        ("easypaisa", "Easypaisa"),
+        ("alfalah", "Alfalah"),
+        ("askari", "Askari"),
+        ("other", "Other"),
     ]
     tag = models.CharField(max_length=255, choices=TAG_CHOICES, default="meezan")
 
