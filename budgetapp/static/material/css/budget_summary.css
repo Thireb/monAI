@@ -1,0 +1,9 @@
+.summary-row {
+  font-size: 1.1rem;
+  font-family: 'Courier New', Courier, monospace;
+  padding: 2px 0;
+}
+
+.summary-max-width {
+  max-width: 400px;
+}
