@@ -82,12 +82,10 @@
             <div class="summary-row"><span>Remaining (without returns):</span><span>{{ budget.currency }}
                     {{ budget.income|subtract:total_expenses|floatformat:2|intcomma }}</span></div>
             <hr>
-            <div class="summary-row"><span>Money in Cash:</span><span>{{ budget.currency }}
-                    {{ cash_total|floatformat:2|intcomma }}</span></div>
-            <div class="summary-row"><span>Money in Nayapay:</span><span>{{ budget.currency }}
-                    {{ nayapay_total|floatformat:2|intcomma }}</span></div>
-            <div class="summary-row"><span>Money in Transferred:</span><span>{{ budget.currency }}
-                    {{ transferred_total|floatformat:2|intcomma }}</span></div>
+            {% for tag, label in tag_labels.items %}
+            <div class="summary-row"><span>Money in {{ label }}:</span><span>{{ budget.currency }}
+                    {{ tag_totals|get_item:tag|floatformat:2|intcomma }}</span></div>
+            {% endfor %}
         </div>
         <h3>Expenses</h3>
         <table>
