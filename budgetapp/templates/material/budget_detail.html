@@ -47,11 +47,16 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="mb-0">Budget Summary</h3>
-                <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#summaryCollapse" aria-expanded="false" aria-controls="summaryCollapse"
-                    id="summary-toggle-btn">
-                    Show Summary
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#summaryCollapse" aria-expanded="false" aria-controls="summaryCollapse"
+                        id="summary-toggle-btn">
+                        Show Summary
+                    </button>
+                    <a href="{% url 'budget_pdf' budget.id %}" class="btn btn-outline-secondary" id="generate-pdf-btn">
+                        Generate PDF
+                    </a>
+                </div>
             </div>
             <div class="card-body">{% include "material/components/budget_summary.html" %}</div>
         </div>

@@ -6,13 +6,15 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import DecimalField, F, Sum, Value
 from django.db.models.functions import Coalesce
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import ListView
 
 from dateutil.relativedelta import relativedelta
+from weasyprint import HTML
 
 from .forms import CategoryForm, ExpenseForm, GoalContributionForm, GoalForm, SubExpenseForm
 from .models import (
@@ -751,3 +753,26 @@ def add_contribution(request, goal_id):
         return render(request, f"{TEMPLATE_VERSION}/goals/goal_detail.html", context)
 
     return redirect("goal_detail", goal_id=goal.id)
+
+
+def budget_pdf_view(request, budget_id):
+    budget = get_object_or_404(Budget, id=budget_id)
+    expenses = budget.expenses.prefetch_related("sub_expenses", "category").all()
+    total_expenses = sum(e.amount for e in expenses)
+    cash_total = sum(e.amount for e in expenses if e.tag == "cash")
+    nayapay_total = sum(e.amount for e in expenses if e.tag == "nayapay")
+    transferred_total = sum(e.amount for e in expenses if e.tag == "transferred")
+    context = {
+        "budget": budget,
+        "expenses": expenses,
+        "total_expenses": total_expenses,
+        "cash_total": cash_total,
+        "nayapay_total": nayapay_total,
+        "transferred_total": transferred_total,
+    }
+    html_string = render_to_string("material/pdf/budget_summary_pdf.html", context)
+    html = HTML(string=html_string)
+    pdf = html.write_pdf()
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = f"attachment; filename=budget_summary_{budget.id}.pdf"
+    return response
