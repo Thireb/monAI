@@ -36,19 +36,6 @@
             {% endwith %}
         </div>
         <hr class="my-2">
-        <div class="summary-row d-flex justify-content-between">
-            <span>Money in Cash:</span>
-            <span>{{ budget.currency }} {{ cash_total|floatformat:2|intcomma }}</span>
-        </div>
-        <div class="summary-row d-flex justify-content-between">
-            <span>Money in Nayapay:</span>
-            <span>{{ budget.currency }} {{ nayapay_total|floatformat:2|intcomma }}</span>
-        </div>
-        <div class="summary-row d-flex justify-content-between">
-            <span>Money in Transferred:</span>
-            <span>{{ budget.currency }} {{ transferred_total|floatformat:2|intcomma }}</span>
-        </div>
-        <hr class="my-2">
         {% for tag, label in tag_labels.items %}
         <div class="summary-row d-flex justify-content-between">
             <span>Money in {{ label }}:</span>
@@ -205,27 +192,7 @@
                 </td>
                 <td>
                     <span class="badge bg-secondary">
-                        {% if expense.tag == 'nayapay' %}
-                        Nayapay
-                        {% elif expense.tag == 'meezan' %}
-                        Meezan
-                        {% elif expense.tag == 'cash' %}
-                        Cash
-                        {% elif expense.tag == 'transferred' %}
-                        Transferred
-                        {% elif expense.tag == 'jazzcash' %}
-                        Jazzcash
-                        {% elif expense.tag == 'easypaisa' %}
-                        Easypaisa
-                        {% elif expense.tag == 'alfalah' %}
-                        Alfalah
-                        {% elif expense.tag == 'askari' %}
-                        Askari
-                        {% elif expense.tag == 'other' %}
-                        Other
-                        {% else %}
-                        None
-                        {% endif %}
+                        {{ tag_labels|get_item:expense.tag|default:"None" }}
                     </span>
                 </td>
                 <td>
