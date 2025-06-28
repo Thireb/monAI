@@ -1,271 +1,212 @@
 {% load humanize %}
 {% load budget_filters %}
-<div class="budget-summary">
-    <div class="row">
-        <div class="col-md-4">
-            <div class="budget-stat">
-                <h6 class="text-muted">Income</h6>
-                <h3>{{ budget.currency }} {{ budget.income|floatformat:2|intcomma }}</h3>
-            </div>
+
+<!-- Collapsible Receipt-Style Summary -->
+<div class="collapse" id="summaryCollapse">
+    <div class="card card-body p-3 mx-auto summary-max-width">
+        <div class="summary-row d-flex justify-content-between">
+            <span>Income:</span>
+            <span>{{ budget.currency }} {{ budget.income|floatformat:2|intcomma }}</span>
         </div>
-        <div class="col-md-4">
-            <div class="budget-stat">
-                <h6 class="text-muted">Total Expenses</h6>
-                <h3>{{ budget.currency }} {{ total_expenses|floatformat:2|intcomma }}</h3>
-            </div>
+        <hr class="my-2">
+        <div class="summary-row d-flex justify-content-between">
+            <span>Total Expenses:</span>
+            <span>{{ budget.currency }} {{ total_expenses|floatformat:2|intcomma }}</span>
         </div>
-        <div class="col-md-4">
-            <div class="budget-stat">
-                <h6 class="text-muted">Total Returns</h6>
-                <h3 class="text-success">{{ budget.currency }} {{ budget.get_total_returns|floatformat:2|intcomma }}</h3>
-            </div>
+        <hr class="my-2">
+        <div class="summary-row d-flex justify-content-between">
+            <span>Total Returns:</span>
+            <span class="text-success">{{ budget.currency }}
+                {{ budget.get_total_returns|floatformat:2|intcomma }}</span>
         </div>
-    </div>
-    <div class="row mt-3">
-        <div class="col-md-6">
-            <div class="budget-stat">
-                <h6 class="text-muted">Remaining (with returns)</h6>
-                <h3 class="{% if budget.get_remaining_budget > 0 %}
-                               text-success
-                           {% else %}
-                               text-danger
-                           {% endif %}">
-                    {{ budget.currency }} {{ budget.get_remaining_budget|floatformat:2|intcomma }}
-                </h3>
-            </div>
+        <hr class="my-2">
+        <div class="summary-row d-flex justify-content-between">
+            <span>Remaining (with returns):</span>
+            <span
+                class="{% if budget.get_remaining_budget > 0 %}text-success{% else %}text-danger{% endif %}">{{ budget.currency }}
+                {{ budget.get_remaining_budget|floatformat:2|intcomma }}</span>
         </div>
-        <div class="col-md-6">
-            <div class="budget-stat">
-                <h6 class="text-muted">Remaining (without returns)</h6>
-                {% with remaining_without_returns=budget.income|subtract:total_expenses %}
-                    <h3 class="{% if remaining_without_returns > 0 %}
-                                   text-success
-                               {% else %}
-                                   text-danger
-                               {% endif %}">
-                        {{ budget.currency }} {{ remaining_without_returns|floatformat:2|intcomma }}
-                    </h3>
-                {% endwith %}
-            </div>
+        <hr class="my-2">
+        <div class="summary-row d-flex justify-content-between">
+            <span>Remaining (without returns):</span>
+            {% with remaining_without_returns=budget.income|subtract:total_expenses %}
+            <span
+                class="{% if remaining_without_returns > 0 %}text-success{% else %}text-danger{% endif %}">{{ budget.currency }}
+                {{ remaining_without_returns|floatformat:2|intcomma }}</span>
+            {% endwith %}
         </div>
-    </div>
-    <div class="row mt-3">
-        <div class="col-md-4">
-            <div class="budget-stat">
-                <h6 class="text-muted">Money in Cash</h6>
-                <h3>
-                    <i class="material-icons align-middle">account_balance_wallet</i> {{ budget.currency }} {{ cash_total|floatformat:2|intcomma }}
-                </h3>
-            </div>
+        <hr class="my-2">
+        <div class="summary-row d-flex justify-content-between">
+            <span>Money in Cash:</span>
+            <span>{{ budget.currency }} {{ cash_total|floatformat:2|intcomma }}</span>
         </div>
-        <div class="col-md-4">
-            <div class="budget-stat">
-                <h6 class="text-muted">Money in Nayapay</h6>
-                <h3>
-                    <i class="material-icons align-middle">credit_card</i> {{ budget.currency }} {{ nayapay_total|floatformat:2|intcomma }}
-                </h3>
-            </div>
+        <div class="summary-row d-flex justify-content-between">
+            <span>Money in Nayapay:</span>
+            <span>{{ budget.currency }} {{ nayapay_total|floatformat:2|intcomma }}</span>
         </div>
-        <div class="col-md-4">
-            <div class="budget-stat">
-                <h6 class="text-muted">Money in Transferred</h6>
-                <h3>
-                    <i class="material-icons align-middle">account_balance</i> {{ budget.currency }} {{ transferred_total|floatformat:2|intcomma }}
-                </h3>
-            </div>
+        <div class="summary-row d-flex justify-content-between">
+            <span>Money in Transferred:</span>
+            <span>{{ budget.currency }} {{ transferred_total|floatformat:2|intcomma }}</span>
         </div>
-    </div>
-    <h3 class="mt-4">Expenses</h3>
-    <div class="table-responsive">
-        <table id="expenses-table" class="table budget-summary-table">
-            <thead>
-                <tr>
-                    <th class="col-name" data-sort="name">
-                        Name <span class="sort-indicator"></span>
-                    </th>
-                    <th class="col-amount" data-sort="amount">
-                        Amount <span class="sort-indicator"></span>
-                    </th>
-                    <th class="col-category" data-sort="category">
-                        Category <span class="sort-indicator"></span>
-                    </th>
-                    <th class="col-tag" data-sort="tag">
-                        Tag <span class="sort-indicator"></span>
-                    </th>
-                    <th class="col-recurring">Recurring</th>
-                    <th class="col-actions">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for expense in expenses %}
-                    <tr>
-                        <td>
-                            {{ expense.name }}
-                            {% if expense.sub_expenses.exists %}
-                                <div class="ms-3 mt-2 small">
-                                    <ul class="list-unstyled text-muted">
-                                        {% for sub_expense in expense.sub_expenses.all %}
-                                            <li>
-                                                <i class="material-icons">
-                                                    {{ sub_expense.is_return|yesno:"keyboard_return,subdirectory_arrow_right" }}
-                                                </i>
-                                                <span {% if sub_expense.is_return %}class="text-success"{% endif %}>
-                                                    {{ sub_expense.name }} -
-                                                    {{ budget.currency }} {{ sub_expense.amount }}
-                                                    {% if sub_expense.is_return %}<span class="badge bg-success">Return</span>{% endif %}
-                                                </span>
-                                            </li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {{ budget.currency }} {{ expense.amount }}
-                            {% if expense.sub_expenses.exists %}
-                                <div class="ms-3 mt-2 small text-muted">
-                                    <i class="material-icons">arrow_right</i>
-                                    Remaining: {{ budget.currency }} {{ expense.get_remaining_amount|floatformat:3 }}
-                                    {% if expense.get_total_returns > 0 %}
-                                        <br>
-                                        <i class="material-icons text-success">keyboard_return</i>
-                                        Returns: {{ budget.currency }} {{ expense.get_total_returns|floatformat:2 }}
-                                    {% endif %}
-                                </div>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if expense.category %}
-                                <span class="badge" style="background-color: {{ expense.category.color }}">
-                                    <i class="material-icons">category</i>
-                                    {{ expense.category.name }}
-                                </span>
-                            {% else %}
-                                <span class="badge bg-secondary">
-                                    <i class="material-icons">help</i>
-                                    Uncategorized
-                                </span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="badge bg-secondary">
-                                {% if expense.tag == 'nayapay' %}
-                                    Nayapay
-                                {% elif expense.tag == 'meezan' %}
-                                    Meezan
-                                {% elif expense.tag == 'cash' %}
-                                    Cash
-                                {% elif expense.tag == 'transferred' %}
-                                    Transferred
-                                {% elif expense.tag == 'jazzcash' %}
-                                    Jazzcash
-                                {% elif expense.tag == 'easypaisa' %}
-                                    Easypaisa
-                                {% elif expense.tag == 'alfalah' %}
-                                    Alfalah
-                                {% elif expense.tag == 'askari' %}
-                                    Askari
-                                {% elif expense.tag == 'other' %}
-                                    Other
-                                {% else %}
-                                    None
-                                {% endif %}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge {{ expense.is_recurring|yesno:'bg-success,bg-secondary' }}">
-                                {{ expense.is_recurring|yesno:"Yes,No" }}
-                            </span>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <a href="{% url 'expense_detail' expense_id=expense.id %}"
-                                   class="action-btn action-view"
-                                   data-bs-toggle="tooltip"
-                                   title="View breakdown">
-                                    <i class="material-icons">list</i>
-                                </a>
-                                <button type="button"
-                                        class="action-btn action-edit edit-expense"
-                                        data-expense-id="{{ expense.id }}"
-                                        data-expense-name="{{ expense.name }}"
-                                        data-expense-amount="{{ expense.amount }}"
-                                        data-expense-category="{{ expense.category.id|default:'' }}"
-                                        data-expense-recurring="{{ expense.is_recurring|yesno:'true,false' }}"
-                                        data-bs-toggle="tooltip"
-                                        title="Edit expense">
-                                    <i class="material-icons">edit</i>
-                                </button>
-                                <form method="post"
-                                      class="delete-form d-inline"
-                                      data-expense-name="{{ expense.name }}">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="form_type" value="delete_expense">
-                                    <input type="hidden" name="expense_id" value="{{ expense.id }}">
-                                    <button type="submit"
-                                            class="action-btn action-delete"
-                                            data-bs-toggle="tooltip"
-                                            title="Delete expense">
-                                        <i class="material-icons">delete</i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
     </div>
 </div>
+
+<style>
+    .summary-row {
+        font-size: 1.1rem;
+        font-family: 'Courier New', Courier, monospace;
+        padding: 2px 0;
+    }
+
+    .summary-max-width {
+        max-width: 400px;
+    }
+</style>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const table = document.getElementById('expenses-table');
-        if (!table) return;
-
-        const getCellValue = (row, idx, type) => {
-            let cell = row.children[idx];
-            if (!cell) return '';
-            let text = cell.textContent.trim();
-            if (type === 'amount') {
-                // Remove currency prefix and commas, parse as float
-                return parseFloat(text.replace(/[^\d.-]/g, '')) || 0;
-            }
-            return text.toLowerCase();
-        };
-
-        let sortDirection = {};
-        let lastSortedIdx = null;
-
-        table.querySelectorAll('th[data-sort]').forEach((th, idx) => {
-            th.style.cursor = 'pointer';
-            th.addEventListener('click', function() {
-                const type = th.getAttribute('data-sort');
-                const tbody = table.querySelector('tbody');
-                const rows = Array.from(tbody.querySelectorAll('tr'));
-                const dir = sortDirection[type] === 'asc' ? 'desc' : 'asc';
-                sortDirection[type] = dir;
-
-                // Remove indicators from all headers
-                table.querySelectorAll('th[data-sort] .sort-indicator').forEach(span => span.textContent = '');
-                // Set indicator for this header
-                const indicator = th.querySelector('.sort-indicator');
-                if (indicator) indicator.textContent = dir === 'asc' ? '▲' : '▼';
-
-                rows.sort((a, b) => {
-                    let valA = getCellValue(a, idx, type);
-                    let valB = getCellValue(b, idx, type);
-                    if (type === 'amount') {
-                        return dir === 'asc' ? valA - valB : valB - valA;
-                    } else {
-                        if (valA < valB) return dir === 'asc' ? -1 : 1;
-                        if (valA > valB) return dir === 'asc' ? 1 : -1;
-                        return 0;
-                    }
-                });
-
-                // Re-append sorted rows
-                rows.forEach(row => tbody.appendChild(row));
+    document.addEventListener('DOMContentLoaded', function () {
+        var summaryCollapse = document.getElementById('summaryCollapse');
+        var toggleBtn = document.getElementById('summary-toggle-btn');
+        if (summaryCollapse && toggleBtn) {
+            summaryCollapse.addEventListener('show.bs.collapse', function () {
+                toggleBtn.textContent = 'Hide Summary';
             });
-        });
+            summaryCollapse.addEventListener('hide.bs.collapse', function () {
+                toggleBtn.textContent = 'Show Summary';
+            });
+        }
     });
 </script>
+
+<!-- Expense Table (restored) -->
+<div class="table-responsive mt-4">
+    <table id="expenses-table" class="table budget-summary-table">
+        <thead>
+            <tr>
+                <th class="col-name" data-sort="name">
+                    Name <span class="sort-indicator"></span>
+                </th>
+                <th class="col-amount" data-sort="amount">
+                    Amount <span class="sort-indicator"></span>
+                </th>
+                <th class="col-category" data-sort="category">
+                    Category <span class="sort-indicator"></span>
+                </th>
+                <th class="col-tag" data-sort="tag">
+                    Tag <span class="sort-indicator"></span>
+                </th>
+                <th class="col-recurring">Recurring</th>
+                <th class="col-actions">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in expenses %}
+            <tr>
+                <td>
+                    {{ expense.name }}
+                    {% if expense.sub_expenses.exists %}
+                    <div class="ms-3 mt-2 small">
+                        <ul class="list-unstyled text-muted">
+                            {% for sub_expense in expense.sub_expenses.all %}
+                            <li>
+                                <i class="material-icons">
+                                    {{ sub_expense.is_return|yesno:"keyboard_return,subdirectory_arrow_right" }}
+                                </i>
+                                <span {% if sub_expense.is_return %}class="text-success" {% endif %}>
+                                    {{ sub_expense.name }} -
+                                    {{ budget.currency }} {{ sub_expense.amount }}
+                                    {% if sub_expense.is_return %}<span
+                                        class="badge bg-success">Return</span>{% endif %}
+                                </span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {{ budget.currency }} {{ expense.amount }}
+                    {% if expense.sub_expenses.exists %}
+                    <div class="ms-3 mt-2 small text-muted">
+                        <i class="material-icons">arrow_right</i>
+                        Remaining: {{ budget.currency }} {{ expense.get_remaining_amount|floatformat:3 }}
+                        {% if expense.get_total_returns > 0 %}
+                        <br>
+                        <i class="material-icons text-success">keyboard_return</i>
+                        Returns: {{ budget.currency }} {{ expense.get_total_returns|floatformat:2 }}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if expense.category %}
+                    <span class="badge" style="background-color: {{ expense.category.color }}">
+                        <i class="material-icons">category</i>
+                        {{ expense.category.name }}
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary">
+                        <i class="material-icons">help</i>
+                        Uncategorized
+                    </span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge bg-secondary">
+                        {% if expense.tag == 'nayapay' %}
+                        Nayapay
+                        {% elif expense.tag == 'meezan' %}
+                        Meezan
+                        {% elif expense.tag == 'cash' %}
+                        Cash
+                        {% elif expense.tag == 'transferred' %}
+                        Transferred
+                        {% elif expense.tag == 'jazzcash' %}
+                        Jazzcash
+                        {% elif expense.tag == 'easypaisa' %}
+                        Easypaisa
+                        {% elif expense.tag == 'alfalah' %}
+                        Alfalah
+                        {% elif expense.tag == 'askari' %}
+                        Askari
+                        {% elif expense.tag == 'other' %}
+                        Other
+                        {% else %}
+                        None
+                        {% endif %}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge {{ expense.is_recurring|yesno:'bg-success,bg-secondary' }}">
+                        {{ expense.is_recurring|yesno:"Yes,No" }}
+                    </span>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'expense_detail' expense_id=expense.id %}" class="action-btn action-view"
+                            data-bs-toggle="tooltip" title="View breakdown">
+                            <i class="material-icons">list</i>
+                        </a>
+                        <button type="button" class="action-btn action-edit edit-expense"
+                            data-expense-id="{{ expense.id }}" data-expense-name="{{ expense.name }}"
+                            data-expense-amount="{{ expense.amount }}"
+                            data-expense-category="{{ expense.category.id|default:'' }}"
+                            data-expense-recurring="{{ expense.is_recurring|yesno:'true,false' }}"
+                            data-expense-tag="{{ expense.tag }}" data-bs-toggle="tooltip" title="Edit expense">
+                            <i class="material-icons">edit</i>
+                        </button>
+                        <form method="post" class="delete-form d-inline" data-expense-name="{{ expense.name }}">
+                            {% csrf_token %}
+                            <input type="hidden" name="form_type" value="delete_expense">
+                            <input type="hidden" name="expense_id" value="{{ expense.id }}">
+                            <button type="submit" class="action-btn action-delete" data-bs-toggle="tooltip"
+                                title="Delete expense">
+                                <i class="material-icons">delete</i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
