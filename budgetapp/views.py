@@ -4,8 +4,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import DecimalField, F, Sum, Value
-from django.db.models.functions import Coalesce
+from django.db.models import F
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -192,44 +191,25 @@ def budget_detail(request, year, month):
 
         return redirect("budget_detail", year=year, month=month)
 
-    # Get expenses with related categories in a single query
-    expenses = (
-        budget.expenses.select_related("category")
-        .prefetch_related("sub_expenses", "category")
-        .order_by("-created_at")
-    )
-
-    # Calculate totals using database aggregation
-    total_expenses = expenses.aggregate(
-        total=Coalesce(Sum("amount"), Value(0), output_field=DecimalField())
-    )["total"]
+    # Get summary context for all tags
+    summary_context = get_budget_summary_context(budget)
 
     # Calculate category statistics
-    expenses_by_category = calculate_category_stats(expenses, total_expenses)
-
-    cash_total = expenses.filter(tag="cash").aggregate(total=Sum("amount"))["total"] or Decimal("0")
-    nayapay_total = expenses.filter(tag="nayapay").aggregate(total=Sum("amount"))[
-        "total"
-    ] or Decimal("0")
-
-    transferred_total = expenses.filter(tag="transferred").aggregate(total=Sum("amount"))[
-        "total"
-    ] or Decimal("0")
-    none_total = expenses.filter(tag="none").aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    expenses_by_category = calculate_category_stats(
+        summary_context["expenses"], summary_context["total_expenses"]
+    )
 
     context = {
         "budget": budget,
         "form": ExpenseForm(),
-        "expenses": expenses,
+        "expenses": summary_context["expenses"],
         "currency_choices": Budget.get_currency_choices(),
-        "total_expenses": total_expenses,
+        "total_expenses": summary_context["total_expenses"],
         "expenses_by_category": expenses_by_category,
         "categories": Category.objects.all(),
         "income_history": IncomeHistory.objects.filter(budget=budget)[:5],
-        "cash_total": cash_total,
-        "nayapay_total": nayapay_total,
-        "transferred_total": transferred_total,
-        "none_total": none_total,
+        "tag_totals": summary_context["tag_totals"],
+        "tag_labels": summary_context["tag_labels"],
     }
 
     return render(request, f"{TEMPLATE_VERSION}/budget_detail.html", context)
@@ -759,16 +739,16 @@ def budget_pdf_view(request, budget_id):
     budget = get_object_or_404(Budget, id=budget_id)
     expenses = budget.expenses.prefetch_related("sub_expenses", "category").all()
     total_expenses = sum(e.amount for e in expenses)
-    cash_total = sum(e.amount for e in expenses if e.tag == "cash")
-    nayapay_total = sum(e.amount for e in expenses if e.tag == "nayapay")
-    transferred_total = sum(e.amount for e in expenses if e.tag == "transferred")
+    # Calculate totals for all tags
+    tag_totals = {}
+    for tag, tag_label in Expense.TAG_CHOICES:
+        tag_totals[tag] = sum(e.amount for e in expenses if e.tag == tag)
     context = {
         "budget": budget,
         "expenses": expenses,
         "total_expenses": total_expenses,
-        "cash_total": cash_total,
-        "nayapay_total": nayapay_total,
-        "transferred_total": transferred_total,
+        "tag_totals": tag_totals,
+        "tag_labels": dict(Expense.TAG_CHOICES),
     }
     html_string = render_to_string("material/pdf/budget_summary_pdf.html", context)
     html = HTML(string=html_string)
@@ -776,3 +756,18 @@ def budget_pdf_view(request, budget_id):
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f"attachment; filename=budget_summary_{budget.id}.pdf"
     return response
+
+
+def get_budget_summary_context(budget):
+    expenses = budget.expenses.all().order_by("created_at")
+    total_expenses = sum(e.amount for e in expenses)
+    tag_totals = {}
+    for tag, tag_label in Expense.TAG_CHOICES:
+        tag_totals[tag] = sum(e.amount for e in expenses if e.tag == tag)
+    return {
+        "budget": budget,
+        "expenses": expenses,
+        "total_expenses": total_expenses,
+        "tag_totals": tag_totals,
+        "tag_labels": dict(Expense.TAG_CHOICES),
+    }

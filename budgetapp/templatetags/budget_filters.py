@@ -13,3 +13,8 @@ def sum_expenses(expenses):
 def subtract(value, arg):
     """Subtract the arg from the value."""
     return value - arg
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key, 0)
