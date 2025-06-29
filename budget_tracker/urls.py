@@ -25,4 +25,5 @@ urlpatterns = [
     path("api/", include("budgetapp.api_urls")),
     path("api-token-auth/", obtain_auth_token, name="api_token_auth"),
     path("", include("budgetapp.urls")),
+    path("minimal/", include("budgetapp.minimal.urls")),
 ]
