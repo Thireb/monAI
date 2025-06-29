@@ -1,0 +1,35 @@
+.calculator {
+  font-family: 'Quicksand', sans-serif;
+}
+
+.floating-calc-btn {
+  position: fixed;
+  bottom: 2.2rem;
+  right: 2.2rem;
+  z-index: 1050;
+  border-radius: 50%;
+  box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.1);
+  font-size: 1.7rem;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2196f3;
+  color: #fff;
+  border: none;
+  transition:
+    background 0.18s,
+    box-shadow 0.18s;
+}
+
+.floating-calc-btn:hover {
+  background: #1976d2;
+  box-shadow: 0 8px 32px 0 rgba(33, 150, 243, 0.18);
+}
+
+.modal-content {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
