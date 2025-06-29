@@ -15,3 +15,4 @@ alwaysApply: true
 * Don't delete anything until told to.
 * Templates should only handle display, if any logic or calculation is needed, get it from backend.
 * If a template tag is to be loaded for math operations, then that means logic needs to be put in backend and sent via context.
+* Use anime.js for animation.

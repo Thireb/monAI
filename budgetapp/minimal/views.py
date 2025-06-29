@@ -12,17 +12,18 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         months = [calendar.month_name[i] for i in range(1, 13)]
+        abbrs = [calendar.month_abbr[i] for i in range(1, 13)]
         today = date.today()
         budgets_by_month = {b.month.month: b for b in Budget.objects.filter(is_archived=False)}
         months_data = []
-        for i, month_name in enumerate(months, 1):
+        for i, (month_name, abbr) in enumerate(zip(months, abbrs), 1):
             if i < today.month:
                 status = "past" if i in budgets_by_month else "future"
             elif i == today.month:
                 status = "current" if i in budgets_by_month else "future"
             else:
                 status = "future-created" if i in budgets_by_month else "future"
-            months_data.append({"name": month_name, "status": status})
+            months_data.append({"name": month_name, "abbr": abbr, "status": status})
         # Group into 3 rows of 4 months each, right-to-left
         months_grid = []
         for i in range(0, 12, 4):

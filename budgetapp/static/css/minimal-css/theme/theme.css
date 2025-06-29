@@ -1,0 +1,136 @@
+body {
+  background: linear-gradient(135deg, #f3f6fa 0%, #e9eafc 100%) !important;
+}
+
+.minimal-home-outer {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  background: none;
+}
+
+.minimal-home-container {
+  font-family: 'Quicksand', sans-serif;
+  padding: 2.5rem 1rem 1.5rem 1rem;
+  min-width: 420px;
+  max-width: 700px;
+  width: 100%;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 1.2rem;
+}
+
+.year-arrow {
+  font-size: 2.1rem;
+  color: #bbb;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.year-arrow:hover {
+  color: #2196f3;
+}
+
+.year-header {
+  font-size: 2.7rem;
+  font-weight: 700;
+  color: #222;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+  margin-bottom: 0;
+  text-align: left;
+  flex: none;
+}
+
+.calendar-grid {
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 22px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  padding: 2.2rem 2rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  width: 100%;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  margin-bottom: 1.5rem;
+}
+
+.months-row {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 2.2rem;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  justify-content: center;
+  font-size: 1.05rem;
+  font-family: 'Quicksand', sans-serif;
+  opacity: 0.85;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.3em;
+}
+
+.legend-color {
+  width: 1.3em;
+  height: 1.3em;
+  border-radius: 0.4em;
+  display: inline-block;
+  margin-right: 0.3em;
+  border: 1.5px solid #bbb;
+}
+
+.legend-past {
+  background: #2196f3;
+  border-color: #1976d2;
+}
+
+.legend-current {
+  background: #4caf50;
+  border-color: #388e3c;
+}
+
+.legend-future-created {
+  background: #ffd600;
+  border-color: #ffb300;
+}
+
+.legend-future {
+  background: #e0e0e0;
+  border-color: #e0e0e0;
+}
+
+@media (max-width: 900px) {
+  .minimal-home-container {
+    min-width: 0;
+    max-width: 98vw;
+    padding: 1.2rem 0.2rem;
+  }
+
+  .calendar-grid {
+    padding: 1.2rem 0.2rem;
+    gap: 1.2rem;
+  }
+
+  .months-row {
+    gap: 1.2rem;
+  }
+}
