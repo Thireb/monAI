@@ -1,0 +1,40 @@
+<!-- Alpine.js CDN: <script src="https://unpkg.com/alpinejs@3.13.10/dist/cdn.min.js" defer></script> -->
+<!-- Income Modal (Add/Edit) -->
+<!-- linter-ignore: H021 Inline styles should be avoided. -->
+<!-- djlint:off H021 -->
+<div id="incomeModal" class="modal glassy" tabindex="-1" role="dialog" style="display: none;">
+    <!-- djlint:on H021 -->
+    <div class="modal-content p-4">
+        <h3 class="mb-3">Edit Income</h3>
+        <form method="post" class="income-form">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="income">
+            <div class="mb-3">
+                <label for="income" class="form-label">Monthly Income</label>
+                <input type="number" step="0.01" name="income" id="income" value="{{ budget.income }}"
+                    class="form-control glassy-input" placeholder="Enter your monthly income" required>
+                <div class="form-text">Enter your total monthly income before expenses</div>
+            </div>
+            <div class="mb-3">
+                <label for="currency" class="form-label">Currency</label>
+                <select name="currency" id="currency" class="form-select glassy-input">
+                    {% for code, name in currency_choices %}
+                    <option value="{{ code }}" {% if budget.currency == code %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="reason" class="form-label">Reason for Change</label>
+                <textarea name="reason" id="reason" class="form-control glassy-input" rows="3"
+                    placeholder="e.g., Salary increase, Additional income source"></textarea>
+                <div class="form-text">Helps you track why income changes over time</div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-secondary income-cancel-btn">Cancel</button>
+                <button type="submit" name="form_type" value="income" class="btn btn-primary">
+                    <i class="material-icons align-middle">save</i> Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

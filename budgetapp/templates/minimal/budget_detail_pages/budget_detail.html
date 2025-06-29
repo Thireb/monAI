@@ -1,0 +1,37 @@
+{% extends "minimal/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/minimal-css/budget_detail.css' %}">
+{% endblock extra_css %}
+
+{% block content %}
+<div>
+    <div class="budget-header colorful-bg mb-4">
+        <h1 class="mb-0">Budget for {{ budget.month|date:"F Y" }}</h1>
+    </div>
+
+    <!-- Summary Cards Section -->
+    {% include "minimal/budget_detail_pages/summary_cards.html" %}
+
+    <!-- Category Stats Section -->
+    {% include "minimal/budget_detail_pages/category_stats.html" %}
+
+    <!-- Expenses Table Section -->
+    {% include "minimal/budget_detail_pages/expenses_table.html" %}
+
+    <!-- Income History Section -->
+    {% include "minimal/budget_detail_pages/income_history.html" %}
+
+    <!-- Modals for Add/Edit Expense and Income -->
+    {% include "minimal/budget_detail_pages/income_modal.html" %}
+    {% include "minimal/budget_detail_pages/expense_modal.html" %}
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+
+<script src="{% static 'js/minimal-js/budget_detail/budget_detail.js' %}"></script>
+<script src="{% static 'js/minimal-js/tooltip/tooltip.js' %}"></script>
+
+{% endblock extra_js %}

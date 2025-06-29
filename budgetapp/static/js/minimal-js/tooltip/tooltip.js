@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
     tooltip.style.top = top + 'px';
   }
 
-  document.querySelectorAll('.month-abbr').forEach(function (el) {
+  document.querySelectorAll('.month-abbr, .minimal-tooltip-trigger').forEach(function (el) {
     el.addEventListener('mouseenter', function (e) {
       let text = el.getAttribute('data-tooltip');
       if (text) showTooltip(e, text);
