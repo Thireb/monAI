@@ -1,159 +1,62 @@
 {% extends "material/base.html" %}
+{% load static %}
 {% block content %}
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-    .minimal-home-outer {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        min-height: 100vh;
-        background: #f3f6fa;
-    }
-
-    .minimal-home-container {
-        font-family: 'Quicksand', sans-serif;
-        padding: 2.5rem 1rem 1.5rem 1rem;
-        background: #f3f6fa;
-        min-width: 420px;
-        max-width: 700px;
-        width: 100%;
-    }
-
-    .year-header {
-        font-size: 2.7rem;
-        font-weight: 700;
-        color: #222;
-        margin-bottom: 2.2rem;
-        text-align: left;
-        letter-spacing: 0.04em;
-        opacity: 0.85;
-    }
-
-    .calendar-grid {
-        background: rgba(255, 255, 255, 0.45);
-        border-radius: 22px;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.10);
-        border: 1.5px solid rgba(255, 255, 255, 0.18);
-        padding: 2.2rem 2rem 2rem 2rem;
-        display: flex;
-        flex-direction: column;
-        gap: 2.2rem;
-        width: 100%;
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-    }
-
-    .months-row {
-        display: flex;
-        flex-direction: row-reverse;
-        gap: 2.2rem;
-        width: 100%;
-    }
-
-    .month-box {
-        flex: 1 1 0;
-        min-width: 110px;
-        min-height: 110px;
-        max-width: 160px;
-        max-height: 160px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.45rem;
-        font-weight: 600;
-        border-radius: 18px;
-        border: 1.5px solid rgba(255, 255, 255, 0.32);
-        background: rgba(255, 255, 255, 0.32);
-        color: #222;
-        box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.08);
-        transition: box-shadow 0.2s, background 0.2s, border 0.2s;
-        text-align: center;
-        letter-spacing: 0.01em;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        margin: 0;
-        opacity: 0.95;
-        font-family: 'Quicksand', sans-serif;
-    }
-
-    .month-box.past {
-        background: rgba(33, 150, 243, 0.32);
-        color: #fff;
-        border-color: #1976d2;
-        box-shadow: 0 4px 24px 0 rgba(33, 150, 243, 0.10);
-    }
-
-    .month-box.current {
-        background: rgba(76, 175, 80, 0.38);
-        color: #fff;
-        border-color: #388e3c;
-        box-shadow: 0 4px 24px 0 rgba(76, 175, 80, 0.12);
-    }
-
-    .month-box.future-created {
-        background: rgba(255, 214, 0, 0.32);
-        color: #222;
-        border-color: #ffb300;
-        box-shadow: 0 4px 24px 0 rgba(255, 214, 0, 0.10);
-    }
-
-    .month-box.future {
-        background: rgba(255, 255, 255, 0.32);
-        color: #222;
-        border-color: rgba(255, 255, 255, 0.32);
-        box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.04);
-    }
-
-    .month-box {
-        cursor: pointer;
-        user-select: none;
-    }
-
-    .month-box:hover {
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
-        opacity: 1;
-        border-width: 2px;
-    }
-
-    @media (max-width: 900px) {
-        .minimal-home-container {
-            min-width: 0;
-            max-width: 98vw;
-            padding: 1.2rem 0.2rem;
-        }
-
-        .calendar-grid {
-            padding: 1.2rem 0.2rem;
-            gap: 1.2rem;
-        }
-
-        .months-row {
-            gap: 1.2rem;
-        }
-
-        .month-box {
-            min-width: 60px;
-            min-height: 60px;
-            font-size: 1rem;
-            border-radius: 10px;
-        }
-    }
-</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+<link rel="stylesheet" href="{% static 'css/minimal-css/theme/theme.css' %}">
+<link rel="stylesheet" href="{% static 'css/minimal-css/calendar/calendar.css' %}">
+<link rel="stylesheet" href="{% static 'css/minimal-css/tooltip/tooltip.css' %}">
 <div class="minimal-home-outer">
     <div class="minimal-home-container">
-        <div class="year-header">{{ year }}</div>
-        <div class="calendar-grid">
+        <div class="calendar-header">
+            <span class="year-arrow" tabindex="0" aria-label="Previous year" title="Previous year">←</span>
+            <span class="year-header">{{ year }}</span>
+            <span class="year-arrow" tabindex="0" aria-label="Next year" title="Next year">→</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid">
             {% for row in months_grid %}
             <div class="months-row">
                 {% for month in row %}
-                <div class="month-box {{ month.status }}">
-                    {{ month.name }}
-                </div>
+                <span class="month-abbr {{ month.status }}" tabindex="0" aria-label="{{ month.name }}"
+                    data-tooltip="{% if month.status == 'past' or month.status == 'current' or month.status == 'future-created' %}View budget{% else %}Let's create budget{% endif %}">
+                    {{ month.abbr }}
+                    <span class="month-underline"></span>
+                </span>
                 {% endfor %}
             </div>
             {% endfor %}
         </div>
+        <div class="legend" aria-label="Color legend">
+            <span class="legend-item"><span class="legend-color legend-past"></span>Past (budget created)</span>
+            <span class="legend-item"><span class="legend-color legend-current"></span>Current month (budget
+                created)</span>
+            <span class="legend-item"><span class="legend-color legend-future-created"></span>Future (budget
+                created)</span>
+            <span class="legend-item"><span class="legend-color legend-future"></span>Future (no budget)</span>
+        </div>
     </div>
 </div>
+<script src="{% static 'js/minimal-js/tooltip/tooltip.js' %}"></script>
+<script>
+    // Animate grid and underlines on load
+    document.addEventListener('DOMContentLoaded', function () {
+        anime({
+            targets: '#calendarGrid .months-row',
+            opacity: [0, 1],
+            translateY: [40, 0],
+            delay: anime.stagger(120, {start: 200}),
+            duration: 700,
+            easing: 'easeOutCubic',
+        });
+        anime({
+            targets: '#calendarGrid .month-abbr',
+            opacity: [0, 1],
+            scale: [0.85, 1],
+            delay: anime.stagger(60, {grid: [3, 4], from: 'center', start: 400}),
+            duration: 600,
+            easing: 'easeOutBack',
+        });
+    });
+</script>
 {% endblock content %}
 {% block extra_css %}{% endblock extra_css %}
