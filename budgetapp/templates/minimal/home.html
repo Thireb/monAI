@@ -16,11 +16,20 @@
             {% for row in months_grid %}
             <div class="months-row">
                 {% for month in row %}
+                {% if month.status == 'past' or month.status == 'current' or month.status == 'future-created' %}
+                <a href="{% url 'minimal_budget_detail' year=year month=forloop.parentloop.counter0|add:forloop.counter %}"
+                    class="month-abbr {{ month.status }}" tabindex="0" aria-label="{{ month.name }}"
+                    data-tooltip="View budget">
+                    {{ month.abbr }}
+                    <span class="month-underline"></span>
+                </a>
+                {% else %}
                 <span class="month-abbr {{ month.status }}" tabindex="0" aria-label="{{ month.name }}"
-                    data-tooltip="{% if month.status == 'past' or month.status == 'current' or month.status == 'future-created' %}View budget{% else %}Let's create budget{% endif %}">
+                    data-tooltip="Let's create budget">
                     {{ month.abbr }}
                     <span class="month-underline"></span>
                 </span>
+                {% endif %}
                 {% endfor %}
             </div>
             {% endfor %}

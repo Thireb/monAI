@@ -1,0 +1,25 @@
+<!-- Alpine.js CDN: <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script> -->
+<!-- Income History Section (collapsible) -->
+<div x-data="{ open: false }" class="income-history-section mb-4">
+    <button class="btn btn-glassy btn-sm mb-2" @click="open = !open">
+        <span x-text="open ? 'Hide Income History' : 'Show Income History'"></span>
+    </button>
+    <div x-show="open" x-transition.duration.300ms>
+        <div class="glassy p-3">
+            {% if income_history %}
+            <ul class="list-unstyled">
+                {% for history in income_history %}
+                <li>
+                    <span class="text-muted">{{ history.changed_at|date:"M d, Y H:i" }}</span>:
+                    <span>{{ history.old_currency }} {{ history.old_amount }}</span> →
+                    <span>{{ history.new_currency }} {{ history.new_amount }}</span>
+                    <span class="text-muted">({{ history.reason|default:"No reason provided" }})</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="text-muted text-center">No income history yet.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,39 @@
+<!-- Alpine.js CDN: <script src="https://unpkg.com/alpinejs@3.13.10/dist/cdn.min.js" defer></script> -->
+<!-- Category Stats Section (toggleable) -->
+<div class="toggle-section mb-4" id="category-stats-section">
+    <button class="btn btn-glassy btn-sm mb-2 category-stats-toggle-btn">
+        <span class="category-stats-toggle-text">Hide Category Stats</span>
+    </button>
+    <div class="category-stats-toggle-content">
+        <div class="category-stats glassy p-3">
+            <div class="row g-3">
+                {% for category_name, data in expenses_by_category.items %}
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="d-flex align-items-center glassy-stat-card p-3 mb-2 rounded-3">
+                        <div class="stat-color-bar me-3"
+                            style="width: 8px; height: 40px; background: {{ data.color }}; border-radius: 4px;"> <!-- djlint:off H021 -->
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold">{{ category_name }}</span>
+                                <span class="text-muted small">{{ data.amount_display }} {{ budget.currency }}</span>
+                            </div>
+                            <!-- linter-ignore: H021 Inline styles should be avoided. -->
+                            <div class="progress" style="height: 8px;"> <!-- djlint:off H021 -->
+                                <div class="progress-bar" role="progressbar"
+                                    style="width: {{ data.percentage }}%; background: {{ data.color }};"
+                                    aria-valuenow="{{ data.percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                </div> <!-- djlint:off H021 -->
+                            </div>
+                            <small class="text-muted">{{ data.percentage_display }}%</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if not expenses_by_category %}
+            <div class="text-center text-muted">No category stats available.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,66 @@
+<!-- Alpine.js CDN: <script src="https://unpkg.com/alpinejs@3.13.10/dist/cdn.min.js" defer></script> -->
+<!-- Expense Modal (Add/Edit) -->
+<!-- linter-ignore: H021 Inline styles should be avoided. -->
+<!-- djlint:off H021 -->
+<div id="expenseModal" class="modal glassy" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="expenseModalLabel" style="display: none;">
+    <!-- djlint:on H021 -->
+    <div class="modal-content p-4">
+        <h3 class="mb-3" id="expenseModalLabel">Add/Edit Expense</h3>
+        <form method="post" id="expense-form" class="expense-form">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="expense">
+            <input type="hidden" name="expense_id" id="expense_id" value="">
+            <div class="mb-3">
+                <label for="expense_name" class="form-label">Name</label>
+                <input type="text" name="name" class="form-control glassy-input" id="expense_name"
+                    placeholder="e.g., Rent, Groceries, Utilities" required aria-label="Expense name">
+                <div class="form-text">Enter a clear, descriptive name for the expense</div>
+            </div>
+            <div class="mb-3">
+                <label for="expense_amount" class="form-label">Amount</label>
+                <input type="number" step="0.01" name="amount" class="form-control glassy-input" id="expense_amount"
+                    placeholder="Enter amount" required aria-label="Expense amount">
+                <div class="form-text">Enter the expense amount in {{ budget.currency }}</div>
+            </div>
+            <div class="mb-3">
+                <label for="expense_category" class="form-label">Category</label>
+                <select name="category" id="expense_category" class="form-select glassy-input"
+                    aria-label="Expense category">
+                    <option value="">Select a category</option>
+                    {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Group your expenses for better tracking</div>
+            </div>
+            <div class="mb-3">
+                <label for="expense_tag" class="form-label">Account Tag</label>
+                <select name="tag" id="expense_tag" class="form-select glassy-input" aria-label="Expense tag">
+                    <option value="none">None</option>
+                    <option value="cash">Cash</option>
+                    <option value="nayapay">Nayapay</option>
+                    <option value="meezan">Meezan</option>
+                    <option value="transferred">Transferred</option>
+                    <option value="jazzcash">Jazzcash</option>
+                    <option value="easypaisa">Easypaisa</option>
+                    <option value="alfalah">Alfalah</option>
+                    <option value="askari">Askari</option>
+                    <option value="other">Other</option>
+                </select>
+                <div class="form-text">Select the account for this expense</div>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" name="is_recurring" class="form-check-input" id="expense_recurring"
+                    aria-label="Recurring expense">
+                <label class="form-check-label" for="expense_recurring">Recurring Expense</label>
+                <div class="form-text">Check if this is a monthly recurring expense</div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-secondary expense-cancel-btn" aria-label="Cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="expense-submit-btn" aria-label="Save expense">
+                    <i class="material-icons align-middle">save</i> Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
