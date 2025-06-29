@@ -1,0 +1,60 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Minimal Design Strategy Guide
+
+## 1. Folder and File Structure
+- **CSS:** Place all minimal theme CSS in `static/css/minimal-css/`, organized by feature (e.g., `theme/`, `nav/`, `calendar/`, `tooltip/`, `calculator/`).
+- **JS:** Place all minimal theme JS in `static/js/minimal-js/`, organized by feature (e.g., `nav/`, `tooltip/`, `calculator/`).
+- **Components:** Place reusable HTML components in `templates/minimal/components/` (e.g., `nav.html`, `calculator.html`).
+- **Base Template:** All minimal pages should extend `minimal/base.html`.
+
+## 2. Base Template Usage
+- Use `minimal/base.html` for all minimal UI pages.
+- Include nav and calculator as `{% include %}` components.
+- Load Bootstrap CSS, Quicksand (and any logo font), and Anime.js CDN in the base.
+- Use named `{% endblock %}`s and double quotes in template tags for lint compliance.
+
+## 3. Font and Color Guidelines
+- **Primary font:** Quicksand for all UI text.
+- **Logo font:** Orbitron (or similar) for the app name (monAI), styled as a logo.
+- **Color palette:** Use soft backgrounds, glassmorphism, and accent colors (#2196f3 blue, #4caf50 green, #ffd600 yellow, #e0e0e0 gray).
+- **Gradients:** Use subtle gradients for backgrounds and logo text.
+
+## 4. Animation and Interactivity
+- Use Anime.js for all UI animations (page load, hover, etc.).
+- Place animation logic in feature-specific JS files.
+- Use custom tooltips (not browser default) for a consistent, glassy look. Tooltip CSS/JS should be modular.
+- Animate only what enhances UX (avoid excessive motion).
+
+## 5. Nav and Component Modularity
+- Nav and calculator must be in their own HTML, CSS, and JS files.
+- Nav should be responsive, with a hamburger menu on mobile.
+- App name (monAI) is not a link, styled as a logo.
+- Use Bootstrap for layout, override with minimal CSS for theme.
+
+## 6. Accessibility and Responsiveness
+- Ensure all interactive elements are keyboard accessible.
+- Use `aria-current="page"` for active nav links.
+- Maintain high color contrast and readable font sizes.
+- All layouts must be responsive (test on mobile and desktop).
+
+## 7. Linting and Code Style
+- Use named `{% endblock %}`s and double quotes in all template tags.
+- Follow project linting rules for CSS and JS (indentation, quotes, etc.).
+- Use semantic HTML and ARIA attributes where appropriate.
+
+## 8. Extending the Theme
+- New pages/components should:
+  - Extend `minimal/base.html`.
+  - Place feature CSS/JS in the appropriate minimal-css/minimal-js subfolder.
+  - Use modular, reusable components where possible.
+  - Follow established font, color, and animation standards.
+
+## 9. General Principles
+- Prioritize clarity, whitespace, and minimalism.
+- Use glassmorphism and soft shadows for depth.
+- Avoid unnecessary complexity—keep UI and code simple and maintainable.
+- Document new components and patterns in this strategy file as the theme evolves.
