@@ -230,6 +230,11 @@ h6 {
   color: #fff;
 }
 
+.toggle-section button:hover span,
+.toggle-section button:focus span {
+  color: #fff !important;
+}
+
 .expense-actions-cell {
   overflow: visible !important;
   position: relative;
