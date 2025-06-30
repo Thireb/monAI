@@ -36,6 +36,13 @@ $(function () {
     $('#incomeModal').hide();
   });
 
+  // Close modal when clicking outside the modal content
+  $('.modal.glassy').on('click', function (e) {
+    if ($(e.target).hasClass('modal')) {
+      $(this).hide();
+    }
+  });
+
   // Toggle summary section
   $('.summary-toggle-btn').on('click', function () {
     var content = $('.summary-toggle-content');
