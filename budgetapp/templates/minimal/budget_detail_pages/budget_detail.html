@@ -3,6 +3,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/minimal-css/budget_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/minimal-css/modal/modal.css' %}">
 {% endblock extra_css %}
 
 {% block content %}
@@ -23,15 +24,14 @@
     <!-- Income History Section -->
     {% include "minimal/budget_detail_pages/income_history.html" %}
 
-    <!-- Modals for Add/Edit Expense and Income -->
+    <!-- Modals -->
     {% include "minimal/budget_detail_pages/income_modal.html" %}
     {% include "minimal/budget_detail_pages/expense_modal.html" %}
 </div>
 {% endblock content %}
 
 {% block extra_js %}
-
+<script src="{% static 'js/minimal-js/modal/modal.js' %}"></script>
 <script src="{% static 'js/minimal-js/budget_detail/budget_detail.js' %}"></script>
 <script src="{% static 'js/minimal-js/tooltip/tooltip.js' %}"></script>
-
 {% endblock extra_js %}
