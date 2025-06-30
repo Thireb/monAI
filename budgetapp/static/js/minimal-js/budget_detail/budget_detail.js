@@ -192,7 +192,10 @@ $(function () {
 
     // Add cells
     newRow.append($('<td>').text(expense.name));
-    newRow.append($('<td>').text($('.budget-currency').text() + ' ' + expense.amount_display));
+
+    // Always format with currency to ensure consistency
+    const currencyText = $('.budget-currency').text();
+    newRow.append($('<td>').text(currencyText + ' ' + expense.amount_display));
 
     const categoryCell = $('<td>').attr('data-category-id', expense.category_id || '');
     if (expense.category_name) {
@@ -219,10 +222,11 @@ $(function () {
         const subItem = $('<li>');
         subItem.append($('<span>').addClass('sub-expense-name').text(sub.name));
         subItem.append(' - ');
+        const currencyText = $('.budget-currency').text();
         subItem.append(
           $('<span>')
             .addClass('sub-expense-amount')
-            .text($('.budget-currency').text() + ' ' + sub.amount_display)
+            .text(currencyText + ' ' + sub.amount_display)
         );
         if (sub.is_return) {
           subItem.append($('<span>').addClass('badge bg-info').text('Return'));
@@ -337,7 +341,10 @@ $(function () {
 
     // Update cells
     row.find('td:nth-child(1)').text(expense.name);
-    row.find('td:nth-child(2)').text($('.budget-currency').text() + ' ' + expense.amount_display);
+
+    // Always format with currency to ensure consistency
+    const currencyText = $('.budget-currency').text();
+    row.find('td:nth-child(2)').text(currencyText + ' ' + expense.amount_display);
 
     const categoryCell = row.find('td:nth-child(3)');
     categoryCell.attr('data-category-id', expense.category_id || '');
@@ -373,6 +380,14 @@ $(function () {
   }
 
   // Helper function to update budget totals
+  // Helper function to format currency
+  function formatCurrency(amount) {
+    return amount.toLocaleString('en', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
   function updateBudgetTotals() {
     // Calculate total expenses
     let totalExpenses = 0;
@@ -394,28 +409,9 @@ $(function () {
     // Format numbers
     const currency = $('.budget-currency').text();
 
-    // Update UI
-    $.ajax({
-      url: '/api/format-currency/',
-      type: 'GET',
-      data: {
-        amount: totalExpenses,
-      },
-      success: function (response) {
-        $('.total-expenses-value').text(currency + ' ' + response.formatted);
-      },
-    });
-
-    $.ajax({
-      url: '/api/format-currency/',
-      type: 'GET',
-      data: {
-        amount: remainingBudget,
-      },
-      success: function (response) {
-        $('.remaining-budget-value').text(currency + ' ' + response.formatted);
-      },
-    });
+    // Update UI with client-side formatting
+    $('.total-expenses-value').text(currency + ' ' + formatCurrency(totalExpenses));
+    $('.remaining-budget-value').text(currency + ' ' + formatCurrency(remainingBudget));
 
     // Update category stats
     updateCategoryStats();

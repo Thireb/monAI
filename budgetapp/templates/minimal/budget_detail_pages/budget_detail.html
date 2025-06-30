@@ -8,6 +8,9 @@
 
 {% block content %}
 <div>
+    <!-- Hidden element to store currency for JavaScript -->
+    <span class="budget-currency d-none">{{ budget.currency }}</span>
+
     <div class="budget-header colorful-bg mb-4">
         <h1 class="mb-0">Budget for {{ budget.month|date:"F Y" }}</h1>
     </div>
