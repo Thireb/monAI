@@ -1,13 +1,12 @@
-// jQuery-based modal and toggle logic for budget detail page
+// Budget detail page specific functionality
 $(function () {
   // Show Add Expense modal (clear form)
   $('[data-modal-target="#expenseModal"]').on('click', function () {
-    $('#expense-form')[0].reset();
-    $('#expense_id').val('');
+    resetExpenseForm();
     openModalWithAnimation('#expenseModal');
   });
 
-  // Show Edit Expense modal (fill form)
+  // Show Edit Expense modal (fill form with data)
   $('.edit-expense-btn').on('click', function () {
     var btn = $(this);
     $('#expense_id').val(btn.data('expense-id'));
@@ -19,75 +18,29 @@ $(function () {
       'checked',
       btn.data('expense-recurring') === true || btn.data('expense-recurring') === 'true'
     );
+
+    // Use the shared openModalWithAnimation function
     openModalWithAnimation('#expenseModal');
   });
 
-  // Cancel Expense modal
+  // Show Income modal
+  $('[data-modal-target="#incomeModal"]').on('click', function () {
+    openModalWithAnimation('#incomeModal');
+  });
+
+  // Handle modal cancel buttons
   $('.expense-cancel-btn').on('click', function () {
     closeModalWithAnimation('#expenseModal');
   });
 
-  // Show Income modal
-  $('.edit-income-btn').on('click', function () {
-    openModalWithAnimation('#incomeModal');
-  });
-
-  // Cancel Income modal
   $('.income-cancel-btn').on('click', function () {
     closeModalWithAnimation('#incomeModal');
   });
 
-  // Close modal when clicking outside the modal content
-  $('.modal.glassy').on('click', function (e) {
-    if ($(e.target).hasClass('modal')) {
-      closeModalWithAnimation('#' + $(this).attr('id'));
-    }
-  });
-
-  // Helper function to open modal with animation
-  function openModalWithAnimation(modalId) {
-    const $modal = $(modalId);
-    $modal.css('display', 'flex');
-
-    // Use anime.js for smooth animation
-    anime({
-      targets: modalId,
-      opacity: [0, 1],
-      duration: 300,
-      easing: 'easeOutQuad',
-    });
-
-    anime({
-      targets: modalId + ' .modal-content',
-      translateY: [20, 0],
-      opacity: [0.8, 1],
-      duration: 400,
-      easing: 'easeOutQuad',
-    });
-  }
-
-  // Helper function to close modal with animation
-  function closeModalWithAnimation(modalId) {
-    const $modal = $(modalId);
-
-    // Use anime.js for smooth animation
-    anime({
-      targets: modalId + ' .modal-content',
-      translateY: [0, 20],
-      opacity: [1, 0.8],
-      duration: 250,
-      easing: 'easeInQuad',
-    });
-
-    anime({
-      targets: modalId,
-      opacity: [1, 0],
-      duration: 300,
-      easing: 'easeInQuad',
-      complete: function () {
-        $modal.hide();
-      },
-    });
+  // Reset expense form helper
+  function resetExpenseForm() {
+    $('#expense-form')[0].reset();
+    $('#expense_id').val('');
   }
 
   // Toggle summary section with animation

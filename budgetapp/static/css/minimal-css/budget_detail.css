@@ -25,39 +25,6 @@ h6 {
   color: #222;
 }
 
-/* Modal Styling */
-.modal.glassy {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 1050;
-}
-
-.modal .modal-content {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  width: 100%;
-  max-width: 500px;
-  margin: 0 auto;
-  position: relative;
-}
-
-@media (max-width: 576px) {
-  .modal .modal-content {
-    max-width: 90%;
-    margin: 10vh auto;
-  }
-}
-
 .summary-cards {
   background: rgba(255, 255, 255, 0.7);
   border-radius: 18px;
@@ -258,40 +225,4 @@ h6 {
   height: 8px;
   border-radius: 4px;
   transition: width 0.3s;
-}
-
-/* Form styling inside modals */
-.modal .glassy-input,
-.modal .form-select.glassy-input {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(33, 150, 243, 0.2);
-  border-radius: 10px;
-  padding: 0.6rem 1rem;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.05);
-}
-
-.modal .glassy-input:focus,
-.modal .form-select.glassy-input:focus {
-  border-color: rgba(33, 150, 243, 0.5);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 2px 12px rgba(33, 150, 243, 0.1);
-  outline: none;
-}
-
-.modal .form-label {
-  color: #2196f3;
-  font-weight: 600;
-  margin-bottom: 0.4rem;
-}
-
-.modal .form-text {
-  color: #777;
-  font-size: 0.85rem;
-  margin-top: 0.3rem;
-}
-
-.modal .form-check-input:checked {
-  background-color: #2196f3;
-  border-color: #2196f3;
 }
