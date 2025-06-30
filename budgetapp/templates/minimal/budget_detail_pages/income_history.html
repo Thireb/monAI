@@ -1,7 +1,7 @@
 <!-- Alpine.js CDN: <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script> -->
 <!-- Income History Section (collapsible) -->
 <div x-data="{ open: false }" class="income-history-section mb-4">
-    <button class="btn btn-glassy btn-sm mb-2" @click="open = !open">
+    <button class="btn btn-minimal btn-sm mb-2" @click="open = !open">
         <span x-text="open ? 'Hide Income History' : 'Show Income History'"></span>
     </button>
     <div x-show="open" x-transition.duration.300ms>

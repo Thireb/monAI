@@ -2,6 +2,102 @@ body {
   background: linear-gradient(135deg, #f3f6fa 0%, #e9eafc 100%) !important;
 }
 
+/* Generic Button Styles */
+.btn-minimal {
+  background: rgba(33, 150, 243, 0.12);
+  color: #2196f3;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px 0 rgba(33, 150, 243, 0.08);
+  font-weight: 600;
+  padding: 0.5rem 1.2rem;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.btn-minimal:hover,
+.btn-minimal:focus {
+  background: #2196f3;
+  color: #fff;
+}
+
+.btn-minimal:hover span,
+.btn-minimal:focus span {
+  color: #fff !important;
+}
+
+.btn-minimal span {
+  color: #2196f3 !important;
+  font-size: 1rem !important;
+  font-weight: 600;
+}
+
+.btn-minimal.btn-sm {
+  padding: 0.4rem 1.1rem;
+  font-size: 0.875rem;
+}
+
+.btn-minimal.btn-action {
+  margin-left: 1rem;
+  box-shadow: 0 2px 8px 0 rgba(33, 150, 243, 0.1);
+}
+
+.btn-minimal.btn-danger {
+  background: rgba(229, 57, 53, 0.12);
+  color: #e53935;
+  box-shadow: 0 2px 8px 0 rgba(229, 57, 53, 0.08);
+}
+
+.btn-minimal.btn-danger:hover,
+.btn-minimal.btn-danger:focus {
+  background: #e53935;
+  color: #fff;
+}
+
+.btn-minimal.btn-success {
+  background: rgba(76, 175, 80, 0.12);
+  color: #4caf50;
+  box-shadow: 0 2px 8px 0 rgba(76, 175, 80, 0.08);
+}
+
+.btn-minimal.btn-success:hover,
+.btn-minimal.btn-success:focus {
+  background: #4caf50;
+  color: #fff;
+}
+
+/* Icon Button */
+.btn-icon {
+  background: none;
+  border: none;
+  color: #2196f3;
+  font-size: 1.2rem;
+  margin: 0 0.2rem;
+  padding: 0.3rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+  cursor: pointer;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon:hover,
+.btn-icon:focus {
+  background: #e3f2fd;
+}
+
+.btn-icon.btn-danger {
+  color: #e53935;
+}
+
+.btn-icon.btn-danger:hover,
+.btn-icon.btn-danger:focus {
+  background: #ffd6d6;
+}
+
 .minimal-home-outer {
   display: flex;
   justify-content: center;

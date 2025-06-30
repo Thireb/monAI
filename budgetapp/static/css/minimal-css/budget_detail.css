@@ -25,6 +25,51 @@ h6 {
   color: #222;
 }
 
+/* Modal Styling */
+.modal.glassy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modal.glassy:not([style*='display: none']) {
+  opacity: 1;
+}
+
+.modal .modal-content {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  position: relative;
+  transform: translateY(20px);
+  transition: transform 0.3s ease;
+}
+
+.modal.glassy:not([style*='display: none']) .modal-content {
+  transform: translateY(0);
+}
+
+@media (max-width: 576px) {
+  .modal .modal-content {
+    max-width: 90%;
+    margin: 10vh auto;
+  }
+}
+
 .summary-cards {
   background: rgba(255, 255, 255, 0.7);
   border-radius: 18px;
@@ -63,32 +108,6 @@ h6 {
   color: #222;
 }
 
-.btn-glassy,
-.add-expense-btn {
-  background: rgba(33, 150, 243, 0.12);
-  color: #2196f3;
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px 0 rgba(33, 150, 243, 0.08);
-  font-weight: 600;
-  padding: 0.5rem 1.2rem;
-  transition:
-    background 0.2s,
-    color 0.2s;
-}
-
-.btn-glassy:hover,
-.add-expense-btn:hover {
-  background: #2196f3;
-  color: #fff;
-}
-
-.add-expense-btn {
-  font-size: 1rem;
-  margin-left: 1rem;
-  box-shadow: 0 2px 8px 0 rgba(33, 150, 243, 0.1);
-}
-
 .expenses-header h2 {
   font-size: 2rem;
   font-weight: 700;
@@ -122,27 +141,6 @@ h6 {
 
 .wide-expense-table tr:last-child {
   border-bottom: none;
-}
-
-.expense-actions .btn-glassy {
-  margin-right: 0.5rem;
-}
-
-.btn-danger {
-  background: #ffd6d6 !important;
-  color: #e53935 !important;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  box-shadow: 0 2px 8px 0 rgba(229, 57, 53, 0.08);
-  transition:
-    background 0.2s,
-    color 0.2s;
-}
-
-.btn-danger:hover {
-  background: #e53935 !important;
-  color: #fff !important;
 }
 
 .badge.bg-success {
@@ -207,34 +205,6 @@ h6 {
   display: none;
 }
 
-.toggle-section button span {
-  color: #2196f3 !important;
-  font-size: 1rem !important;
-  font-weight: 600;
-}
-
-.toggle-section button {
-  background: rgba(33, 150, 243, 0.1);
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px 0 rgba(33, 150, 243, 0.06);
-  padding: 0.4rem 1.1rem;
-  margin-bottom: 0.5rem;
-  transition:
-    background 0.2s,
-    color 0.2s;
-}
-
-.toggle-section button:hover {
-  background: #2196f3;
-  color: #fff;
-}
-
-.toggle-section button:hover span,
-.toggle-section button:focus span {
-  color: #fff !important;
-}
-
 .expense-actions-cell {
   overflow: visible !important;
   position: relative;
@@ -292,36 +262,6 @@ h6 {
   color: #fff;
 }
 
-.icon-btn {
-  background: none;
-  border: none;
-  color: #2196f3;
-  font-size: 1.2rem;
-  margin: 0 0.2rem;
-  padding: 0.3rem;
-  border-radius: 6px;
-  transition: background 0.15s;
-  cursor: pointer;
-  outline: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.icon-btn:hover,
-.icon-btn:focus {
-  background: #e3f2fd;
-}
-
-.delete-expense-btn {
-  color: #e53935;
-}
-
-.delete-expense-btn:hover,
-.delete-expense-btn:focus {
-  background: #ffd6d6;
-}
-
 .modal-hidden {
   display: none !important;
 }
@@ -330,4 +270,40 @@ h6 {
   height: 8px;
   border-radius: 4px;
   transition: width 0.3s;
+}
+
+/* Form styling inside modals */
+.modal .glassy-input,
+.modal .form-select.glassy-input {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(33, 150, 243, 0.2);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.05);
+}
+
+.modal .glassy-input:focus,
+.modal .form-select.glassy-input:focus {
+  border-color: rgba(33, 150, 243, 0.5);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 12px rgba(33, 150, 243, 0.1);
+  outline: none;
+}
+
+.modal .form-label {
+  color: #2196f3;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.modal .form-text {
+  color: #777;
+  font-size: 0.85rem;
+  margin-top: 0.3rem;
+}
+
+.modal .form-check-input:checked {
+  background-color: #2196f3;
+  border-color: #2196f3;
 }

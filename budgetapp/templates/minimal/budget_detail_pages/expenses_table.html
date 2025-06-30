@@ -3,7 +3,7 @@
 <div class="expenses-section mb-5">
     <div class="expenses-header d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Expenses</h2>
-        <button class="btn add-expense-btn" data-modal-target="#expenseModal">
+        <button class="btn btn-minimal btn-action" data-modal-target="#expenseModal">
             Add Expense
         </button>
     </div>
@@ -47,15 +47,16 @@
                             {% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
                         <td class="expense-actions-cell">
-                            <button class="icon-btn edit-expense-btn minimal-tooltip-trigger" aria-label="Edit"
+                            <button class="btn-icon edit-expense-btn minimal-tooltip-trigger" aria-label="Edit"
                                 data-tooltip="Edit" data-expense-id="{{ expense.id }}"
                                 data-expense-name="{{ expense.name|escapejs }}"
                                 data-expense-amount="{{ expense.amount }}"
                                 data-expense-category="{% if expense.category %}{{ expense.category.id }}{% else %}{% endif %}"
                                 data-expense-tag="{{ expense.get_tag_display|lower }}"
                                 data-expense-recurring="{% if expense.is_recurring %}true{% else %}false{% endif %}">✏️</button>
-                            <button class="icon-btn delete-expense-btn minimal-tooltip-trigger" aria-label="Delete"
-                                data-tooltip="Delete" data-expense-id="{{ expense.id }}">🗑️</button>
+                            <button class="btn-icon btn-danger delete-expense-btn minimal-tooltip-trigger"
+                                aria-label="Delete" data-tooltip="Delete"
+                                data-expense-id="{{ expense.id }}">🗑️</button>
                         </td>
                     </tr>
                     {% endfor %}

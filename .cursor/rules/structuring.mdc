@@ -16,3 +16,4 @@ alwaysApply: true
 * Templates should only handle display, if any logic or calculation is needed, get it from backend.
 * If a template tag is to be loaded for math operations, then that means logic needs to be put in backend and sent via context.
 * Use anime.js for animation.
+* Use mcp memory tool to create entities and relations and keep them updated.
