@@ -1,13 +1,19 @@
 import calendar
 from datetime import date
+from decimal import Decimal
 
+from django.contrib import messages
 from django.contrib.humanize.templatetags.humanize import intcomma
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
+from django.views import View
 from django.views.generic import TemplateView
 
 from budgetapp.forms import ExpenseForm
-from budgetapp.models import Budget, Category, IncomeHistory
+from budgetapp.models import Budget, Category, Expense, IncomeHistory
 
 
 class HomeView(TemplateView):
@@ -131,3 +137,303 @@ class BudgetDetailView(TemplateView):
             }
         )
         return context
+
+
+class CategoryStatsView(View):
+    """View for AJAX updates to category statistics."""
+
+    def _format_currency(self, val: float) -> str:
+        """Format a float value as a string with comma
+        as thousands separator and two decimal places."""
+        return intcomma(f"{val:,.2f}")
+
+    def get(self, request, *args, **kwargs):
+        year = kwargs.get("year")
+        month = kwargs.get("month")
+        budget_date = timezone.datetime(year=year, month=month, day=1).date()
+        budget = get_object_or_404(Budget, month=budget_date)
+
+        # Get all expenses for this budget
+        expenses_qs = budget.expenses.all()
+        total_expenses = sum(e.amount for e in expenses_qs)
+
+        # Prepare category stats for display
+        expenses_by_category = {}
+        if expenses_qs.exists():
+            category_totals = {}
+            for expense in expenses_qs:
+                cat = expense.category.name if expense.category else "Uncategorized"
+                if cat not in category_totals:
+                    category_totals[cat] = {
+                        "amount": 0,
+                        "color": expense.category.color if expense.category else "#e0e0e0",
+                    }
+                category_totals[cat]["amount"] += float(expense.amount)
+            for cat, data in category_totals.items():
+                percent = (data["amount"] / float(total_expenses) * 100) if total_expenses else 0
+                expenses_by_category[cat] = {
+                    "amount": data["amount"],
+                    "amount_display": self._format_currency(data["amount"]),
+                    "color": data["color"],
+                    "percentage": percent,
+                    "percentage_display": f"{percent:.1f}",
+                }
+
+        context = {
+            "budget": budget,
+            "expenses_by_category": expenses_by_category,
+        }
+
+        # Render the category stats template
+        html = render_to_string("minimal/budget_detail_pages/category_stats_content.html", context)
+        return JsonResponse({"html": html})
+
+
+class BudgetCreateView(View):
+    """Class-based view for creating a new budget."""
+
+    def get(self, request, *args, **kwargs):
+        """Show modal to choose between blank budget or copy from previous."""
+        return JsonResponse(
+            {
+                "status": "success",
+                "showModal": True,
+                "title": "Create New Budget",
+                "message": "Would you like to create a blank \
+                budget or copy recurring expenses from the previous budget?",
+            }
+        )
+
+    def post(self, request, *args, **kwargs):
+        copy_recurring = request.POST.get("copy_recurring", "true") == "true"
+
+        # Get the last budget or use current date if no budgets exist
+        last_budget = Budget.objects.order_by("-month").first()
+        if last_budget:
+            next_month = (last_budget.month.replace(day=1) + timezone.timedelta(days=32)).replace(
+                day=1
+            )
+        else:
+            next_month = timezone.now().date().replace(day=1)
+
+        # Create new budget
+        budget = Budget.objects.create(month=next_month)
+
+        # Copy recurring expenses from previous budget if requested
+        if copy_recurring and last_budget:
+            recurring_expenses = last_budget.expenses.filter(is_recurring=True)
+            for expense in recurring_expenses:
+                Expense.objects.create(
+                    budget=budget,
+                    name=expense.name,
+                    amount=expense.amount,
+                    is_recurring=True,
+                    category=expense.category,
+                    tag=expense.tag,
+                )
+
+        messages.success(request, f'Budget for {next_month.strftime("%B %Y")} has been created')
+
+        # Return JSON response with redirect URL
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": f'Budget for {next_month.strftime("%B %Y")} has been created',
+                "redirect": reverse(
+                    "minimal:budget_detail",
+                    kwargs={"year": next_month.year, "month": next_month.month},
+                ),
+            }
+        )
+
+
+class IncomeUpdateView(View):
+    """Class-based view for updating budget income."""
+
+    def post(self, request, *args, **kwargs):
+        year = kwargs.get("year")
+        month = kwargs.get("month")
+        budget_date = timezone.datetime(year=year, month=month, day=1).date()
+        budget = get_object_or_404(Budget, month=budget_date)
+
+        income = request.POST.get("income")
+        currency = request.POST.get("currency")
+        reason = request.POST.get("reason")
+
+        if income:
+            old_income = budget.income
+            old_currency = budget.currency
+
+            budget.income = Decimal(income)
+            budget.currency = currency
+            budget.save()
+
+            # Log income change
+            IncomeHistory.objects.create(
+                budget=budget,
+                old_amount=old_income,
+                new_amount=budget.income,
+                old_currency=old_currency,
+                new_currency=currency,
+                reason=reason,
+            )
+
+            # Format for display
+            income_display = intcomma(f"{float(budget.income):,.2f}")
+            remaining_budget = budget.get_remaining_budget()
+            remaining_budget_display = intcomma(f"{float(remaining_budget):,.2f}")
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Income updated successfully!",
+                    "income": float(budget.income),
+                    "income_display": income_display,
+                    "currency": currency,
+                    "remaining_budget": float(remaining_budget),
+                    "remaining_budget_display": remaining_budget_display,
+                }
+            )
+
+        return JsonResponse({"status": "error", "message": "Income value is required"}, status=400)
+
+
+class ExpenseCreateUpdateView(View):
+    """Class-based view for creating or updating expenses."""
+
+    def _format_currency(self, val: float) -> str:
+        """Format a float value as a string with comma
+        as thousands separator and two decimal places."""
+        return intcomma(f"{val:,.2f}")
+
+    def post(self, request, *args, **kwargs):
+        year = kwargs.get("year")
+        month = kwargs.get("month")
+        budget_date = timezone.datetime(year=year, month=month, day=1).date()
+        budget = get_object_or_404(Budget, month=budget_date)
+
+        expense_id = request.POST.get("expense_id")
+        name = request.POST.get("name")
+        amount = request.POST.get("amount")
+        is_recurring = request.POST.get("is_recurring") == "on"
+        category_id = request.POST.get("category")
+        tag = request.POST.get("tag")
+
+        try:
+            if expense_id:
+                # Update existing expense
+                expense = get_object_or_404(Expense, id=expense_id, budget=budget)
+                expense.name = name
+                expense.amount = Decimal(amount)
+                expense.is_recurring = is_recurring
+                expense.category_id = category_id if category_id else None
+                expense.tag = tag if tag else "cash"
+                expense.save()
+
+                # Get category name for response
+                category_name = expense.category.name if expense.category else "Uncategorized"
+                category_color = expense.category.color if expense.category else "#e0e0e0"
+
+                return JsonResponse(
+                    {
+                        "status": "success",
+                        "message": "Expense updated successfully!",
+                        "expense": {
+                            "id": expense.id,
+                            "name": expense.name,
+                            "amount": float(expense.amount),
+                            "amount_display": self._format_currency(expense.amount),
+                            "is_recurring": expense.is_recurring,
+                            "category_id": expense.category_id,
+                            "category_name": category_name,
+                            "category_color": category_color,
+                            "tag": expense.tag,
+                            "tag_display": expense.get_tag_display(),
+                        },
+                        "action": "update",
+                    }
+                )
+            else:
+                # Create new expense
+                expense = Expense.objects.create(
+                    budget=budget,
+                    name=name,
+                    amount=Decimal(amount),
+                    is_recurring=is_recurring,
+                    category_id=category_id if category_id else None,
+                    tag=tag if tag else "cash",
+                )
+
+                # Get category name for response
+                category_name = expense.category.name if expense.category else "Uncategorized"
+                category_color = expense.category.color if expense.category else "#e0e0e0"
+
+                # Format sub-expenses for response
+                sub_expenses = []
+
+                return JsonResponse(
+                    {
+                        "status": "success",
+                        "message": "Expense added successfully!",
+                        "expense": {
+                            "id": expense.id,
+                            "name": expense.name,
+                            "amount": float(expense.amount),
+                            "amount_display": self._format_currency(expense.amount),
+                            "is_recurring": expense.is_recurring,
+                            "category_id": expense.category_id,
+                            "category_name": category_name,
+                            "category_color": category_color,
+                            "tag": expense.tag,
+                            "tag_display": expense.get_tag_display(),
+                            "sub_expenses": sub_expenses,
+                            "sub_expenses_exists": False,
+                        },
+                        "action": "create",
+                    }
+                )
+        except Exception as e:
+            return JsonResponse(
+                {"status": "error", "message": f"Error handling expense: {str(e)}"}, status=400
+            )
+
+
+class ExpenseDeleteView(View):
+    """Class-based view for deleting expenses."""
+
+    def post(self, request, *args, **kwargs):
+        year = kwargs.get("year")
+        month = kwargs.get("month")
+        budget_date = timezone.datetime(year=year, month=month, day=1).date()
+        budget = get_object_or_404(Budget, month=budget_date)
+
+        expense_id = request.POST.get("expense_id")
+        if expense_id:
+            try:
+                expense = get_object_or_404(Expense, id=expense_id, budget=budget)
+                expense_name = expense.name
+                expense_amount = float(expense.amount)
+                expense.delete()
+
+                # Calculate new budget totals
+                total_expenses = sum(e.amount for e in budget.expenses.all())
+                remaining_budget = budget.get_remaining_budget()
+
+                return JsonResponse(
+                    {
+                        "status": "success",
+                        "message": f'Expense "{expense_name}" deleted successfully!',
+                        "expense_id": expense_id,
+                        "deleted_amount": expense_amount,
+                        "new_total_expenses": float(total_expenses),
+                        "new_total_expenses_display": intcomma(f"{float(total_expenses):,.2f}"),
+                        "new_remaining_budget": float(remaining_budget),
+                        "new_remaining_budget_display": intcomma(f"{float(remaining_budget):,.2f}"),
+                    }
+                )
+            except Exception as e:
+                return JsonResponse(
+                    {"status": "error", "message": f"Error deleting expense: {str(e)}"}, status=400
+                )
+
+        return JsonResponse({"status": "error", "message": "No expense ID provided"}, status=400)

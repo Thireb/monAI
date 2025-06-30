@@ -7,9 +7,9 @@
         <div class="modal-header">
             <h3 class="modal-title" id="expenseModalLabel">Add/Edit Expense</h3>
         </div>
-        <form method="post" id="expense-form" class="expense-form">
+        <form method="post" id="expense-form" class="expense-form"
+            action="{% url 'minimal:expense_create_update' year=budget.month.year month=budget.month.month %}">
             {% csrf_token %}
-            <input type="hidden" name="form_type" value="expense">
             <div class="modal-body">
                 <!-- Expense Modal Form Fields -->
                 <input type="hidden" name="expense_id" id="expense_id" value="">

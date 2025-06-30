@@ -7,9 +7,8 @@
         <div class="modal-header">
             <h3 class="modal-title" id="incomeModalLabel">Edit Income</h3>
         </div>
-        <form method="post" id="income-form" class="income-form">
+        <form method="post" id="income-form" class="income-form" action="{% url 'minimal:income_update' year=budget.month.year month=budget.month.month %}">
             {% csrf_token %}
-            <input type="hidden" name="form_type" value="income">
             <div class="modal-body">
                 <!-- Income Modal Form Fields -->
                 <div class="mb-3">
