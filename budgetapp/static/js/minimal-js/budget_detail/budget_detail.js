@@ -1,10 +1,10 @@
 // jQuery-based modal and toggle logic for budget detail page
 $(function () {
   // Show Add Expense modal (clear form)
-  $('.add-expense-btn').on('click', function () {
+  $('[data-modal-target="#expenseModal"]').on('click', function () {
     $('#expense-form')[0].reset();
     $('#expense_id').val('');
-    $('#expenseModal').show();
+    openModalWithAnimation('#expenseModal');
   });
 
   // Show Edit Expense modal (fill form)
@@ -19,43 +19,165 @@ $(function () {
       'checked',
       btn.data('expense-recurring') === true || btn.data('expense-recurring') === 'true'
     );
-    $('#expenseModal').show();
+    openModalWithAnimation('#expenseModal');
   });
 
   // Cancel Expense modal
   $('.expense-cancel-btn').on('click', function () {
-    $('#expenseModal').hide();
+    closeModalWithAnimation('#expenseModal');
   });
 
   // Show Income modal
   $('.edit-income-btn').on('click', function () {
-    $('#incomeModal').show();
+    openModalWithAnimation('#incomeModal');
   });
+
   // Cancel Income modal
   $('.income-cancel-btn').on('click', function () {
-    $('#incomeModal').hide();
+    closeModalWithAnimation('#incomeModal');
   });
 
   // Close modal when clicking outside the modal content
   $('.modal.glassy').on('click', function (e) {
     if ($(e.target).hasClass('modal')) {
-      $(this).hide();
+      closeModalWithAnimation('#' + $(this).attr('id'));
     }
   });
 
-  // Toggle summary section
+  // Helper function to open modal with animation
+  function openModalWithAnimation(modalId) {
+    const $modal = $(modalId);
+    $modal.css('display', 'flex');
+
+    // Use anime.js for smooth animation
+    anime({
+      targets: modalId,
+      opacity: [0, 1],
+      duration: 300,
+      easing: 'easeOutQuad',
+    });
+
+    anime({
+      targets: modalId + ' .modal-content',
+      translateY: [20, 0],
+      opacity: [0.8, 1],
+      duration: 400,
+      easing: 'easeOutQuad',
+    });
+  }
+
+  // Helper function to close modal with animation
+  function closeModalWithAnimation(modalId) {
+    const $modal = $(modalId);
+
+    // Use anime.js for smooth animation
+    anime({
+      targets: modalId + ' .modal-content',
+      translateY: [0, 20],
+      opacity: [1, 0.8],
+      duration: 250,
+      easing: 'easeInQuad',
+    });
+
+    anime({
+      targets: modalId,
+      opacity: [1, 0],
+      duration: 300,
+      easing: 'easeInQuad',
+      complete: function () {
+        $modal.hide();
+      },
+    });
+  }
+
+  // Toggle summary section with animation
   $('.summary-toggle-btn').on('click', function () {
     var content = $('.summary-toggle-content');
     var text = $('.summary-toggle-text');
-    content.toggle();
-    text.text(content.is(':visible') ? 'Hide Summary' : 'Show Summary');
+    var isVisible = content.is(':visible');
+
+    if (isVisible) {
+      // Hide with animation
+      anime({
+        targets: '.summary-toggle-content',
+        opacity: [1, 0],
+        height: [content.height(), 0],
+        duration: 300,
+        easing: 'easeInOutQuad',
+        complete: function () {
+          content.hide();
+          text.text('Show Summary');
+        },
+      });
+    } else {
+      // Show with animation
+      content.css({
+        opacity: 0,
+        height: 0,
+        display: 'block',
+        overflow: 'hidden',
+      });
+
+      anime({
+        targets: '.summary-toggle-content',
+        opacity: [0, 1],
+        height: [0, content[0].scrollHeight],
+        duration: 400,
+        easing: 'easeOutQuad',
+        complete: function () {
+          content.css({
+            height: '',
+            overflow: '',
+          });
+          text.text('Hide Summary');
+        },
+      });
+    }
   });
-  // Toggle category stats section
+
+  // Toggle category stats section with animation
   $('.category-stats-toggle-btn').on('click', function () {
     var content = $('.category-stats-toggle-content');
     var text = $('.category-stats-toggle-text');
-    content.toggle();
-    text.text(content.is(':visible') ? 'Hide Category Stats' : 'Show Category Stats');
+    var isVisible = content.is(':visible');
+
+    if (isVisible) {
+      // Hide with animation
+      anime({
+        targets: '.category-stats-toggle-content',
+        opacity: [1, 0],
+        height: [content.height(), 0],
+        duration: 300,
+        easing: 'easeInOutQuad',
+        complete: function () {
+          content.hide();
+          text.text('Show Category Stats');
+        },
+      });
+    } else {
+      // Show with animation
+      content.css({
+        opacity: 0,
+        height: 0,
+        display: 'block',
+        overflow: 'hidden',
+      });
+
+      anime({
+        targets: '.category-stats-toggle-content',
+        opacity: [0, 1],
+        height: [0, content[0].scrollHeight],
+        duration: 400,
+        easing: 'easeOutQuad',
+        complete: function () {
+          content.css({
+            height: '',
+            overflow: '',
+          });
+          text.text('Hide Category Stats');
+        },
+      });
+    }
   });
 
   // Basic client-side validation for expense form
