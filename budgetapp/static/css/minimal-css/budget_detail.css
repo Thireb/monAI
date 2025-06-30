@@ -34,16 +34,10 @@ h6 {
   height: 100%;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 1050;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.modal.glassy:not([style*='display: none']) {
-  opacity: 1;
 }
 
 .modal .modal-content {
@@ -55,12 +49,6 @@ h6 {
   max-width: 500px;
   margin: 0 auto;
   position: relative;
-  transform: translateY(20px);
-  transition: transform 0.3s ease;
-}
-
-.modal.glassy:not([style*='display: none']) .modal-content {
-  transform: translateY(0);
 }
 
 @media (max-width: 576px) {
