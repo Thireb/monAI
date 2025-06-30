@@ -9,7 +9,7 @@ alwaysApply: true
 * Keep styling and html in one file for weasyprint templates.
 
 ## Rules for Backend
-* Use class based views
+* Use classes for views and API
 
 ## General Rules
 * Don't delete anything until told to.

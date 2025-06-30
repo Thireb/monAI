@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="{% static 'css/minimal-css/theme/theme.css' %}">
 <link rel="stylesheet" href="{% static 'css/minimal-css/calendar/calendar.css' %}">
 <link rel="stylesheet" href="{% static 'css/minimal-css/tooltip/tooltip.css' %}">
+<link rel="stylesheet" href="{% static 'css/minimal-css/modal/modal.css' %}">
 <div class="minimal-home-outer">
     <div class="minimal-home-container">
         <div class="calendar-header">
@@ -17,7 +18,7 @@
             <div class="months-row">
                 {% for month in row %}
                 {% if month.status == 'past' or month.status == 'current' or month.status == 'future-created' %}
-                <a href="{% url 'minimal_budget_detail' year=year month=forloop.parentloop.counter0|add:forloop.counter %}"
+                <a href="{% url 'minimal:budget_detail' year=year month=forloop.parentloop.counter0|add:forloop.counter %}"
                     class="month-abbr {{ month.status }}" tabindex="0" aria-label="{{ month.name }}"
                     data-tooltip="View budget">
                     {{ month.abbr }}
@@ -42,9 +43,37 @@
                 created)</span>
             <span class="legend-item"><span class="legend-color legend-future"></span>Future (no budget)</span>
         </div>
+        <!-- djlint:off H021 -->
+        <div class="create-budget-container" style="text-align: center; margin-top: 30px;">
+            <!-- djlint:on H021 -->
+            <button id="create-budget-btn" class="btn btn-minimal btn-action">
+                Create Next Budget
+            </button>
+        </div>
     </div>
 </div>
+
+<!-- Budget Creation Modal -->
+<!-- djlint:off H021 -->
+<div id="budgetCreateModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="budgetCreateModalLabel" style="display: none;">
+    <!-- djlint:on H021 -->
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="budgetCreateModalLabel">Create New Budget</h3>
+        </div>
+        <div class="modal-body">
+            <p>Would you like to create a blank budget or copy recurring expenses from the previous budget?</p>
+            <div class="d-flex justify-content-center gap-3 mt-4">
+                <button id="create-blank-budget" class="btn btn-minimal">Blank Budget</button>
+                <button id="create-with-recurring" class="btn btn-minimal btn-success">Copy Recurring Expenses</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="{% static 'js/minimal-js/tooltip/tooltip.js' %}"></script>
+<script src="{% static 'js/minimal-js/modal/modal.js' %}"></script>
 <script>
     // Animate grid and underlines on load
     document.addEventListener('DOMContentLoaded', function () {
@@ -64,7 +93,44 @@
             duration: 600,
             easing: 'easeOutBack',
         });
+
+        // Handle budget creation
+        $('#create-budget-btn').on('click', function () {
+            openModalWithAnimation('#budgetCreateModal');
+        });
+
+        // Handle blank budget creation
+        $('#create-blank-budget').on('click', function () {
+            createBudget(false);
+        });
+
+        // Handle budget creation with recurring expenses
+        $('#create-with-recurring').on('click', function () {
+            createBudget(true);
+        });
+
+        function createBudget(copyRecurring) {
+            $.ajax({
+                url: "{% url 'minimal:budget_create' %}",
+                type: 'POST',
+                data: {
+                    'csrfmiddlewaretoken': $('input[name=csrfmiddlewaretoken]').val(),
+                    'copy_recurring': copyRecurring
+                },
+                success: function (response) {
+                    // Show success message
+                    alert(response.message);
+
+                    // Redirect to the new budget
+                    window.location.href = response.redirect;
+                },
+                error: function () {
+                    alert('An error occurred while creating the budget.');
+                }
+            });
+        }
     });
 </script>
+{% csrf_token %}
 {% endblock content %}
 {% block extra_css %}{% endblock extra_css %}
