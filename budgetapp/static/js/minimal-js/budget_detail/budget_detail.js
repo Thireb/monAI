@@ -135,65 +135,84 @@ $(function () {
     });
   });
 
-  // Store the expense ID to delete
-  let expenseIdToDelete = null;
-
-  // Open delete modal on delete icon click
+  // Unified expense/sub-expense delete modal logic
+  let deleteType = null;
+  let expenseId = null;
+  let subexpenseId = null;
   $(document).on('click', '.delete-expense-btn', function () {
-    expenseIdToDelete = $(this).data('expense-id');
-    openModalWithAnimation('#deleteExpenseModal');
+    deleteType = $(this).data('type') || 'expense';
+    expenseId = $(this).data('expense-id') || null;
+    subexpenseId = $(this).data('subexpense-id') || null;
+    $('#deleteExpenseModal').fadeIn(150);
   });
-
-  // Handle cancel button in delete modal
   $(document).on('click', '.delete-cancel-btn', function () {
-    closeModalWithAnimation('#deleteExpenseModal');
-    expenseIdToDelete = null;
+    $('#deleteExpenseModal').fadeOut(150);
+    deleteType = null;
+    expenseId = null;
+    subexpenseId = null;
   });
-
-  // Handle confirm delete button in delete modal
   $(document).on('click', '.delete-confirm-btn', function () {
-    if (!expenseIdToDelete) return;
+    $('#deleteExpenseModal').fadeOut(150);
     const year = $('#js-budget-meta').data('year');
     const month = $('#js-budget-meta').data('month');
-
-    $.ajax({
-      url: `/minimal/budget/${year}/${month}/expense/delete/`,
-      type: 'POST',
-      data: {
+    let url, data;
+    if (deleteType === 'subexpense') {
+      url = `/minimal/budget/${year}/${month}/subexpense/delete/`;
+      data = {
         csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val(),
-        expense_id: expenseIdToDelete,
-      },
+        subexpense_id: subexpenseId,
+      };
+    } else {
+      url = `/minimal/budget/${year}/${month}/expense/delete/`;
+      data = {
+        csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val(),
+        expense_id: expenseId,
+      };
+    }
+    $.ajax({
+      url: url,
+      type: 'POST',
+      data: data,
       success: function (response) {
-        const $row = $(`.expense-row[data-expense-id="${response.expense_id}"]`);
-        anime({
-          targets: $row[0],
-          opacity: [1, 0],
-          height: [$row.outerHeight(), 0],
-          duration: 400,
-          easing: 'easeInOutCubic',
-          complete: function () {
-            $row.remove();
-          },
-        });
-        $('.total-expenses-value').text(
-          $('.budget-currency').text() + ' ' + response.new_total_expenses_display
-        );
-        $('.remaining-budget-value').text(
-          $('.budget-currency').text() + ' ' + response.new_remaining_budget_display
-        );
-        showToast('Success', response.message, 'success');
-        updateCategoryStats();
-        closeModalWithAnimation('#deleteExpenseModal');
-        expenseIdToDelete = null;
+        if (deleteType === 'subexpense') {
+          reloadSubExpenseList(expenseId);
+          showUndoSnackbar('Sub-expense deleted.', function () {
+            undoDeleteSubExpense();
+          });
+        } else {
+          // Remove the expense row and sub-expense row from the table
+          $(`.expense-row[data-expense-id="${expenseId}"]`).fadeOut(300, function () {
+            $(this).remove();
+          });
+          $(`#subexpenses-${expenseId}`).fadeOut(300, function () {
+            $(this).remove();
+          });
+          // Update totals
+          if (response.new_total_expenses_display) {
+            $('.total-expenses-value').text(
+              $('.budget-currency').text() + ' ' + response.new_total_expenses_display
+            );
+          }
+          if (response.new_remaining_budget_display) {
+            $('.remaining-budget-value').text(
+              $('.budget-currency').text() + ' ' + response.new_remaining_budget_display
+            );
+          }
+          showToast('Success', response.message, 'success');
+          updateCategoryStats();
+        }
       },
       error: function (xhr) {
-        let errorMsg = 'An error occurred while deleting the expense.';
+        let errorMsg = 'An error occurred while deleting.';
         if (xhr.responseJSON && xhr.responseJSON.message) {
           errorMsg = xhr.responseJSON.message;
         }
         showToast('Error', errorMsg, 'error');
-        closeModalWithAnimation('#deleteExpenseModal');
-        expenseIdToDelete = null;
+      },
+      complete: function () {
+        deleteType = null;
+        expenseId = null;
+        subexpenseId = null;
       },
     });
   });
@@ -233,28 +252,18 @@ $(function () {
     }
     newRow.append(recurringCell);
 
+    // Sub-Expenses cell (always clickable, even if 0)
     const subExpensesCell = $('<td>');
-    if (expense.sub_expenses && expense.sub_expenses.length > 0) {
-      const subList = $('<ul>').addClass('sub-expense-list');
-      expense.sub_expenses.forEach(function (sub) {
-        const subItem = $('<li>');
-        subItem.append($('<span>').addClass('sub-expense-name').text(sub.name));
-        subItem.append(' - ');
-        const currencyText = $('.budget-currency').text();
-        subItem.append(
-          $('<span>')
-            .addClass('sub-expense-amount')
-            .text(currencyText + ' ' + sub.amount_display)
-        );
-        if (sub.is_return) {
-          subItem.append($('<span>').addClass('badge bg-info').text('Return'));
-        }
-        subList.append(subItem);
-      });
-      subExpensesCell.append(subList);
-    } else {
-      subExpensesCell.append($('<span>').addClass('text-muted').text('—'));
-    }
+    const subTotal = expense.subexpense_total_display || '0.00';
+    const subTotalSpan = $('<span>')
+      .addClass('subexpense-total-toggle minimal-tooltip-trigger')
+      .attr({
+        'data-expense-id': expense.id,
+        'data-tooltip': 'Click to reveal more',
+        tabindex: 0,
+      })
+      .text(currencyText + ' ' + subTotal);
+    subExpensesCell.append(subTotalSpan);
     newRow.append(subExpensesCell);
 
     // Add action buttons
@@ -308,50 +317,6 @@ $(function () {
         $(this).data('expense-recurring') === true || $(this).data('expense-recurring') === 'true'
       );
       openModalWithAnimation('#expenseModal');
-    });
-
-    deleteBtn.on('click', function () {
-      if (confirm('Are you sure you want to delete this expense?')) {
-        const expenseId = $(this).data('expense-id');
-        const year = $('#js-budget-meta').data('year');
-        const month = $('#js-budget-meta').data('month');
-
-        $.ajax({
-          url: `/minimal/budget/${year}/${month}/expense/delete/`,
-          type: 'POST',
-          data: {
-            csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val(),
-            expense_id: expenseId,
-          },
-          success: function (response) {
-            // Remove the row from the table
-            $(`.expense-row[data-expense-id="${response.expense_id}"]`).fadeOut(300, function () {
-              $(this).remove();
-            });
-
-            // Update totals
-            $('.total-expenses-value').text(
-              $('.budget-currency').text() + ' ' + response.new_total_expenses_display
-            );
-            $('.remaining-budget-value').text(
-              $('.budget-currency').text() + ' ' + response.new_remaining_budget_display
-            );
-
-            // Show success message
-            showToast('Success', response.message, 'success');
-
-            // Update category stats if needed
-            updateCategoryStats();
-          },
-          error: function (xhr) {
-            let errorMsg = 'An error occurred while deleting the expense.';
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-              errorMsg = xhr.responseJSON.message;
-            }
-            showToast('Error', errorMsg, 'error');
-          },
-        });
-      }
     });
 
     // Update totals
@@ -623,6 +588,8 @@ $(function () {
         complete: function () {
           $row.hide();
           $content.css({ height: '', opacity: '', transform: '' });
+          btn.attr('data-tooltip', 'Click to reveal more');
+          if (window.initMinimalTooltips) window.initMinimalTooltips('.minimal-tooltip-trigger');
         },
       });
     } else {
@@ -637,10 +604,228 @@ $(function () {
         easing: 'easeOutQuad',
         complete: function () {
           $content.css({ height: '', transform: '' });
+          btn.attr('data-tooltip', 'Click to close');
+          if (window.initMinimalTooltips) window.initMinimalTooltips('.minimal-tooltip-trigger');
         },
       });
     }
   });
+
+  // SUB-EXPENSES HANDLING (REFINED)
+  // Show add sub-expense form
+  $(document).on('click', '.add-subexpense-btn', function () {
+    const $container = $(this).closest('.subexpenses-list');
+    const $form = $container.find('.add-edit-subexpense-form');
+    $form[0].reset();
+    $form.find('[name=subexpense_id]').val('');
+    $form.find('[name=name]').val('');
+    $form.find('[name=amount]').val('');
+    $form.find('[name=is_return]').prop('checked', false);
+    $form.find('.form-error').hide();
+    $form.addClass('show').show();
+    $form.find('[name=name]').focus();
+  });
+
+  // Show edit sub-expense form
+  $(document).on('click', '.edit-subexpense-btn', function () {
+    const btn = $(this);
+    const $container = btn.closest('.subexpenses-list');
+    const $form = $container.find('.add-edit-subexpense-form');
+    $form[0].reset();
+    $form.find('[name=subexpense_id]').val(btn.data('subexpense-id'));
+    $form.find('[name=name]').val(btn.data('subexpense-name'));
+    $form.find('[name=amount]').val(btn.data('subexpense-amount'));
+    $form.find('[name=is_return]').prop('checked', btn.data('subexpense-is-return'));
+    $form.find('.form-error').hide();
+    $form.addClass('show').show();
+    $form.find('[name=name]').focus();
+  });
+
+  // Cancel add/edit sub-expense (Escape key or Cancel button)
+  $(document).on('click', '.cancel-subexpense-btn', function () {
+    $(this).closest('.add-edit-subexpense-form').removeClass('show').hide();
+  });
+  $(document).on('keydown', '.add-edit-subexpense-form', function (e) {
+    if (e.key === 'Escape') {
+      $(this).removeClass('show').hide();
+    }
+  });
+
+  // Inline validation for sub-expense form
+  function validateSubExpenseForm($form) {
+    let valid = true;
+    const name = $form.find('[name=name]');
+    const amount = $form.find('[name=amount]');
+    let errorMsg = '';
+    if (!name.val().trim()) {
+      name.addClass('is-invalid');
+      errorMsg = 'Name is required.';
+      valid = false;
+    } else {
+      name.removeClass('is-invalid');
+    }
+    if (!amount.val().trim() || isNaN(amount.val()) || Number(amount.val()) <= 0) {
+      amount.addClass('is-invalid');
+      errorMsg = 'Amount must be a positive number.';
+      valid = false;
+    } else {
+      amount.removeClass('is-invalid');
+    }
+    if (!valid) {
+      $form.find('.form-error').text(errorMsg).show();
+    } else {
+      $form.find('.form-error').hide();
+    }
+    return valid;
+  }
+
+  // Submit add/edit sub-expense form
+  $(document).on('submit', '.add-edit-subexpense-form', function (e) {
+    e.preventDefault();
+    const $form = $(this);
+    if (!validateSubExpenseForm($form)) return;
+    const subexpenseId = $form.find('[name=subexpense_id]').val();
+    const expenseId = $form.find('[name=expense_id]').val();
+    const name = $form.find('[name=name]').val();
+    const amount = $form.find('[name=amount]').val();
+    const isReturn = $form.find('[name=is_return]').is(':checked');
+    const year = $('#js-budget-meta').data('year');
+    const month = $('#js-budget-meta').data('month');
+    const url = subexpenseId
+      ? `/minimal/budget/${year}/${month}/subexpense/update/`
+      : `/minimal/budget/${year}/${month}/subexpense/create/`;
+    const $saveBtn = $form.find('.submit-subexpense-btn');
+    $saveBtn.prop('disabled', true).text('Saving...');
+    $form.find('.form-error').hide();
+    showSubExpenseLoading($form.closest('.subexpenses-list'));
+    $.ajax({
+      url: url,
+      type: 'POST',
+      data: {
+        csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val(),
+        subexpense_id: subexpenseId,
+        expense_id: expenseId,
+        name: name,
+        amount: amount,
+        is_return: isReturn ? 'on' : '',
+      },
+      success: function (response) {
+        reloadSubExpenseList(expenseId, function () {
+          highlightLastSubExpense(expenseId);
+        });
+        showToast('Success', response.message, 'success');
+        $form.removeClass('show').hide();
+      },
+      error: function (xhr) {
+        let errorMsg = 'An error occurred while saving the sub-expense.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          errorMsg = xhr.responseJSON.message;
+        }
+        $form.find('.form-error').text(errorMsg).show();
+        showToast('Error', errorMsg, 'error');
+      },
+      complete: function () {
+        $saveBtn.prop('disabled', false).text('Save');
+        hideSubExpenseLoading($form.closest('.subexpenses-list'));
+      },
+    });
+  });
+
+  // Show/hide loading spinner for sub-expense list
+  function showSubExpenseLoading($container) {
+    if ($container.find('.subexpense-loading').length === 0) {
+      $container.append(
+        '<div class="subexpense-loading" style="text-align:center; margin:8px 0;"><span class="spinner"></span></div>'
+      );
+    }
+    $container.find('.subexpense-loading').show();
+  }
+  function hideSubExpenseLoading($container) {
+    $container.find('.subexpense-loading').hide();
+  }
+
+  // Helper to reload sub-expense list via AJAX, with callback
+  function reloadSubExpenseList(expenseId, callback) {
+    const year = $('#js-budget-meta').data('year');
+    const month = $('#js-budget-meta').data('month');
+    $.get(`/minimal/budget/${year}/${month}/`, function (data) {
+      // Find the new sub-expense HTML for this expense
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(data, 'text/html');
+      const newSubList = $(doc).find(`#subexpenses-${expenseId} .subexpenses-list`).parent().html();
+      $(`#subexpenses-${expenseId} .subexpenses-list`).parent().html(newSubList);
+      // Update sub-expense total in main table
+      const newTotal = $(doc)
+        .find(`.expense-row[data-expense-id="${expenseId}"] .subexpense-total-toggle`)
+        .html();
+      if (newTotal) {
+        $(`.expense-row[data-expense-id="${expenseId}"] .subexpense-total-toggle`).html(newTotal);
+      }
+      if (callback) callback();
+    });
+  }
+
+  // Highlight the last sub-expense row (after add/edit)
+  function highlightLastSubExpense(expenseId) {
+    const $rows = $(`#subexpenses-${expenseId} .subexpense-row`);
+    if ($rows.length > 0) {
+      const $last = $rows.last();
+      $last.addClass('highlight');
+      setTimeout(function () {
+        $last.removeClass('highlight');
+      }, 1200);
+    }
+  }
+
+  // Undo snackbar
+  function showUndoSnackbar(message, onUndo) {
+    const $snackbar = $('#subexpense-undo-snackbar');
+    $snackbar.html(`${message} <button class="btn-minimal">Undo</button>`).fadeIn(200);
+    $snackbar.find('button').on('click', function () {
+      $snackbar.fadeOut(200);
+      if (onUndo) onUndo();
+    });
+    setTimeout(function () {
+      $snackbar.fadeOut(200);
+    }, 5000);
+  }
+
+  // Spinner CSS (inject if not present)
+  if ($('.spinner').length === 0) {
+    $('head').append(
+      '<style>.spinner{display:inline-block;width:24px;height:24px;border:3px solid #e3f2fd;border-top:3px solid #1976d2;border-radius:50%;animation:spin 1s linear infinite;}@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>'
+    );
+  }
+
+  // Tooltips (re-init after AJAX)
+  $(document).ajaxComplete(function () {
+    if (window.initMinimalTooltips) window.initMinimalTooltips('.minimal-tooltip-trigger');
+  });
+
+  // Keyboard: Enter to save, Escape to cancel
+  $(document).on('keydown', '.add-edit-subexpense-form input', function (e) {
+    if (e.key === 'Enter') {
+      $(this).closest('form').submit();
+    }
+    if (e.key === 'Escape') {
+      $(this).closest('form').removeClass('show').hide();
+    }
+  });
+
+  // Ensure modal-minimal uses flex display when shown (for vertical centering)
+  $(document).on('show.bs.modal shown.bs.modal', '.modal-minimal', function () {
+    $(this).css('display', 'flex');
+  });
+  // If using fadeIn/fadeOut, also force display:flex on fadeIn
+  $(document).on('fadeIn', '.modal-minimal', function () {
+    $(this).css('display', 'flex');
+  });
+  // When opening via fadeIn, always set display:flex
+  const origFadeIn = $.fn.fadeIn;
+  $.fn.fadeIn = function (speed, easing, callback) {
+    this.filter('.modal-minimal').css('display', 'flex');
+    return origFadeIn.apply(this, arguments);
+  };
 });
 
 // Add Select2 initialization

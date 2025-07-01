@@ -293,3 +293,172 @@ h6 {
   white-space: nowrap;
   border: 0;
 }
+
+/* Sub-Expense Form & Table Refinements */
+.add-edit-subexpense-form {
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+  opacity: 0;
+  transform: translateY(-10px);
+  display: none;
+}
+
+.add-edit-subexpense-form.show {
+  opacity: 1;
+  transform: translateY(0);
+  display: block;
+}
+
+.add-edit-subexpense-form .form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-edit-subexpense-form .form-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.add-edit-subexpense-form input:invalid {
+  border: 1.5px solid #d32f2f;
+  background: #fff0f0;
+}
+
+.add-edit-subexpense-form input:focus {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px #e3f2fd;
+}
+
+.add-edit-subexpense-form .form-error {
+  color: #d32f2f;
+  font-size: 0.95em;
+  margin-top: 4px;
+}
+
+.subexpense-row.highlight {
+  animation: highlight-fade 1.2s;
+  background: #e3f2fd !important;
+}
+
+@keyframes highlight-fade {
+  0% {
+    background: #bbdefb;
+  }
+
+  100% {
+    background: transparent;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  color: #bdbdbd;
+  font-size: 1.05em;
+}
+
+.empty-cta {
+  color: #1976d2;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.subexpense-undo-snackbar {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  background: #222;
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(31, 38, 135, 0.12);
+  padding: 12px 24px;
+  font-size: 1.05em;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  opacity: 0.98;
+}
+
+.subexpense-undo-snackbar button {
+  background: none;
+  border: none;
+  color: #90caf9;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1em;
+  margin-left: 12px;
+}
+
+/* Responsive Table for Sub-Expenses */
+@media (max-width: 600px) {
+  .subexpenses-table,
+  .subexpenses-table thead,
+  .subexpenses-table tbody,
+  .subexpenses-table tr,
+  .subexpenses-table th,
+  .subexpenses-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .subexpenses-table thead {
+    display: none;
+  }
+
+  .subexpenses-table tr {
+    margin-bottom: 10px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px 0 rgba(33, 150, 243, 0.08);
+    background: #fff;
+    padding: 8px 0;
+  }
+
+  .subexpenses-table td {
+    padding: 8px 12px;
+    border: none;
+    position: relative;
+  }
+
+  .subexpenses-table td:before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #1976d2;
+    display: block;
+    margin-bottom: 2px;
+  }
+}
+
+/* Touch-friendly controls */
+.btn-minimal,
+.add-edit-subexpense-form input,
+.add-edit-subexpense-form button {
+  min-height: 36px;
+  min-width: 36px;
+  font-size: 1em;
+}
+
+.add-edit-subexpense-form input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.add-edit-subexpense-form label {
+  display: flex;
+  align-items: center;
+  margin-right: 16px;
+  font-weight: 500;
+}
+
+.add-edit-subexpense-form .form-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: 12px;
+}

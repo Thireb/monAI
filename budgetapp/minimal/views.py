@@ -13,7 +13,7 @@ from django.views import View
 from django.views.generic import TemplateView
 
 from budgetapp.forms import ExpenseForm
-from budgetapp.models import Budget, Category, Expense, IncomeHistory
+from budgetapp.models import Budget, Category, Expense, IncomeHistory, SubExpense
 
 
 class HomeView(TemplateView):
@@ -440,3 +440,102 @@ class ExpenseDeleteView(View):
                 )
 
         return JsonResponse({"status": "error", "message": "No expense ID provided"}, status=400)
+
+
+class SubExpenseCreateView(View):
+    """Class-based view for creating a new sub-expense."""
+
+    def _format_currency(self, val: float) -> str:
+        print(val)
+        return intcomma(f"{val:,.2f}")
+
+    def post(self, request, *args, **kwargs):
+        expense_id = request.POST.get("expense_id")
+        name = request.POST.get("name")
+        amount = Decimal(request.POST.get("amount"))
+        is_return = request.POST.get("is_return") == "on"
+        try:
+            expense = get_object_or_404(Expense, id=expense_id)
+            sub = SubExpense.objects.create(
+                expense=expense,
+                name=name,
+                amount=amount,
+                is_return=is_return,
+            )
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Sub-expense added successfully!",
+                    "subexpense": {
+                        "id": sub.id,
+                        "name": sub.name,
+                        "amount": float(sub.amount),
+                        "amount_display": self._format_currency(float(sub.amount)),
+                        "is_return": sub.is_return,
+                    },
+                    "action": "create",
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"status": "error", "message": f"Error adding sub-expense: {str(e)}"}, status=400
+            )
+
+
+class SubExpenseUpdateView(View):
+    """Class-based view for updating a sub-expense."""
+
+    def _format_currency(self, val: float) -> str:
+        return intcomma(f"{val:,.2f}")
+
+    def post(self, request, *args, **kwargs):
+        subexpense_id = request.POST.get("subexpense_id")
+        name = request.POST.get("name")
+        amount = Decimal(request.POST.get("amount"))
+        is_return = request.POST.get("is_return") == "on"
+        try:
+            sub = get_object_or_404(SubExpense, id=subexpense_id)
+            sub.name = name
+            sub.amount = amount
+            sub.is_return = is_return
+            sub.save()
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Sub-expense updated successfully!",
+                    "subexpense": {
+                        "id": sub.id,
+                        "name": sub.name,
+                        "amount": float(sub.amount),
+                        "amount_display": self._format_currency(float(sub.amount)),
+                        "is_return": sub.is_return,
+                    },
+                    "action": "update",
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"status": "error", "message": f"Error updating sub-expense: {str(e)}"}, status=400
+            )
+
+
+class SubExpenseDeleteView(View):
+    """Class-based view for deleting a sub-expense."""
+
+    def post(self, request, *args, **kwargs):
+        subexpense_id = request.POST.get("subexpense_id")
+        try:
+            sub = get_object_or_404(SubExpense, id=subexpense_id)
+            sub.delete()
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Sub-expense deleted successfully!",
+                    "subexpense_id": subexpense_id,
+                    "action": "delete",
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"status": "error", "message": f"Error deleting sub-expense: {str(e)}"}, status=400
+            )

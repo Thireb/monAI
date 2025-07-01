@@ -13,6 +13,7 @@
   justify-content: center;
   z-index: 1050;
   overflow: visible !important;
+  display: flex;
 }
 
 .modal-minimal .modal-content {
@@ -91,6 +92,6 @@
 @media (max-width: 576px) {
   .modal-minimal .modal-content {
     max-width: 90%;
-    margin: 10vh auto;
+    margin: 0 auto;
   }
 }

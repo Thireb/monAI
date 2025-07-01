@@ -7,6 +7,7 @@ alwaysApply: true
 * Keeps templates, js, css in separate files.
 * Make reusable template components
 * Keep styling and html in one file for weasyprint templates.
+* Avoid inline styles but if needed in templates, wrap them with djlint ignore
 
 ## Rules for Backend
 * Use classes for views and API

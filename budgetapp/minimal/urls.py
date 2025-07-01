@@ -8,6 +8,9 @@ from .views import (
     ExpenseDeleteView,
     HomeView,
     IncomeUpdateView,
+    SubExpenseCreateView,
+    SubExpenseDeleteView,
+    SubExpenseUpdateView,
 )
 
 app_name = "minimal"
@@ -35,5 +38,20 @@ urlpatterns = [
         "budget/<int:year>/<int:month>/category-stats/",
         CategoryStatsView.as_view(),
         name="category_stats",
+    ),
+    path(
+        "budget/<int:year>/<int:month>/subexpense/create/",
+        SubExpenseCreateView.as_view(),
+        name="subexpense_create",
+    ),
+    path(
+        "budget/<int:year>/<int:month>/subexpense/update/",
+        SubExpenseUpdateView.as_view(),
+        name="subexpense_update",
+    ),
+    path(
+        "budget/<int:year>/<int:month>/subexpense/delete/",
+        SubExpenseDeleteView.as_view(),
+        name="subexpense_delete",
     ),
 ]
