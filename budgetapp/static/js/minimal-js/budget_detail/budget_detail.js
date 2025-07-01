@@ -139,8 +139,8 @@ $(function () {
   $('.delete-expense-btn').on('click', function () {
     if (confirm('Are you sure you want to delete this expense?')) {
       const expenseId = $(this).data('expense-id');
-      const year = window.location.pathname.split('/')[2];
-      const month = window.location.pathname.split('/')[3];
+      const year = $('#js-budget-meta').data('year');
+      const month = $('#js-budget-meta').data('month');
 
       $.ajax({
         url: `/minimal/budget/${year}/${month}/expense/delete/`,
@@ -295,8 +295,8 @@ $(function () {
     deleteBtn.on('click', function () {
       if (confirm('Are you sure you want to delete this expense?')) {
         const expenseId = $(this).data('expense-id');
-        const year = window.location.pathname.split('/')[2];
-        const month = window.location.pathname.split('/')[3];
+        const year = $('#js-budget-meta').data('year');
+        const month = $('#js-budget-meta').data('month');
 
         $.ajax({
           url: `/minimal/budget/${year}/${month}/expense/delete/`,
@@ -429,16 +429,14 @@ $(function () {
 
   // Helper function to update category stats
   function updateCategoryStats() {
-    // This would be a more complex implementation to recalculate category stats
-    // For now, we'll just reload the category stats section via AJAX
-    const year = window.location.pathname.split('/')[2];
-    const month = window.location.pathname.split('/')[3];
+    const year = $('#js-budget-meta').data('year');
+    const month = $('#js-budget-meta').data('month');
 
     $.ajax({
       url: `/minimal/budget/${year}/${month}/category-stats/`,
       type: 'GET',
       success: function (response) {
-        $('.category-stats-toggle-content').html(response);
+        $('.category-stats-toggle-content').html(response.html);
       },
     });
   }
