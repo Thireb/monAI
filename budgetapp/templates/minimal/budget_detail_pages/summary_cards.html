@@ -8,7 +8,7 @@
         <div class="summary-cards d-flex flex-wrap gap-3 justify-content-center glassy">
             <div class="summary-card income-card">
                 <div class="summary-label">Income</div>
-                <div class="summary-value">{{ budget.currency }} {{ budget_income_display }}</div>
+                <div class="summary-value income-value">{{ budget.currency }} {{ budget_income_display }}</div>
                 <button class="btn btn-sm btn-minimal edit-income-btn" data-modal-target="#incomeModal">Edit</button>
             </div>
             <div class="summary-card expenses-card">
@@ -17,7 +17,8 @@
             </div>
             <div class="summary-card remaining-card">
                 <div class="summary-label">Remaining</div>
-                <div class="summary-value">{{ budget.currency }} {{ remaining_budget_display }}</div>
+                <div class="summary-value remaining-budget-value">{{ budget.currency }} {{ remaining_budget_display }}
+                </div>
             </div>
         </div>
     </div>
