@@ -27,27 +27,42 @@ document.addEventListener('DOMContentLoaded', function () {
     tooltip.style.top = top + 'px';
   }
 
-  document.querySelectorAll('.month-abbr, .minimal-tooltip-trigger').forEach(function (el) {
-    el.addEventListener('mouseenter', function (e) {
-      let text = el.getAttribute('data-tooltip');
-      if (text) showTooltip(e, text);
+  // Function to initialize tooltips on elements
+  function initTooltips(selector = '.month-abbr, .minimal-tooltip-trigger') {
+    document.querySelectorAll(selector).forEach(function (el) {
+      // Skip if already initialized
+      if (el.dataset.tooltipInitialized === 'true') return;
+
+      el.addEventListener('mouseenter', function (e) {
+        let text = el.getAttribute('data-tooltip');
+        if (text) showTooltip(e, text);
+      });
+      el.addEventListener('mousemove', function (e) {
+        if (tooltip.classList.contains('visible')) positionTooltip(e);
+      });
+      el.addEventListener('mouseleave', hideTooltip);
+      el.addEventListener('focus', function (e) {
+        let text = el.getAttribute('data-tooltip');
+        if (text) {
+          showTooltip(
+            {
+              clientX: el.getBoundingClientRect().left + el.offsetWidth / 2,
+              clientY: el.getBoundingClientRect().top,
+            },
+            text
+          );
+        }
+      });
+      el.addEventListener('blur', hideTooltip);
+
+      // Mark as initialized
+      el.dataset.tooltipInitialized = 'true';
     });
-    el.addEventListener('mousemove', function (e) {
-      if (tooltip.classList.contains('visible')) positionTooltip(e);
-    });
-    el.addEventListener('mouseleave', hideTooltip);
-    el.addEventListener('focus', function (e) {
-      let text = el.getAttribute('data-tooltip');
-      if (text) {
-        showTooltip(
-          {
-            clientX: el.getBoundingClientRect().left + el.offsetWidth / 2,
-            clientY: el.getBoundingClientRect().top,
-          },
-          text
-        );
-      }
-    });
-    el.addEventListener('blur', hideTooltip);
-  });
+  }
+
+  // Initialize tooltips on page load
+  initTooltips();
+
+  // Make the init function available globally
+  window.initMinimalTooltips = initTooltips;
 });

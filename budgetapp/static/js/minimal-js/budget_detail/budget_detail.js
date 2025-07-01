@@ -273,6 +273,11 @@ $(function () {
     // Add the new row to the table
     $('.wide-expense-table tbody').append(newRow);
 
+    // Initialize tooltips on the new buttons
+    if (window.initMinimalTooltips) {
+      window.initMinimalTooltips('.minimal-tooltip-trigger');
+    }
+
     // Rebind event handlers for the new buttons
     editBtn.on('click', function () {
       $('#expense_id').val($(this).data('expense-id'));
@@ -374,6 +379,11 @@ $(function () {
       'data-expense-tag': expense.tag,
       'data-expense-recurring': expense.is_recurring,
     });
+
+    // Reinitialize tooltips on the updated row
+    if (window.initMinimalTooltips) {
+      window.initMinimalTooltips('.minimal-tooltip-trigger');
+    }
 
     // Update totals
     updateBudgetTotals();
@@ -573,4 +583,9 @@ $(function () {
       });
     }
   });
+
+  // Initialize tooltips for all elements on page load
+  if (window.initMinimalTooltips) {
+    window.initMinimalTooltips();
+  }
 });
