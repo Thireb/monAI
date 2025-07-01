@@ -85,6 +85,7 @@ class BudgetDetailView(TemplateView):
                 }
                 for sub in expense.sub_expenses.all()
             ]
+            subexpense_total = expense.subexpense_total
             expenses.append(
                 {
                     "id": expense.id,
@@ -96,6 +97,8 @@ class BudgetDetailView(TemplateView):
                     "is_recurring": expense.is_recurring,
                     "sub_expenses": sub_expenses,
                     "sub_expenses_exists": expense.sub_expenses.exists(),
+                    "subexpense_total": subexpense_total,
+                    "subexpense_total_display": self._format_currency(subexpense_total),
                 }
             )
 

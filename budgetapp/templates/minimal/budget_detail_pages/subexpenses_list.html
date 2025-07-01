@@ -1,0 +1,35 @@
+<div class="subexpenses-list">
+    <div class="subexpenses-header">Sub-Expenses</div>
+    <table class="subexpenses-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Amount</th>
+                <th>Return?</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in subexpenses %}
+            <tr>
+                <td>{{ sub.name }}</td>
+                <td>{{ budget.currency }} {{ sub.amount_display }}</td>
+                <td>{% if sub.is_return %}<span class="badge bg-info">Yes</span>{% else %}<span
+                        class="text-muted">No</span>{% endif %}</td>
+                <td>
+                    <button class="btn-minimal edit-subexpense-btn" data-subexpense-id="{{ sub.id }}">✏️</button>
+                    <button class="btn-minimal delete-subexpense-btn" data-subexpense-id="{{ sub.id }}">🗑️</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-muted">No sub-expenses yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <button class="btn-minimal add-subexpense-btn" data-expense-id="{{ expense.id }}">+ Add Sub-Expense</button>
+    <!-- djlint:off H021 -->
+    <div class="add-subexpense-form" style="display:none;"></div>
+    <!-- djlint:on H021 -->
+</div>

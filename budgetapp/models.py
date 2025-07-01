@@ -152,6 +152,14 @@ class Expense(models.Model):
         """Return the net amount (amount minus returns) for this expense."""
         return self.amount - self.get_remaining_amount()
 
+    @property
+    def subexpense_total(self):
+        # Sum of all sub-expenses (excluding returns)
+        return (
+            self.sub_expenses.filter(is_return=False).aggregate(total=models.Sum("amount"))["total"]
+            or 0
+        )
+
 
 class SubExpense(models.Model):
     expense = models.ForeignKey(Expense, on_delete=models.CASCADE, related_name="sub_expenses")
