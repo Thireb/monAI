@@ -135,49 +135,67 @@ $(function () {
     });
   });
 
-  // Handle expense deletion
-  $('.delete-expense-btn').on('click', function () {
-    if (confirm('Are you sure you want to delete this expense?')) {
-      const expenseId = $(this).data('expense-id');
-      const year = $('#js-budget-meta').data('year');
-      const month = $('#js-budget-meta').data('month');
+  // Store the expense ID to delete
+  let expenseIdToDelete = null;
 
-      $.ajax({
-        url: `/minimal/budget/${year}/${month}/expense/delete/`,
-        type: 'POST',
-        data: {
-          csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val(),
-          expense_id: expenseId,
-        },
-        success: function (response) {
-          // Remove the row from the table
-          $(`.expense-row[data-expense-id="${response.expense_id}"]`).fadeOut(300, function () {
-            $(this).remove();
-          });
+  // Open delete modal on delete icon click
+  $(document).on('click', '.delete-expense-btn', function () {
+    expenseIdToDelete = $(this).data('expense-id');
+    openModalWithAnimation('#deleteExpenseModal');
+  });
 
-          // Update totals
-          $('.total-expenses-value').text(
-            $('.budget-currency').text() + ' ' + response.new_total_expenses_display
-          );
-          $('.remaining-budget-value').text(
-            $('.budget-currency').text() + ' ' + response.new_remaining_budget_display
-          );
+  // Handle cancel button in delete modal
+  $(document).on('click', '.delete-cancel-btn', function () {
+    closeModalWithAnimation('#deleteExpenseModal');
+    expenseIdToDelete = null;
+  });
 
-          // Show success message
-          showToast('Success', response.message, 'success');
+  // Handle confirm delete button in delete modal
+  $(document).on('click', '.delete-confirm-btn', function () {
+    if (!expenseIdToDelete) return;
+    const year = $('#js-budget-meta').data('year');
+    const month = $('#js-budget-meta').data('month');
 
-          // Update category stats if needed
-          updateCategoryStats();
-        },
-        error: function (xhr) {
-          let errorMsg = 'An error occurred while deleting the expense.';
-          if (xhr.responseJSON && xhr.responseJSON.message) {
-            errorMsg = xhr.responseJSON.message;
-          }
-          showToast('Error', errorMsg, 'error');
-        },
-      });
-    }
+    $.ajax({
+      url: `/minimal/budget/${year}/${month}/expense/delete/`,
+      type: 'POST',
+      data: {
+        csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val(),
+        expense_id: expenseIdToDelete,
+      },
+      success: function (response) {
+        const $row = $(`.expense-row[data-expense-id="${response.expense_id}"]`);
+        anime({
+          targets: $row[0],
+          opacity: [1, 0],
+          height: [$row.outerHeight(), 0],
+          duration: 400,
+          easing: 'easeInOutCubic',
+          complete: function () {
+            $row.remove();
+          },
+        });
+        $('.total-expenses-value').text(
+          $('.budget-currency').text() + ' ' + response.new_total_expenses_display
+        );
+        $('.remaining-budget-value').text(
+          $('.budget-currency').text() + ' ' + response.new_remaining_budget_display
+        );
+        showToast('Success', response.message, 'success');
+        updateCategoryStats();
+        closeModalWithAnimation('#deleteExpenseModal');
+        expenseIdToDelete = null;
+      },
+      error: function (xhr) {
+        let errorMsg = 'An error occurred while deleting the expense.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          errorMsg = xhr.responseJSON.message;
+        }
+        showToast('Error', errorMsg, 'error');
+        closeModalWithAnimation('#deleteExpenseModal');
+        expenseIdToDelete = null;
+      },
+    });
   });
 
   // Reset expense form helper
@@ -586,4 +604,31 @@ $(function () {
   if (window.initMinimalTooltips) {
     window.initMinimalTooltips();
   }
+});
+
+// Add Select2 initialization
+$(document).ready(function () {
+  // For selects inside modals, set dropdownParent to the modal
+  $('#expenseModal select.form-select, #expenseModal select.form-control').select2({
+    dropdownParent: $('#expenseModal'),
+    width: '100%',
+    minimumResultsForSearch: Infinity, // Hide search box for short lists
+  });
+  $('#incomeModal select.form-select, #incomeModal select.form-control').select2({
+    dropdownParent: $('#incomeModal'),
+    width: '100%',
+    minimumResultsForSearch: Infinity,
+  });
+  $('#deleteExpenseModal select.form-select, #deleteExpenseModal select.form-control').select2({
+    dropdownParent: $('#deleteExpenseModal'),
+    width: '100%',
+    minimumResultsForSearch: Infinity,
+  });
+  // For selects outside modals
+  $('select.form-select, select.form-control')
+    .not('#expenseModal select, #incomeModal select, #deleteExpenseModal select')
+    .select2({
+      width: '100%',
+      minimumResultsForSearch: Infinity,
+    });
 });

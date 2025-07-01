@@ -12,6 +12,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1050;
+  overflow: visible !important;
 }
 
 .modal-minimal .modal-content {
@@ -24,6 +25,7 @@
   margin: 0 auto;
   position: relative;
   padding: 1.5rem;
+  overflow: visible !important;
 }
 
 .modal-minimal .modal-header {
