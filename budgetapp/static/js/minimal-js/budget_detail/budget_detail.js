@@ -604,6 +604,43 @@ $(function () {
   if (window.initMinimalTooltips) {
     window.initMinimalTooltips();
   }
+
+  // Expand/collapse sub-expense rows (improved)
+  $(document).on('click keydown', '.subexpense-total-toggle', function (e) {
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+    const btn = $(this);
+    const expenseId = btn.data('expense-id');
+    const $row = $('#subexpenses-' + expenseId);
+    const $content = $row.find('.subexpenses-content');
+    if ($row.is(':visible')) {
+      anime({
+        targets: $content[0],
+        opacity: [1, 0],
+        translateY: [0, -16],
+        height: [$content.outerHeight(), 0],
+        duration: 350,
+        easing: 'easeInQuad',
+        complete: function () {
+          $row.hide();
+          $content.css({ height: '', opacity: '', transform: '' });
+        },
+      });
+    } else {
+      $row.show();
+      $content.css({ opacity: 0, height: 0, transform: 'translateY(-16px)' });
+      anime({
+        targets: $content[0],
+        opacity: [0, 1],
+        translateY: [-16, 0],
+        height: [0, $content[0].scrollHeight],
+        duration: 350,
+        easing: 'easeOutQuad',
+        complete: function () {
+          $content.css({ height: '', transform: '' });
+        },
+      });
+    }
+  });
 });
 
 // Add Select2 initialization

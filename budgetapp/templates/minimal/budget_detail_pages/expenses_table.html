@@ -18,7 +18,10 @@
                         <th>Tag</th>
                         <th>Recurring</th>
                         <th>Sub-Expenses</th>
-                        <th></th>
+                        <th class="actions-header" scope="col">
+                            <span aria-hidden="true">Actions ⚙️</span>
+                            <span class="visually-hidden">Actions</span>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -33,18 +36,10 @@
                         <td>{% if expense.is_recurring %}<span class="badge bg-success">Yes</span>{% else %}<span
                                 class="badge bg-secondary">No</span>{% endif %}</td>
                         <td>
-                            {% if expense.sub_expenses.exists %}
-                            <ul class="sub-expense-list">
-                                {% for sub in expense.sub_expenses.all %}
-                                <li>
-                                    <span class="sub-expense-name">{{ sub.name }}</span> -
-                                    <span class="sub-expense-amount">{{ budget.currency }}
-                                        {{ sub.amount_display }}</span>
-                                    {% if sub.is_return %}<span class="badge bg-info">Return</span>{% endif %}
-                                </li>
-                                {% endfor %}
-                            </ul>
-                            {% else %}<span class="text-muted">—</span>{% endif %}
+                            <span class="subexpense-total-toggle minimal-tooltip-trigger"
+                                data-expense-id="{{ expense.id }}" data-tooltip="Click to reveal more" tabindex="0">
+                                {{ budget.currency }} {{ expense.subexpense_total_display }}
+                            </span>
                         </td>
                         <td class="expense-actions-cell">
                             <button class="btn-icon edit-expense-btn minimal-tooltip-trigger" aria-label="Edit"
@@ -57,6 +52,15 @@
                             <button class="btn-icon btn-danger delete-expense-btn minimal-tooltip-trigger"
                                 aria-label="Delete" data-tooltip="Delete"
                                 data-expense-id="{{ expense.id }}">🗑️</button>
+                        </td>
+                    </tr>
+                    <!-- djlint:off H021 -->
+                    <tr class="subexpenses-row" id="subexpenses-{{ expense.id }}" style="display:none;">
+                        <!-- djlint:on H021 -->
+                        <td colspan="7">
+                            <div class="subexpenses-content">
+                                {% include "minimal/budget_detail_pages/subexpenses_list.html" with subexpenses=expense.sub_expenses expense=expense %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
