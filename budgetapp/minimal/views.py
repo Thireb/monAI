@@ -86,6 +86,8 @@ class BudgetDetailView(TemplateView):
                 for sub in expense.sub_expenses.all()
             ]
             subexpense_total = expense.subexpense_total
+            total_returns = expense.get_total_returns()
+            remaining_amount = expense.get_remaining_amount()
             expenses.append(
                 {
                     "id": expense.id,
@@ -99,6 +101,8 @@ class BudgetDetailView(TemplateView):
                     "sub_expenses_exists": expense.sub_expenses.exists(),
                     "subexpense_total": subexpense_total,
                     "subexpense_total_display": self._format_currency(subexpense_total),
+                    "total_returns": self._format_currency(float(total_returns)),
+                    "remaining_amount": self._format_currency(float(remaining_amount)),
                 }
             )
 
@@ -446,7 +450,6 @@ class SubExpenseCreateView(View):
     """Class-based view for creating a new sub-expense."""
 
     def _format_currency(self, val: float) -> str:
-        print(val)
         return intcomma(f"{val:,.2f}")
 
     def post(self, request, *args, **kwargs):
@@ -462,6 +465,9 @@ class SubExpenseCreateView(View):
                 amount=amount,
                 is_return=is_return,
             )
+            # Calculate summary
+            total_returns = expense.get_total_returns()
+            remaining_amount = expense.get_remaining_amount()
             return JsonResponse(
                 {
                     "status": "success",
@@ -474,6 +480,10 @@ class SubExpenseCreateView(View):
                         "is_return": sub.is_return,
                     },
                     "action": "create",
+                    "summary": {
+                        "total_returns": self._format_currency(float(total_returns)),
+                        "remaining_amount": self._format_currency(float(remaining_amount)),
+                    },
                 }
             )
         except Exception as e:
@@ -499,6 +509,10 @@ class SubExpenseUpdateView(View):
             sub.amount = amount
             sub.is_return = is_return
             sub.save()
+            expense = sub.expense
+            # Calculate summary
+            total_returns = expense.get_total_returns()
+            remaining_amount = expense.get_remaining_amount()
             return JsonResponse(
                 {
                     "status": "success",
@@ -511,6 +525,10 @@ class SubExpenseUpdateView(View):
                         "is_return": sub.is_return,
                     },
                     "action": "update",
+                    "summary": {
+                        "total_returns": self._format_currency(float(total_returns)),
+                        "remaining_amount": self._format_currency(float(remaining_amount)),
+                    },
                 }
             )
         except Exception as e:
@@ -526,13 +544,21 @@ class SubExpenseDeleteView(View):
         subexpense_id = request.POST.get("subexpense_id")
         try:
             sub = get_object_or_404(SubExpense, id=subexpense_id)
+            expense = sub.expense
             sub.delete()
+            # Calculate summary
+            total_returns = expense.get_total_returns()
+            remaining_amount = expense.get_remaining_amount()
             return JsonResponse(
                 {
                     "status": "success",
                     "message": "Sub-expense deleted successfully!",
                     "subexpense_id": subexpense_id,
                     "action": "delete",
+                    "summary": {
+                        "total_returns": intcomma(f"{float(total_returns):,.2f}"),
+                        "remaining_amount": intcomma(f"{float(remaining_amount):,.2f}"),
+                    },
                 }
             )
         except Exception as e:

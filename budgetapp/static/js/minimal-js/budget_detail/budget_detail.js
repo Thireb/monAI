@@ -712,6 +712,9 @@ $(function () {
       success: function (response) {
         reloadSubExpenseList(expenseId, function () {
           highlightLastSubExpense(expenseId);
+          if (response.summary) {
+            updateSubexpenseSummary(expenseId, response.summary);
+          }
         });
         showToast('Success', response.message, 'success');
         $form.removeClass('show').hide();
@@ -826,6 +829,20 @@ $(function () {
     this.filter('.modal-minimal').css('display', 'flex');
     return origFadeIn.apply(this, arguments);
   };
+
+  // Add this function near other helpers
+  function updateSubexpenseSummary(expenseId, summary) {
+    const $returns = $(`#subexpenses-${expenseId} #total-returns[data-expense-id='${expenseId}']`);
+    const $remaining = $(
+      `#subexpenses-${expenseId} #remaining-amount[data-expense-id='${expenseId}']`
+    );
+    if (summary && $returns.length && $remaining.length) {
+      $returns.text($('.budget-currency').text() + ' ' + summary.total_returns);
+      $remaining.text(
+        'Remaining: ' + $('.budget-currency').text() + ' ' + summary.remaining_amount
+      );
+    }
+  }
 });
 
 // Add Select2 initialization
