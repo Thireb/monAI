@@ -17,8 +17,8 @@
             <tr tabindex="0" aria-label="Sub-Expense: {{ sub.name }}" class="subexpense-row">
                 <td>{{ sub.name }}</td>
                 <td>{{ budget.currency }} {{ sub.amount_display }}</td>
-                <td>{% if sub.is_return %}<span class="badge bg-info">Yes</span>{% else %}<span
-                        class="text-muted">No</span>{% endif %}</td>
+                <td>{% if sub.is_return %}<span class="badge bg-success">Yes</span>{% else %}<span
+                        class="badge bg-secondary">No</span>{% endif %}</td>
                 <td>
                     <button class="btn-minimal edit-subexpense-btn minimal-tooltip-trigger"
                         data-subexpense-id="{{ sub.id }}" data-subexpense-name="{{ sub.name|escapejs }}"
@@ -38,6 +38,16 @@
             {% endfor %}
         </tbody>
     </table>
+    <!-- djlint:off H021 -->
+    <div class="subexpense-summary" style="margin: 10px 0 16px 0; display: flex; gap: 24px; align-items: center;">
+        <span id="total-returns" class="text-green" style="color: #2a9155 !important; font-weight: 600;"
+            data-expense-id="{{ expense.id }}">
+            Returns: {{ budget.currency }} {{ expense.total_returns }}
+        </span>
+        <span id="remaining-amount" style="font-weight: 600;" data-expense-id="{{ expense.id }}">Remaining:
+            {{ budget.currency }} {{ expense.remaining_amount }}</span>
+    </div>
+    <!-- djlint:on H021 -->
     <button class="btn-minimal add-subexpense-btn minimal-tooltip-trigger" data-expense-id="{{ expense.id }}"
         aria-label="Add sub-expense" data-tooltip="Add sub-expense">+ Add Sub-Expense</button>
     <!-- djlint:off H021 -->
