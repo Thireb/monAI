@@ -711,6 +711,7 @@ $(function () {
       },
       success: function (response) {
         reloadSubExpenseList(expenseId, function () {
+          animateNewSubexpenseRow(expenseId);
           highlightLastSubExpense(expenseId);
           if (response.summary) {
             updateSubexpenseSummary(expenseId, response.summary);
@@ -841,6 +842,22 @@ $(function () {
       $remaining.text(
         'Remaining: ' + $('.budget-currency').text() + ' ' + summary.remaining_amount
       );
+    }
+  }
+
+  // Add this function near other helpers
+  function animateNewSubexpenseRow(expenseId) {
+    // Find the last subexpense row (the new one)
+    const $rows = $(`#subexpenses-${expenseId} .subexpense-row`);
+    if ($rows.length > 0) {
+      const $last = $rows.last();
+      $last.addClass('subexpense-row-animate');
+      setTimeout(function () {
+        $last.addClass('subexpense-row-animate-in');
+      }, 10);
+      setTimeout(function () {
+        $last.removeClass('subexpense-row-animate subexpense-row-animate-in');
+      }, 400);
     }
   }
 });
