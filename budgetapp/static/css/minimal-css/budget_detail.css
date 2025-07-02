@@ -462,3 +462,16 @@ h6 {
   align-items: center;
   margin-left: 12px;
 }
+
+.subexpense-row-animate {
+  opacity: 0;
+  transform: translateY(-16px);
+  transition:
+    opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.subexpense-row-animate.subexpense-row-animate-in {
+  opacity: 1;
+  transform: translateY(0);
+}
