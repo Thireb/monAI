@@ -18,7 +18,7 @@
             <div class="months-row">
                 {% for month in row %}
                 {% if month.status == 'past' or month.status == 'current' or month.status == 'future-created' %}
-                <a href="{% url 'minimal:budget_detail' year=year month=forloop.parentloop.counter0|add:forloop.counter %}"
+                <a href="{% url 'minimal:budget_detail' year=year month=month.number %}"
                     class="month-abbr {{ month.status }}" tabindex="0" aria-label="{{ month.name }}"
                     data-tooltip="View budget">
                     {{ month.abbr }}

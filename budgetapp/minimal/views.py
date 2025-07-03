@@ -33,7 +33,14 @@ class HomeView(TemplateView):
                 status = "current" if i in budgets_by_month else "future"
             else:
                 status = "future-created" if i in budgets_by_month else "future"
-            months_data.append({"name": month_name, "abbr": abbr, "status": status})
+            months_data.append(
+                {
+                    "name": month_name,
+                    "abbr": abbr,
+                    "status": status,
+                    "number": i,
+                }
+            )
         # Group into 3 rows of 4 months each, right-to-left
         months_grid = []
         for i in range(0, 12, 4):
