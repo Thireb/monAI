@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "budgetapp",
     "django_celery_beat.apps.BeatConfig",
     "rest_framework",
+    "drf_spectacular",
 ]
 
 MESSAGE_TAGS = {
@@ -169,3 +170,16 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 STATICFILES_DIRS = [
     BASE_DIR / "budgetapp" / "static",
 ]
+
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Budget Tracker API",
+    "DESCRIPTION": "Tracking Budgets like it's 2025",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    # OTHER SETTINGS
+}
