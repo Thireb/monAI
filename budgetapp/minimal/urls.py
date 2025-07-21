@@ -11,6 +11,7 @@ from .views import (
     SubExpenseCreateView,
     SubExpenseDeleteView,
     SubExpenseUpdateView,
+    TagStatsView,
 )
 
 app_name = "minimal"
@@ -38,6 +39,11 @@ urlpatterns = [
         "budget/<int:year>/<int:month>/category-stats/",
         CategoryStatsView.as_view(),
         name="category_stats",
+    ),
+    path(
+        "budget/<int:year>/<int:month>/tag-stats/",
+        TagStatsView.as_view(),
+        name="tag_stats",
     ),
     path(
         "budget/<int:year>/<int:month>/subexpense/create/",

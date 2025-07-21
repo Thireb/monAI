@@ -135,6 +135,12 @@ class BudgetDetailView(TemplateView):
                     "percentage_display": f"{percent:.1f}",
                 }
 
+        # Calculate tag totals for display
+        tag_totals = {}
+        tag_labels = dict(Expense.TAG_CHOICES)
+        for tag, tag_label in Expense.TAG_CHOICES:
+            tag_totals[tag] = sum(e.amount for e in expenses_qs if e.tag == tag)
+
         context.update(
             {
                 "budget": budget,
@@ -148,6 +154,8 @@ class BudgetDetailView(TemplateView):
                 "total_expenses_display": total_expenses_display,
                 "remaining_budget_display": remaining_budget_display,
                 "expenses_by_category": expenses_by_category,
+                "tag_totals": tag_totals,
+                "tag_labels": tag_labels,
             }
         )
         return context
@@ -200,6 +208,40 @@ class CategoryStatsView(View):
 
         # Render the category stats template
         html = render_to_string("minimal/budget_detail_pages/category_stats_content.html", context)
+        return JsonResponse({"html": html})
+
+
+class TagStatsView(View):
+    """View for AJAX updates to tag statistics."""
+
+    def _format_currency(self, val: float) -> str:
+        """Format a float value as a string with comma
+        as thousands separator and two decimal places."""
+        return intcomma(f"{val:,.2f}")
+
+    def get(self, request, *args, **kwargs):
+        year = kwargs.get("year")
+        month = kwargs.get("month")
+        budget_date = timezone.datetime(year=year, month=month, day=1).date()
+        budget = get_object_or_404(Budget, month=budget_date)
+
+        # Get all expenses for this budget
+        expenses_qs = budget.expenses.all()
+
+        # Calculate tag totals for display
+        tag_totals = {}
+        tag_labels = dict(Expense.TAG_CHOICES)
+        for tag, tag_label in Expense.TAG_CHOICES:
+            tag_totals[tag] = sum(e.amount for e in expenses_qs if e.tag == tag)
+
+        context = {
+            "budget": budget,
+            "tag_totals": tag_totals,
+            "tag_labels": tag_labels,
+        }
+
+        # Render the tag stats template
+        html = render_to_string("minimal/budget_detail_pages/tag_stats_content.html", context)
         return JsonResponse({"html": html})
 
 
