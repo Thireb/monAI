@@ -12,12 +12,26 @@ $(function () {
     $('#expense_id').val(btn.data('expense-id'));
     $('#expense_name').val(btn.data('expense-name'));
     $('#expense_amount').val(btn.data('expense-amount'));
-    $('#expense_category').val(btn.data('expense-category'));
-    $('#expense_tag').val(btn.data('expense-tag'));
+
+    // Handle category - set to empty string if null/undefined
+    var categoryValue = btn.data('expense-category');
+    $('#expense_category').val(categoryValue || '');
+
+    // Handle tag - ensure we have a valid value that matches template options
+    var tagValue = btn.data('expense-tag');
+    if (!tagValue || tagValue === '') {
+      tagValue = 'none'; // Default to 'none' if no tag value
+    }
+    $('#expense_tag').val(tagValue);
+
     $('#expense_recurring').prop(
       'checked',
       btn.data('expense-recurring') === true || btn.data('expense-recurring') === 'true'
     );
+
+    // Trigger Select2 to update its display for dropdowns
+    $('#expense_category').trigger('change');
+    $('#expense_tag').trigger('change');
 
     // Use the shared openModalWithAnimation function
     openModalWithAnimation('#expenseModal');
@@ -279,7 +293,7 @@ $(function () {
         'data-expense-id': expense.id,
         'data-expense-name': expense.name,
         'data-expense-amount': expense.amount,
-        'data-expense-category': expense.category_id || '',
+        'data-expense-category': expense.category_id || null,
         'data-expense-tag': expense.tag,
         'data-expense-recurring': expense.is_recurring,
       })
@@ -311,12 +325,27 @@ $(function () {
       $('#expense_id').val($(this).data('expense-id'));
       $('#expense_name').val($(this).data('expense-name'));
       $('#expense_amount').val($(this).data('expense-amount'));
-      $('#expense_category').val($(this).data('expense-category'));
-      $('#expense_tag').val($(this).data('expense-tag'));
+
+      // Handle category - set to empty string if null/undefined
+      var categoryValue = $(this).data('expense-category');
+      $('#expense_category').val(categoryValue || '');
+
+      // Handle tag - ensure we have a valid value that matches template options
+      var tagValue = $(this).data('expense-tag');
+      if (!tagValue || tagValue === '') {
+        tagValue = 'none'; // Default to 'none' if no tag value
+      }
+      $('#expense_tag').val(tagValue);
+
       $('#expense_recurring').prop(
         'checked',
         $(this).data('expense-recurring') === true || $(this).data('expense-recurring') === 'true'
       );
+
+      // Trigger Select2 to update its display for dropdowns
+      $('#expense_category').trigger('change');
+      $('#expense_tag').trigger('change');
+
       openModalWithAnimation('#expenseModal');
     });
 
@@ -360,7 +389,7 @@ $(function () {
     editBtn.attr({
       'data-expense-name': expense.name,
       'data-expense-amount': expense.amount,
-      'data-expense-category': expense.category_id || '',
+      'data-expense-category': expense.category_id || null,
       'data-expense-tag': expense.tag,
       'data-expense-recurring': expense.is_recurring,
     });
