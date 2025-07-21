@@ -383,7 +383,7 @@ class ExpenseCreateUpdateView(View):
                 expense.amount = Decimal(amount)
                 expense.is_recurring = is_recurring
                 expense.category_id = category_id if category_id else None
-                expense.tag = tag if tag else "cash"
+                expense.tag = tag if tag else "none"
                 expense.save()
 
                 # Get category name for response
@@ -417,7 +417,7 @@ class ExpenseCreateUpdateView(View):
                     amount=Decimal(amount),
                     is_recurring=is_recurring,
                     category_id=category_id if category_id else None,
-                    tag=tag if tag else "cash",
+                    tag=tag if tag else "none",
                 )
 
                 # Get category name for response
