@@ -475,3 +475,85 @@ h6 {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Tag Summary Cards */
+.tag-summary-section {
+  margin-top: 1.5rem;
+}
+
+.tag-summary-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: center;
+}
+
+.tag-summary-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px 0 rgba(33, 150, 243, 0.1);
+  padding: 0.8rem 1.2rem;
+  min-width: 120px;
+  text-align: center;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(33, 150, 243, 0.1);
+}
+
+.tag-summary-card:hover {
+  box-shadow: 0 4px 16px 0 rgba(33, 150, 243, 0.15);
+  transform: translateY(-2px);
+}
+
+.tag-label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tag-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2196f3;
+}
+
+/* Responsive adjustments for tag cards */
+@media (max-width: 900px) {
+  .tag-summary-cards {
+    gap: 0.6rem;
+  }
+
+  .tag-summary-card {
+    min-width: 100px;
+    padding: 0.6rem 1rem;
+  }
+
+  .tag-label {
+    font-size: 0.8rem;
+  }
+
+  .tag-value {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .tag-summary-cards {
+    gap: 0.5rem;
+  }
+
+  .tag-summary-card {
+    min-width: 90px;
+    padding: 0.5rem 0.8rem;
+  }
+
+  .tag-label {
+    font-size: 0.75rem;
+  }
+
+  .tag-value {
+    font-size: 0.9rem;
+  }
+}

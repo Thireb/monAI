@@ -200,6 +200,7 @@ $(function () {
           }
           showToast('Success', response.message, 'success');
           updateCategoryStats();
+          updateTagTotals(); // Update tag totals after expense deletion
         }
       },
       error: function (xhr) {
@@ -321,6 +322,7 @@ $(function () {
 
     // Update totals
     updateBudgetTotals();
+    updateTagTotals(); // Update tag totals after expense addition
   }
 
   // Helper function to update an existing expense row
@@ -370,6 +372,7 @@ $(function () {
 
     // Update totals
     updateBudgetTotals();
+    updateTagTotals(); // Update tag totals after expense update
   }
 
   // Helper function to update budget totals
@@ -422,6 +425,78 @@ $(function () {
         $('.category-stats-toggle-content').html(response.html);
       },
     });
+  }
+
+  // Helper function to update tag totals dynamically
+  function updateTagTotals() {
+    const year = $('#js-budget-meta').data('year');
+    const month = $('#js-budget-meta').data('month');
+
+    $.ajax({
+      url: `/minimal/budget/${year}/${month}/tag-stats/`,
+      type: 'GET',
+      success: function (response) {
+        // Replace the tag summary section with updated content
+        $('.tag-summary-section').replaceWith(response.html);
+      },
+      error: function () {
+        // Fallback to client-side calculation if AJAX fails
+        updateTagTotalsClientSide();
+      },
+    });
+  }
+
+  // Fallback function for client-side tag totals calculation
+  function updateTagTotalsClientSide() {
+    const currency = $('.budget-currency').text();
+    const tagTotals = {};
+
+    // Calculate tag totals from the current expense table
+    $('.expense-row').each(function () {
+      const amountText = $(this).find('td:nth-child(2)').text();
+      const amount = parseFloat(amountText.replace(/[^0-9.-]+/g, ''));
+      const tagDisplay = $(this).find('td:nth-child(4)').text().trim();
+
+      if (!isNaN(amount) && tagDisplay) {
+        // Map display names back to tag keys
+        let tagKey = 'cash'; // default
+        if (tagDisplay === 'Nayapay') tagKey = 'nayapay';
+        else if (tagDisplay === 'Meezan') tagKey = 'meezan';
+        else if (tagDisplay === 'Cash') tagKey = 'cash';
+        else if (tagDisplay === 'None') tagKey = 'none';
+        else if (tagDisplay === 'Transferred') tagKey = 'transferred';
+        else if (tagDisplay === 'Jazzcash') tagKey = 'jazzcash';
+        else if (tagDisplay === 'Easypaisa') tagKey = 'easypaisa';
+        else if (tagDisplay === 'Alfalah') tagKey = 'alfalah';
+        else if (tagDisplay === 'Askari') tagKey = 'askari';
+        else if (tagDisplay === 'Other') tagKey = 'other';
+
+        tagTotals[tagKey] = (tagTotals[tagKey] || 0) + amount;
+      }
+    });
+
+    // Update tag summary cards
+    $('.tag-summary-card').each(function () {
+      const tagKey = $(this).data('tag');
+      const amount = tagTotals[tagKey] || 0;
+
+      if (amount > 0) {
+        $(this)
+          .find('.tag-value')
+          .text(currency + ' ' + formatCurrency(amount));
+        $(this).show();
+      } else {
+        $(this).hide();
+      }
+    });
+
+    // Show/hide tag summary section based on whether any tags have amounts
+    const hasVisibleTags = $('.tag-summary-card:visible').length > 0;
+    if (hasVisibleTags) {
+      $('.tag-summary-section').show();
+    } else {
+      $('.tag-summary-section').hide();
+    }
   }
 
   // Helper function to show toast notifications
@@ -569,6 +644,9 @@ $(function () {
   if (window.initMinimalTooltips) {
     window.initMinimalTooltips();
   }
+
+  // Initialize tag totals on page load
+  updateTagTotals();
 
   // Expand/collapse sub-expense rows (improved)
   $(document).on('click keydown', '.subexpense-total-toggle', function (e) {

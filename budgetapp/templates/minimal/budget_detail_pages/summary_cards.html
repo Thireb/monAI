@@ -1,3 +1,5 @@
+{% load budget_filters %}
+{% load humanize %}
 <!-- Alpine.js CDN: <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script> -->
 <!-- Summary Cards Section (toggleable) -->
 <div class="toggle-section mb-4" id="summary-section">
@@ -19,6 +21,22 @@
                 <div class="summary-label">Remaining</div>
                 <div class="summary-value remaining-budget-value">{{ budget.currency }} {{ remaining_budget_display }}
                 </div>
+            </div>
+        </div>
+
+        <!-- Tag Summary Cards -->
+        <div class="tag-summary-section mt-4">
+            <h6 class="text-center mb-3 text-muted">Account Breakdown</h6>
+            <div class="tag-summary-cards d-flex flex-wrap gap-2 justify-content-center">
+                {% for tag, label in tag_labels.items %}
+                {% if tag_totals|get_item:tag > 0 %}
+                <div class="tag-summary-card" data-tag="{{ tag }}">
+                    <div class="tag-label">{{ label }}</div>
+                    <div class="tag-value">{{ budget.currency }} {{ tag_totals|get_item:tag|floatformat:2|intcomma }}
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
             </div>
         </div>
     </div>
