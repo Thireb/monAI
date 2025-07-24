@@ -32,7 +32,16 @@
                         <td data-category-id="{{ expense.category.id|default:'' }}">
                             {% if expense.category %}{{ expense.category.name }}{% else %}<span
                                 class="text-muted">Uncategorized</span>{% endif %}</td>
-                        <td>{{ expense.get_tag_display }}</td>
+                        <td>
+                            {% if expense.tag_foreign_key %}
+                            <span
+                                style="color: {{ expense.tag_foreign_key.color }}; font-weight: 500; text-transform: capitalize;">
+                                {{ expense.tag_foreign_key.name|title }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">No Tag</span>
+                            {% endif %}
+                        </td>
                         <td>{% if expense.is_recurring %}<span class="badge bg-success">Yes</span>{% else %}<span
                                 class="badge bg-secondary">No</span>{% endif %}</td>
                         <td>
@@ -47,7 +56,7 @@
                                 data-expense-name="{{ expense.name|escapejs }}"
                                 data-expense-amount="{{ expense.amount }}"
                                 data-expense-category="{% if expense.category %}{{ expense.category.id }}{% else %}{% endif %}"
-                                data-expense-tag="{{ expense.get_tag_display|lower }}"
+                                data-expense-tag="{% if expense.tag_foreign_key %}{{ expense.tag_foreign_key.id }}{% else %}{% endif %}"
                                 data-expense-recurring="{% if expense.is_recurring %}true{% else %}false{% endif %}">✏️</button>
                             <button class="btn-icon btn-danger delete-expense-btn minimal-tooltip-trigger"
                                 aria-label="Delete" data-tooltip="Delete"

@@ -17,12 +17,9 @@ $(function () {
     var categoryValue = btn.data('expense-category');
     $('#expense_category').val(categoryValue || '');
 
-    // Handle tag - ensure we have a valid value that matches template options
+    // Handle tag - use tag_foreign_key_id for the new tag system
     var tagValue = btn.data('expense-tag');
-    if (!tagValue || tagValue === '') {
-      tagValue = 'none'; // Default to 'none' if no tag value
-    }
-    $('#expense_tag').val(tagValue);
+    $('#expense_tag_foreign_key').val(tagValue || '');
 
     $('#expense_recurring').prop(
       'checked',
@@ -31,7 +28,7 @@ $(function () {
 
     // Trigger Select2 to update its display for dropdowns
     $('#expense_category').trigger('change');
-    $('#expense_tag').trigger('change');
+    $('#expense_tag_foreign_key').trigger('change');
 
     // Use the shared openModalWithAnimation function
     openModalWithAnimation('#expenseModal');
@@ -257,7 +254,14 @@ $(function () {
     }
     newRow.append(categoryCell);
 
-    newRow.append($('<td>').text(expense.tag_display));
+    // Create tag cell
+    const tagCell = $('<td>');
+    if (expense.tag_foreign_key && expense.tag_foreign_key.name) {
+      tagCell.text(expense.tag_foreign_key.name);
+    } else {
+      tagCell.append($('<span>').addClass('text-muted').text('No Tag'));
+    }
+    newRow.append(tagCell);
 
     const recurringCell = $('<td>');
     if (expense.is_recurring) {
@@ -294,7 +298,7 @@ $(function () {
         'data-expense-name': expense.name,
         'data-expense-amount': expense.amount,
         'data-expense-category': expense.category_id || null,
-        'data-expense-tag': expense.tag,
+        'data-expense-tag': expense.tag_foreign_key_id || '',
         'data-expense-recurring': expense.is_recurring,
       })
       .text('✏️');
@@ -330,12 +334,9 @@ $(function () {
       var categoryValue = $(this).data('expense-category');
       $('#expense_category').val(categoryValue || '');
 
-      // Handle tag - ensure we have a valid value that matches template options
+      // Handle tag - use tag_foreign_key_id for the new tag system
       var tagValue = $(this).data('expense-tag');
-      if (!tagValue || tagValue === '') {
-        tagValue = 'none'; // Default to 'none' if no tag value
-      }
-      $('#expense_tag').val(tagValue);
+      $('#expense_tag_foreign_key').val(tagValue || '');
 
       $('#expense_recurring').prop(
         'checked',
@@ -344,7 +345,7 @@ $(function () {
 
       // Trigger Select2 to update its display for dropdowns
       $('#expense_category').trigger('change');
-      $('#expense_tag').trigger('change');
+      $('#expense_tag_foreign_key').trigger('change');
 
       openModalWithAnimation('#expenseModal');
     });
@@ -374,7 +375,14 @@ $(function () {
       categoryCell.append($('<span>').addClass('text-muted').text('Uncategorized'));
     }
 
-    row.find('td:nth-child(4)').text(expense.tag_display);
+    // Update tag cell
+    const tagCell = row.find('td:nth-child(4)');
+    tagCell.empty();
+    if (expense.tag_foreign_key && expense.tag_foreign_key.name) {
+      tagCell.text(expense.tag_foreign_key.name);
+    } else {
+      tagCell.append($('<span>').addClass('text-muted').text('No Tag'));
+    }
 
     const recurringCell = row.find('td:nth-child(5)');
     recurringCell.empty();
@@ -390,7 +398,7 @@ $(function () {
       'data-expense-name': expense.name,
       'data-expense-amount': expense.amount,
       'data-expense-category': expense.category_id || null,
-      'data-expense-tag': expense.tag,
+      'data-expense-tag': expense.tag_foreign_key_id || '',
       'data-expense-recurring': expense.is_recurring,
     });
 
@@ -484,30 +492,18 @@ $(function () {
     $('.expense-row').each(function () {
       const amountText = $(this).find('td:nth-child(2)').text();
       const amount = parseFloat(amountText.replace(/[^0-9.-]+/g, ''));
-      const tagDisplay = $(this).find('td:nth-child(4)').text().trim();
+      const tagCell = $(this).find('td:nth-child(4)');
+      const tagText = tagCell.text().trim();
 
-      if (!isNaN(amount) && tagDisplay) {
-        // Map display names back to tag keys
-        let tagKey = 'cash'; // default
-        if (tagDisplay === 'Nayapay') tagKey = 'nayapay';
-        else if (tagDisplay === 'Meezan') tagKey = 'meezan';
-        else if (tagDisplay === 'Cash') tagKey = 'cash';
-        else if (tagDisplay === 'None') tagKey = 'none';
-        else if (tagDisplay === 'Transferred') tagKey = 'transferred';
-        else if (tagDisplay === 'Jazzcash') tagKey = 'jazzcash';
-        else if (tagDisplay === 'Easypaisa') tagKey = 'easypaisa';
-        else if (tagDisplay === 'Alfalah') tagKey = 'alfalah';
-        else if (tagDisplay === 'Askari') tagKey = 'askari';
-        else if (tagDisplay === 'Other') tagKey = 'other';
-
-        tagTotals[tagKey] = (tagTotals[tagKey] || 0) + amount;
+      if (!isNaN(amount) && tagText && tagText !== 'No Tag') {
+        tagTotals[tagText] = (tagTotals[tagText] || 0) + amount;
       }
     });
 
     // Update tag summary cards
     $('.tag-summary-card').each(function () {
-      const tagKey = $(this).data('tag');
-      const amount = tagTotals[tagKey] || 0;
+      const tagName = $(this).data('tag');
+      const amount = tagTotals[tagName] || 0;
 
       if (amount > 0) {
         $(this)

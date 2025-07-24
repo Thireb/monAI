@@ -89,7 +89,7 @@ class BudgetManager {
     document.getElementById('expense_amount').value = expenseData.expenseAmount || '';
     document.getElementById('expense_category').value = expenseData.expenseCategory || '';
     document.getElementById('expense_recurring').checked = expenseData.expenseRecurring === 'true';
-    document.getElementById('expense_tag').value = expenseData.expenseTag || 'none';
+    document.getElementById('expense_tag_foreign_key').value = expenseData.expenseTag || '';
 
     // Update form appearance
     expenseFormTitle.textContent = 'Edit Expense';
