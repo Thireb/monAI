@@ -741,3 +741,170 @@ class TagDeleteView(View):
             return JsonResponse(
                 {"status": "error", "message": f"Error deleting tag: {str(e)}"}, status=400
             )
+
+
+class CategoryManagementView(TemplateView):
+    """View for managing categories."""
+
+    template_name = "minimal/category_management.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["categories"] = Category.objects.all().order_by("name")
+        return context
+
+
+class CategoryListView(View):
+    """View for listing categories via AJAX."""
+
+    def get(self, request, *args, **kwargs):
+        category_id = request.GET.get("category_id")
+
+        if category_id:
+            # Return specific category for editing
+            try:
+                category = Category.objects.get(id=category_id)
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "category": {
+                            "id": category.id,
+                            "name": category.name,
+                            "description": category.description,
+                            "color": category.color,
+                        },
+                    }
+                )
+            except Category.DoesNotExist:
+                return JsonResponse({"success": False, "error": "Category not found"}, status=404)
+        else:
+            # Return all categories
+            categories = Category.objects.all().order_by("name")
+            return JsonResponse(
+                {
+                    "success": True,
+                    "categories": [
+                        {
+                            "id": category.id,
+                            "name": category.name,
+                            "description": category.description,
+                            "color": category.color,
+                        }
+                        for category in categories
+                    ],
+                }
+            )
+
+
+class CategoryCreateView(View):
+    """View for creating new categories via AJAX."""
+
+    def post(self, request, *args, **kwargs):
+        name = request.POST.get("name")
+        description = request.POST.get("description", "")
+        color = request.POST.get("color", "#2196f3")
+
+        if not name:
+            return JsonResponse(
+                {"success": False, "error": "Category name is required"}, status=400
+            )
+
+        try:
+            category = Category.objects.create(name=name, description=description, color=color)
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f'Category "{name}" created successfully!',
+                    "category": {
+                        "id": category.id,
+                        "name": category.name,
+                        "description": category.description,
+                        "color": category.color,
+                    },
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"success": False, "error": f"Error creating category: {str(e)}"}, status=400
+            )
+
+
+class CategoryUpdateView(View):
+    """View for updating categories via AJAX."""
+
+    def post(self, request, *args, **kwargs):
+        category_id = request.POST.get("category_id")
+        name = request.POST.get("name")
+        description = request.POST.get("description", "")
+        color = request.POST.get("color", "#2196f3")
+
+        if not category_id or not name:
+            return JsonResponse(
+                {"success": False, "error": "Category ID and name are required"}, status=400
+            )
+
+        try:
+            category = get_object_or_404(Category, id=category_id)
+            category.name = name
+            category.description = description
+            category.color = color
+            category.save()
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f'Category "{name}" updated successfully!',
+                    "category": {
+                        "id": category.id,
+                        "name": category.name,
+                        "description": category.description,
+                        "color": category.color,
+                    },
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"success": False, "error": f"Error updating category: {str(e)}"}, status=400
+            )
+
+
+class CategoryDeleteView(View):
+    """View for deleting categories via AJAX."""
+
+    def post(self, request, *args, **kwargs):
+        category_id = request.POST.get("category_id")
+
+        if not category_id:
+            return JsonResponse({"success": False, "error": "Category ID is required"}, status=400)
+
+        try:
+            category = get_object_or_404(Category, id=category_id)
+            category_name = category.name
+
+            # Check if category is being used by any expenses
+            if category.expenses.exists():
+                error_message = (
+                    f'Cannot delete category "{category_name}" because it is being used by '
+                    f"existing expenses."
+                )
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": error_message,
+                    },
+                    status=400,
+                )
+
+            category.delete()
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f'Category "{category_name}" deleted successfully!',
+                    "category_id": category_id,
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"success": False, "error": f"Error deleting category: {str(e)}"}, status=400
+            )

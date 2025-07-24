@@ -16,6 +16,13 @@ $(document).ready(function () {
     }
   });
 
+  // Handle ESC key to cancel edit mode
+  $(document).on('keydown', function (e) {
+    if (e.key === 'Escape' && isEditMode) {
+      cancelEdit();
+    }
+  });
+
   // Handle edit tag button clicks
   $(document).on('click', '.edit-tag-btn', function () {
     const tagId = $(this).data('tag-id');
@@ -39,6 +46,9 @@ $(document).ready(function () {
     }
     $('#tag-id').val(tagId);
 
+    // Add cancel hint
+    addCancelHint();
+
     // Scroll to form and focus on name field
     $('html, body').animate(
       {
@@ -47,14 +57,6 @@ $(document).ready(function () {
       500
     );
     $('#tag-name').focus();
-
-    // Remove the blue background highlight animation
-    // anime({
-    //     targets: '#tag-form',
-    //     backgroundColor: ['rgba(33, 150, 243, 0.05)', 'rgba(255, 255, 255, 0.8)'],
-    //     duration: 1000,
-    //     easing: 'easeInOutQuad'
-    // });
   });
 
   // Handle delete tag button clicks
@@ -89,12 +91,13 @@ $(document).ready(function () {
           addTagToList(response.tag);
           resetForm();
 
-          // Animate new tag entry
+          // Animate new tag entry with enhanced animation
           anime({
             targets: '.tag-item:last-child',
             opacity: [0, 1],
-            translateY: [20, 0],
-            duration: 600,
+            translateY: [30, 0],
+            scale: [0.95, 1],
+            duration: 800,
             easing: 'easeOutCubic',
           });
         }
@@ -132,14 +135,30 @@ $(document).ready(function () {
           updateTagInList(response.tag);
           resetForm();
 
-          // Animate updated tag
+          // Enhanced animation for updated tag
           const tagItem = $(`.tag-item[data-tag-id="${currentEditTagId}"]`);
           anime({
             targets: tagItem[0],
-            backgroundColor: ['rgba(76, 175, 80, 0.1)', 'rgba(255, 255, 255, 0.7)'],
-            duration: 1000,
+            backgroundColor: ['rgba(76, 175, 80, 0.15)', 'rgba(255, 255, 255, 0.7)'],
+            scale: [1.02, 1],
+            duration: 1200,
             easing: 'easeInOutQuad',
           });
+
+          // Scroll to top if the updated item was at the bottom
+          const itemPosition = tagItem.offset().top;
+          const windowHeight = $(window).height();
+          const documentHeight = $(document).height();
+
+          if (itemPosition > windowHeight * 0.7) {
+            $('html, body').animate(
+              {
+                scrollTop: $('#tag-form').offset().top - 100,
+              },
+              800,
+              'easeOutCubic'
+            );
+          }
         }
       },
       error: function (xhr) {
@@ -239,12 +258,13 @@ $(document).ready(function () {
   function removeTagFromList(tagId) {
     const tagItem = $(`.tag-item[data-tag-id="${tagId}"]`);
 
-    // Animate removal
+    // Enhanced removal animation
     anime({
       targets: tagItem[0],
       opacity: [1, 0],
-      translateX: [0, -20],
-      duration: 400,
+      translateX: [0, -30],
+      scale: [1, 0.9],
+      duration: 500,
       easing: 'easeInOutQuad',
       complete: function () {
         tagItem.remove();
@@ -261,6 +281,30 @@ $(document).ready(function () {
     });
   }
 
+  // Cancel edit mode
+  function cancelEdit() {
+    resetForm();
+    showAlert('info', 'Edit cancelled');
+  }
+
+  // Add cancel hint
+  function addCancelHint() {
+    if (!$('.cancel-hint').length) {
+      const hintHtml =
+        '<div class="cancel-hint text-muted mt-2 text-center"><small>Press ESC to cancel</small></div>';
+      $('#tag-submit-btn').parent().append(hintHtml);
+
+      // Animate the hint in
+      anime({
+        targets: '.cancel-hint',
+        opacity: [0, 1],
+        translateY: [10, 0],
+        duration: 400,
+        easing: 'easeOutCubic',
+      });
+    }
+  }
+
   // Reset form
   function resetForm() {
     $('#tag-form')[0].reset();
@@ -270,11 +314,23 @@ $(document).ready(function () {
     $('#tag-submit-btn').text('Add Tag');
     $('#tag-id').remove();
 
-    // Remove form highlight - no longer needed
-    // $('#tag-form').css('background-color', 'rgba(255, 255, 255, 0.8)');
+    // Remove cancel hint with animation
+    const cancelHint = $('.cancel-hint');
+    if (cancelHint.length) {
+      anime({
+        targets: cancelHint[0],
+        opacity: [1, 0],
+        translateY: [0, -10],
+        duration: 300,
+        easing: 'easeInQuad',
+        complete: function () {
+          cancelHint.remove();
+        },
+      });
+    }
   }
 
-  // Show alert message
+  // Show alert message with enhanced animations
   function showAlert(type, message) {
     const alertHtml = `
             <div class="alert alert-${type} alert-dismissible fade show" role="alert">
@@ -289,10 +345,46 @@ $(document).ready(function () {
     // Add new alert
     $('.tag-management-container').prepend(alertHtml);
 
+    // Animate alert in
+    anime({
+      targets: '.alert',
+      opacity: [0, 1],
+      translateY: [-20, 0],
+      scale: [0.95, 1],
+      duration: 500,
+      easing: 'easeOutCubic',
+    });
+
+    // Handle manual close button with smooth animation
+    $('.alert .btn-close').on('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      anime({
+        targets: '.alert',
+        opacity: [1, 0],
+        translateY: [0, -30],
+        scale: [1, 0.9],
+        duration: 600,
+        easing: 'easeOutCubic',
+        complete: function () {
+          $('.alert').remove();
+        },
+      });
+    });
+
     // Auto-dismiss after 5 seconds with smooth animation
     setTimeout(function () {
-      $('.alert').fadeOut(800, function () {
-        $(this).remove();
+      anime({
+        targets: '.alert',
+        opacity: [1, 0],
+        translateY: [0, -20],
+        scale: [1, 0.95],
+        duration: 400,
+        easing: 'easeInQuad',
+        complete: function () {
+          $('.alert').remove();
+        },
       });
     }, 5000);
   }
@@ -328,13 +420,14 @@ $(document).ready(function () {
       easing: 'easeOutCubic',
     });
 
-    // Animate existing tags
+    // Animate existing tags with staggered effect
     anime({
       targets: '.tag-item',
       opacity: [0, 1],
       translateY: [20, 0],
+      scale: [0.95, 1],
       delay: anime.stagger(100, { start: 600 }),
-      duration: 500,
+      duration: 600,
       easing: 'easeOutCubic',
     });
   }

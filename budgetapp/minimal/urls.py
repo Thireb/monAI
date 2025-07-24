@@ -3,7 +3,12 @@ from django.urls import path
 from .views import (
     BudgetCreateView,
     BudgetDetailView,
+    CategoryCreateView,
+    CategoryDeleteView,
+    CategoryListView,
+    CategoryManagementView,
     CategoryStatsView,
+    CategoryUpdateView,
     ExpenseCreateUpdateView,
     ExpenseDeleteView,
     HomeView,
@@ -69,4 +74,10 @@ urlpatterns = [
     path("tags/create/", TagCreateView.as_view(), name="tag_create"),
     path("tags/update/", TagUpdateView.as_view(), name="tag_update"),
     path("tags/delete/", TagDeleteView.as_view(), name="tag_delete"),
+    # Category management routes
+    path("categories/", CategoryManagementView.as_view(), name="category_management"),
+    path("categories/list/", CategoryListView.as_view(), name="category_list"),
+    path("categories/create/", CategoryCreateView.as_view(), name="category_create"),
+    path("categories/update/", CategoryUpdateView.as_view(), name="category_update"),
+    path("categories/delete/", CategoryDeleteView.as_view(), name="category_delete"),
 ]
