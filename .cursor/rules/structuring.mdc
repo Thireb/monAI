@@ -8,6 +8,7 @@ alwaysApply: true
 * Make reusable template components
 * Keep styling and html in one file for weasyprint templates.
 * Avoid inline styles but if needed in templates, wrap them with djlint ignore
+* No backend code line should be more than 100 characters long. If long, split and move to next line.
 
 ## Rules for Backend
 * Use classes for views and API
