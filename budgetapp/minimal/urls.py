@@ -11,7 +11,11 @@ from .views import (
     SubExpenseCreateView,
     SubExpenseDeleteView,
     SubExpenseUpdateView,
+    TagCreateView,
+    TagDeleteView,
+    TagManagementView,
     TagStatsView,
+    TagUpdateView,
 )
 
 app_name = "minimal"
@@ -60,4 +64,9 @@ urlpatterns = [
         SubExpenseDeleteView.as_view(),
         name="subexpense_delete",
     ),
+    # Tag management routes
+    path("tags/", TagManagementView.as_view(), name="tag_management"),
+    path("tags/create/", TagCreateView.as_view(), name="tag_create"),
+    path("tags/update/", TagUpdateView.as_view(), name="tag_update"),
+    path("tags/delete/", TagDeleteView.as_view(), name="tag_delete"),
 ]

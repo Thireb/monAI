@@ -99,6 +99,29 @@ class Category(models.Model):
         super().save(*args, **kwargs)
 
 
+class Tag(models.Model):
+    """Custom tags for expenses that can be created by users."""
+
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    color = models.CharField(max_length=7, default="#2196f3", help_text="Hex color code")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Tags"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
 class Expense(models.Model):
     budget = models.ForeignKey(Budget, on_delete=models.CASCADE, related_name="expenses")
     name = models.CharField(max_length=200)
@@ -126,6 +149,14 @@ class Expense(models.Model):
         ("other", "Other"),
     ]
     tag = models.CharField(max_length=255, choices=TAG_CHOICES, default="meezan")
+    tag_foreign_key = models.ForeignKey(
+        Tag,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="expenses",
+        help_text="Custom tag for this expense",
+    )
 
     def __str__(self):
         return f"{self.name} - {self.amount}"
