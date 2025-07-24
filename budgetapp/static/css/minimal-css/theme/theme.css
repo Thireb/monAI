@@ -1,5 +1,6 @@
 body {
   background: linear-gradient(135deg, #f3f6fa 0%, #e9eafc 100%) !important;
+  min-height: 100vh;
 }
 
 /* Generic Button Styles */
