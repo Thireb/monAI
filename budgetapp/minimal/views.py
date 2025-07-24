@@ -12,7 +12,6 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
 
-from budgetapp.forms import ExpenseForm
 from budgetapp.models import Budget, Category, Expense, IncomeHistory, SubExpense, Tag
 
 
@@ -72,6 +71,7 @@ class BudgetDetailView(TemplateView):
         expenses_qs = budget.expenses.all().order_by("created_at")
         total_expenses = sum(e.amount for e in expenses_qs)
         categories = Category.objects.all()
+        tags = Tag.objects.all().order_by("name")
         income_history = IncomeHistory.objects.filter(budget=budget)[:5]
 
         # Format numbers for display
@@ -102,7 +102,10 @@ class BudgetDetailView(TemplateView):
                     "amount": expense.amount,
                     "amount_display": self._format_currency(expense.amount),
                     "category": expense.category,
-                    "get_tag_display": expense.get_tag_display(),
+                    "tag_foreign_key": expense.tag_foreign_key,
+                    "get_tag_display": (
+                        expense.tag_foreign_key.name if expense.tag_foreign_key else "None"
+                    ),
                     "is_recurring": expense.is_recurring,
                     "sub_expenses": sub_expenses,
                     "sub_expenses_exists": expense.sub_expenses.exists(),
@@ -135,21 +138,26 @@ class BudgetDetailView(TemplateView):
                     "percentage_display": f"{percent:.1f}",
                 }
 
-        # Calculate tag totals for display
+        # Calculate tag totals for display using tag_foreign_key
         tag_totals = {}
-        tag_labels = dict(Expense.TAG_CHOICES)
-        for tag, tag_label in Expense.TAG_CHOICES:
-            tag_totals[tag] = sum(e.amount for e in expenses_qs if e.tag == tag)
+        tag_labels = {}
+        for expense in expenses_qs:
+            if expense.tag_foreign_key:
+                tag_name = expense.tag_foreign_key.name
+                if tag_name not in tag_totals:
+                    tag_totals[tag_name] = 0
+                    tag_labels[tag_name] = tag_name
+                tag_totals[tag_name] += float(expense.amount)
 
         context.update(
             {
                 "budget": budget,
                 "expenses": expenses,
                 "categories": categories,
+                "tags": tags,
                 "total_expenses": total_expenses,
                 "income_history": income_history,
                 "currency_choices": Budget.get_currency_choices(),
-                "form": ExpenseForm(),
                 "budget_income_display": budget_income_display,
                 "total_expenses_display": total_expenses_display,
                 "remaining_budget_display": remaining_budget_display,
@@ -228,11 +236,16 @@ class TagStatsView(View):
         # Get all expenses for this budget
         expenses_qs = budget.expenses.all()
 
-        # Calculate tag totals for display
+        # Calculate tag totals for display using tag_foreign_key
         tag_totals = {}
-        tag_labels = dict(Expense.TAG_CHOICES)
-        for tag, tag_label in Expense.TAG_CHOICES:
-            tag_totals[tag] = sum(e.amount for e in expenses_qs if e.tag == tag)
+        tag_labels = {}
+        for expense in expenses_qs:
+            if expense.tag_foreign_key:
+                tag_name = expense.tag_foreign_key.name
+                if tag_name not in tag_totals:
+                    tag_totals[tag_name] = 0
+                    tag_labels[tag_name] = tag_name
+                tag_totals[tag_name] += float(expense.amount)
 
         context = {
             "budget": budget,
@@ -285,7 +298,7 @@ class BudgetCreateView(View):
                     amount=expense.amount,
                     is_recurring=True,
                     category=expense.category,
-                    tag=expense.tag,
+                    tag_foreign_key=expense.tag_foreign_key,
                 )
 
         messages.success(request, f'Budget for {next_month.strftime("%B %Y")} has been created')
@@ -373,7 +386,7 @@ class ExpenseCreateUpdateView(View):
         amount = request.POST.get("amount")
         is_recurring = request.POST.get("is_recurring") == "on"
         category_id = request.POST.get("category")
-        tag = request.POST.get("tag")
+        tag_id = request.POST.get("tag")
 
         try:
             if expense_id:
@@ -383,7 +396,7 @@ class ExpenseCreateUpdateView(View):
                 expense.amount = Decimal(amount)
                 expense.is_recurring = is_recurring
                 expense.category_id = category_id if category_id else None
-                expense.tag = tag if tag else "none"
+                expense.tag_foreign_key_id = tag_id if tag_id else None
                 expense.save()
 
                 # Get category name for response
@@ -403,8 +416,10 @@ class ExpenseCreateUpdateView(View):
                             "category_id": expense.category_id,
                             "category_name": category_name,
                             "category_color": category_color,
-                            "tag": expense.tag,
-                            "tag_display": expense.get_tag_display(),
+                            "tag_foreign_key_id": expense.tag_foreign_key_id,
+                            "tag_display": (
+                                expense.tag_foreign_key.name if expense.tag_foreign_key else "None"
+                            ),
                         },
                         "action": "update",
                     }
@@ -417,7 +432,7 @@ class ExpenseCreateUpdateView(View):
                     amount=Decimal(amount),
                     is_recurring=is_recurring,
                     category_id=category_id if category_id else None,
-                    tag=tag if tag else "none",
+                    tag_foreign_key_id=tag_id if tag_id else None,
                 )
 
                 # Get category name for response
@@ -440,8 +455,10 @@ class ExpenseCreateUpdateView(View):
                             "category_id": expense.category_id,
                             "category_name": category_name,
                             "category_color": category_color,
-                            "tag": expense.tag,
-                            "tag_display": expense.get_tag_display(),
+                            "tag_foreign_key_id": expense.tag_foreign_key_id,
+                            "tag_display": (
+                                expense.tag_foreign_key.name if expense.tag_foreign_key else "None"
+                            ),
                             "sub_expenses": sub_expenses,
                             "sub_expenses_exists": False,
                         },

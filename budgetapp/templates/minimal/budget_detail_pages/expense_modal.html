@@ -35,18 +35,12 @@
                     <div class="form-text">Group your expenses for better tracking</div>
                 </div>
                 <div class="mb-3">
-                    <label for="expense_tag" class="form-label">Account Tag</label>
-                    <select name="tag" id="expense_tag" class="form-select" aria-label="Expense tag">
-                        <option value="none">None</option>
-                        <option value="cash">Cash</option>
-                        <option value="nayapay">Nayapay</option>
-                        <option value="meezan">Meezan</option>
-                        <option value="transferred">Transferred</option>
-                        <option value="jazzcash">Jazzcash</option>
-                        <option value="easypaisa">Easypaisa</option>
-                        <option value="alfalah">Alfalah</option>
-                        <option value="askari">Askari</option>
-                        <option value="other">Other</option>
+                    <label for="expense_tag_foreign_key" class="form-label">Account Tag</label>
+                    <select name="tag" id="expense_tag_foreign_key" class="form-select" aria-label="Expense tag">
+                        <option value="">No Tag</option>
+                        {% for tag in tags %}
+                        <option value="{{ tag.id }}">{{ tag.name }}</option>
+                        {% endfor %}
                     </select>
                     <div class="form-text">Select the account for this expense</div>
                 </div>
