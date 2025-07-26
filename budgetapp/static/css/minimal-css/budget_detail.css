@@ -1,5 +1,126 @@
 /* Minimal Budget Detail Page Styles */
 
+/* Budget Delete Link */
+.budget-delete-link {
+  background: none;
+  border: none;
+  color: #ec6767;
+  font-size: 1.2rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: 'Quicksand', Arial, sans-serif;
+  margin-left: 0.5rem;
+  margin-top: 1rem;
+}
+
+.budget-delete-link:hover {
+  color: #e53935;
+  background: rgba(229, 115, 115, 0.08);
+  box-shadow: 0 0 12px 2px rgba(229, 115, 115, 0.25);
+  transform: translateY(-1px);
+}
+
+.budget-delete-link:focus {
+  outline: 2px solid rgba(229, 115, 115, 0.3);
+  outline-offset: 2px;
+}
+
+.delete-icon {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.delete-text {
+  text-decoration: none;
+}
+
+/* Custom Delete Tooltip */
+.delete-tooltip-trigger {
+  position: relative;
+}
+
+.delete-tooltip-trigger:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: -45px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(229, 57, 53, 0.95);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 10000;
+  box-shadow: 0 4px 16px rgba(229, 57, 53, 0.3);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: deleteTooltipFadeIn 0.2s ease-out;
+}
+
+.delete-tooltip-trigger:hover::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(229, 57, 53, 0.95);
+  z-index: 10000;
+}
+
+@keyframes deleteTooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Delete Budget Modal Styles */
+.delete-warning {
+  background: rgba(229, 115, 115, 0.05);
+  border: 1px solid rgba(229, 115, 115, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.delete-details ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.delete-details li {
+  margin-bottom: 0.25rem;
+}
+
+#deleteBudgetModal .modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#deleteBudgetModal .modal-title .delete-icon {
+  font-size: 1.2rem;
+}
+
+#confirm-delete-budget {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 body,
 .container,
 .expenses-section,

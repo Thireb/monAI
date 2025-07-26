@@ -11,10 +11,17 @@
 <div>
     <!-- Hidden element to store currency for JavaScript -->
     <span class="budget-currency d-none">{{ budget.currency }}</span>
-    <span id="js-budget-meta" data-year="{{ budget.month.year }}" data-month="{{ budget.month.month }}"></span>
+    <span id="js-budget-meta" data-year="{{ budget.month.year }}" data-month="{{ budget.month.month }}"
+        data-home-url="{% url 'minimal:home' %}"></span>
 
     <div class="budget-header colorful-bg mb-4">
-        <h1 class="mb-0">Budget for {{ budget.month|date:"F Y" }}</h1>
+        <div class="d-flex align-items-center">
+            <h1 class="mb-0">Budget for {{ budget.month|date:"F Y" }}</h1>
+            <button class="budget-delete-link delete-tooltip-trigger" id="delete-budget-btn"
+                data-tooltip="⚠️ Delete this budget permanently">
+                <span class="delete-text">Delete</span>
+            </button>
+        </div>
     </div>
 
     <!-- Summary Cards Section -->
@@ -33,6 +40,7 @@
     {% include "minimal/budget_detail_pages/income_modal.html" %}
     {% include "minimal/budget_detail_pages/expense_modal.html" %}
     {% include "minimal/budget_detail_pages/delete_expense_modal.html" %}
+    {% include "minimal/budget_detail_pages/delete_budget_modal.html" %}
 </div>
 {% endblock content %}
 

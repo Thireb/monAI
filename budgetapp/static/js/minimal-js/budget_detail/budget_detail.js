@@ -963,6 +963,52 @@ $(function () {
       }, 400);
     }
   }
+
+  // Budget Delete Functionality
+  $('#delete-budget-btn').on('click', function () {
+    openModalWithAnimation('#deleteBudgetModal');
+  });
+
+  $('#confirm-delete-budget').on('click', function () {
+    const year = $('#js-budget-meta').data('year');
+    const month = $('#js-budget-meta').data('month');
+
+    // Disable button and show loading state
+    const $btn = $(this);
+    const originalText = $btn.html();
+    $btn.prop('disabled', true).html('<span class="spinner"></span> Deleting...');
+
+    $.ajax({
+      url: `/minimal/budget/${year}/${month}/delete/`,
+      type: 'POST',
+      data: {
+        csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+      },
+      success: function (response) {
+        // Show success message
+        showToast('Success', response.message, 'success');
+
+        // Close modal
+        closeModalWithAnimation('#deleteBudgetModal');
+
+        // Redirect to home page after a short delay
+        setTimeout(function () {
+          window.location.href = $('#js-budget-meta').data('home-url');
+        }, 1500);
+      },
+      error: function (xhr) {
+        // Re-enable button
+        $btn.prop('disabled', false).html(originalText);
+
+        // Show error message
+        let errorMsg = 'An error occurred while deleting the budget.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          errorMsg = xhr.responseJSON.message;
+        }
+        showToast('Error', errorMsg, 'error');
+      },
+    });
+  });
 });
 
 // Add Select2 initialization

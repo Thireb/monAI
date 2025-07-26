@@ -25,11 +25,12 @@
                     <span class="month-underline"></span>
                 </a>
                 {% else %}
-                <span class="month-abbr {{ month.status }}" tabindex="0" aria-label="{{ month.name }}"
-                    data-tooltip="Let's create budget">
+                <button class="month-abbr {{ month.status }} create-budget-month" tabindex="0"
+                    aria-label="{{ month.name }}" data-tooltip="Create budget for {{ month.name }}"
+                    data-year="{{ year }}" data-month="{{ month.number }}" data-month-name="{{ month.name }}">
                     {{ month.abbr }}
                     <span class="month-underline"></span>
-                </span>
+                </button>
                 {% endif %}
                 {% endfor %}
             </div>
@@ -42,13 +43,6 @@
             <span class="legend-item"><span class="legend-color legend-future-created"></span>Future (budget
                 created)</span>
             <span class="legend-item"><span class="legend-color legend-future"></span>Future (no budget)</span>
-        </div>
-        <!-- djlint:off H021 -->
-        <div class="create-budget-container" style="text-align: center; margin-top: 30px;">
-            <!-- djlint:on H021 -->
-            <button id="create-budget-btn" class="btn btn-minimal btn-action">
-                Create Next Budget
-            </button>
         </div>
     </div>
 </div>
@@ -63,11 +57,31 @@
             <h3 class="modal-title" id="budgetCreateModalLabel">Create New Budget</h3>
         </div>
         <div class="modal-body">
-            <p>Would you like to create a blank budget or copy recurring expenses from the previous budget?</p>
+            <p id="budget-create-message">Would you like to create a blank budget or copy recurring expenses from the
+                previous budget?</p>
             <div class="d-flex justify-content-center gap-3 mt-4">
                 <button id="create-blank-budget" class="btn btn-minimal">Blank Budget</button>
                 <button id="create-with-recurring" class="btn btn-minimal btn-success">Copy Recurring Expenses</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Modal -->
+<!-- djlint:off H021 -->
+<div id="notificationModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="notificationModalLabel" style="display: none;">
+    <!-- djlint:on H021 -->
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="notificationModalLabel">Notification</h3>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <p id="notification-message"></p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-minimal" data-bs-dismiss="modal">OK</button>
         </div>
     </div>
 </div>
@@ -94,8 +108,20 @@
             easing: 'easeOutBack',
         });
 
-        // Handle budget creation
-        $('#create-budget-btn').on('click', function () {
+        // Handle budget creation for specific months
+        $(document).on('click', '.create-budget-month', function () {
+            const year = $(this).data('year');
+            const month = $(this).data('month');
+            const monthName = $(this).data('month-name');
+
+            // Update modal message
+            $('#budget-create-message').text(
+                `Would you like to create a blank budget for ${monthName} ${year} or copy recurring expenses from the previous budget?`
+            );
+
+            // Store the target month data
+            $('#budgetCreateModal').data('target-year', year).data('target-month', month);
+
             openModalWithAnimation('#budgetCreateModal');
         });
 
@@ -110,24 +136,63 @@
         });
 
         function createBudget(copyRecurring) {
+            const targetYear = $('#budgetCreateModal').data('target-year');
+            const targetMonth = $('#budgetCreateModal').data('target-month');
+
             $.ajax({
                 url: "{% url 'minimal:budget_create' %}",
                 type: 'POST',
                 data: {
                     'csrfmiddlewaretoken': $('input[name=csrfmiddlewaretoken]').val(),
-                    'copy_recurring': copyRecurring
+                    'copy_recurring': copyRecurring,
+                    'target_year': targetYear,
+                    'target_month': targetMonth
                 },
                 success: function (response) {
-                    // Show success message
-                    alert(response.message);
+                    // Close the budget creation modal
+                    closeModalWithAnimation('#budgetCreateModal');
 
-                    // Redirect to the new budget
-                    window.location.href = response.redirect;
+                    // Show success notification
+                    showNotification('Success', response.message, function () {
+                        // Redirect to the new budget after user clicks OK
+                        window.location.href = response.redirect;
+                    });
                 },
-                error: function () {
-                    alert('An error occurred while creating the budget.');
+                error: function (xhr) {
+                    // Close the budget creation modal
+                    closeModalWithAnimation('#budgetCreateModal');
+
+                    // Show error notification
+                    let errorMessage = 'An error occurred while creating the budget.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    showNotification('Error', errorMessage);
                 }
             });
+        }
+
+        function showNotification(title, message, callback) {
+            $('#notificationModalLabel').text(title);
+            $('#notification-message').text(message);
+
+            // Handle OK button click
+            $('#notificationModal .btn-minimal').off('click').on('click', function () {
+                closeModalWithAnimation('#notificationModal');
+                if (callback) {
+                    callback();
+                }
+            });
+
+            // Handle close button click
+            $('#notificationModal .btn-close').off('click').on('click', function () {
+                closeModalWithAnimation('#notificationModal');
+                if (callback) {
+                    callback();
+                }
+            });
+
+            openModalWithAnimation('#notificationModal');
         }
     });
 </script>
