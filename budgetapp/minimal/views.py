@@ -275,43 +275,101 @@ class BudgetCreateView(View):
 
     def post(self, request, *args, **kwargs):
         copy_recurring = request.POST.get("copy_recurring", "true") == "true"
+        target_year = request.POST.get("target_year")
+        target_month = request.POST.get("target_month")
 
-        # Get the last budget or use current date if no budgets exist
-        last_budget = Budget.objects.order_by("-month").first()
-        if last_budget:
-            next_month = (last_budget.month.replace(day=1) + timezone.timedelta(days=32)).replace(
-                day=1
-            )
+        # Determine the target month for budget creation
+        if target_year and target_month:
+            # Use the specified year and month
+            target_month_date = timezone.datetime(
+                year=int(target_year), month=int(target_month), day=1
+            ).date()
         else:
-            next_month = timezone.now().date().replace(day=1)
+            # Fallback to the original logic (next month after last budget)
+            last_budget = Budget.objects.order_by("-month").first()
+            if last_budget:
+                target_month_date = (
+                    last_budget.month.replace(day=1) + timezone.timedelta(days=32)
+                ).replace(day=1)
+            else:
+                target_month_date = timezone.now().date().replace(day=1)
+
+        # Check if budget already exists for this month
+        if Budget.objects.filter(month=target_month_date).exists():
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": f"Budget for {target_month_date.strftime('%B %Y')} already exists.",
+                },
+                status=400,
+            )
 
         # Create new budget
-        budget = Budget.objects.create(month=next_month)
+        budget = Budget.objects.create(month=target_month_date)
 
         # Copy recurring expenses from previous budget if requested
-        if copy_recurring and last_budget:
-            recurring_expenses = last_budget.expenses.filter(is_recurring=True)
-            for expense in recurring_expenses:
-                Expense.objects.create(
-                    budget=budget,
-                    name=expense.name,
-                    amount=expense.amount,
-                    is_recurring=True,
-                    category=expense.category,
-                    tag_foreign_key=expense.tag_foreign_key,
-                )
+        if copy_recurring:
+            last_budget = Budget.objects.order_by("-month").first()
+            if last_budget:
+                recurring_expenses = last_budget.expenses.filter(is_recurring=True)
+                for expense in recurring_expenses:
+                    Expense.objects.create(
+                        budget=budget,
+                        name=expense.name,
+                        amount=expense.amount,
+                        is_recurring=True,
+                        category=expense.category,
+                        tag_foreign_key=expense.tag_foreign_key,
+                    )
 
-        messages.success(request, f'Budget for {next_month.strftime("%B %Y")} has been created')
+        messages.success(
+            request, f'Budget for {target_month_date.strftime("%B %Y")} has been created'
+        )
 
         # Return JSON response with redirect URL
         return JsonResponse(
             {
                 "status": "success",
-                "message": f'Budget for {next_month.strftime("%B %Y")} has been created',
+                "message": f'Budget for {target_month_date.strftime("%B %Y")} has been created',
                 "redirect": reverse(
                     "minimal:budget_detail",
-                    kwargs={"year": next_month.year, "month": next_month.month},
+                    kwargs={"year": target_month_date.year, "month": target_month_date.month},
                 ),
+            }
+        )
+
+
+class BudgetDeleteView(View):
+    """Class-based view for deleting a budget."""
+
+    def post(self, request, *args, **kwargs):
+        year = kwargs.get("year")
+        month = kwargs.get("month")
+        budget_date = timezone.datetime(year=year, month=month, day=1).date()
+
+        try:
+            budget = Budget.objects.get(month=budget_date)
+        except Budget.DoesNotExist:
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": f"Budget for {budget_date.strftime('%B %Y')} does not exist.",
+                },
+                status=404,
+            )
+
+        # Store budget info for the message
+        budget_month_str = budget.month.strftime("%B %Y")
+
+        # Delete the budget (this will cascade delete all related data)
+        budget.delete()
+
+        messages.success(request, f"Budget for {budget_month_str} has been deleted")
+
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": f"Budget for {budget_month_str} has been successfully deleted.",
             }
         )
 
