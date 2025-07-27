@@ -12,7 +12,16 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
 
-from budgetapp.models import Budget, Category, Expense, IncomeHistory, SubExpense, Tag
+from budgetapp.models import (
+    Budget,
+    Category,
+    Debt,
+    DebtTransaction,
+    Expense,
+    IncomeHistory,
+    SubExpense,
+    Tag,
+)
 
 
 class HomeView(TemplateView):
@@ -965,4 +974,251 @@ class CategoryDeleteView(View):
         except Exception as e:
             return JsonResponse(
                 {"success": False, "error": f"Error deleting category: {str(e)}"}, status=400
+            )
+
+
+# Debt Views
+class DebtListView(TemplateView):
+    """View for listing all debts."""
+
+    template_name = "minimal/debts/debt_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        active_debts = Debt.objects.filter(is_active=True).order_by("-created_at")
+        completed_debts = Debt.objects.filter(is_active=False).order_by("-created_at")
+
+        # Check and update debt status (disable tags if fully repaid)
+        for debt in active_debts:
+            debt.check_and_update_status()
+
+        context.update(
+            {
+                "active_debts": active_debts,
+                "completed_debts": completed_debts,
+            }
+        )
+        return context
+
+
+class DebtDetailView(TemplateView):
+    """View for displaying debt details."""
+
+    template_name = "minimal/debts/debt_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        debt_id = self.kwargs.get("debt_id")
+        debt = get_object_or_404(Debt, id=debt_id)
+        transactions = debt.transactions.all().order_by("-date")
+
+        # Check and update debt status
+        debt.check_and_update_status()
+
+        # Calculate additional statistics
+        total_borrowed = sum(t.amount for t in transactions)
+
+        context.update(
+            {
+                "debt": debt,
+                "transactions": transactions,
+                "total_borrowed": total_borrowed,
+            }
+        )
+        return context
+
+
+class DebtCreateView(View):
+    """View for creating new debts via AJAX."""
+
+    def post(self, request, *args, **kwargs):
+        name = request.POST.get("name")
+        description = request.POST.get("description", "")
+        total_amount = request.POST.get("total_amount")
+
+        if not name or not total_amount:
+            return JsonResponse(
+                {"success": False, "error": "Name and total amount are required"}, status=400
+            )
+
+        try:
+            total_amount = Decimal(total_amount)
+            if total_amount <= 0:
+                return JsonResponse(
+                    {"success": False, "error": "Total amount must be greater than zero"},
+                    status=400,
+                )
+
+            debt = Debt.objects.create(
+                name=name, description=description, total_amount=total_amount
+            )
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f'Debt "{name}" created successfully!',
+                    "debt": {
+                        "id": debt.id,
+                        "name": debt.name,
+                        "description": debt.description,
+                        "total_amount": str(debt.total_amount),
+                        "debt_tag": debt.debt_tag.name,
+                    },
+                    "redirect_url": reverse("minimal:debt_detail", kwargs={"debt_id": debt.id}),
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"success": False, "error": f"Error creating debt: {str(e)}"}, status=400
+            )
+
+
+class DebtUpdateView(View):
+    """View for updating debts via AJAX."""
+
+    def post(self, request, *args, **kwargs):
+        debt_id = request.POST.get("debt_id")
+        name = request.POST.get("name")
+        description = request.POST.get("description", "")
+        total_amount = request.POST.get("total_amount")
+
+        if not debt_id or not name or not total_amount:
+            return JsonResponse(
+                {"success": False, "error": "Debt ID, name, and total amount are required"},
+                status=400,
+            )
+
+        try:
+            total_amount = Decimal(total_amount)
+            if total_amount <= 0:
+                return JsonResponse(
+                    {"success": False, "error": "Total amount must be greater than zero"},
+                    status=400,
+                )
+
+            debt = get_object_or_404(Debt, id=debt_id)
+            debt.name = name
+            debt.description = description
+            debt.total_amount = total_amount
+            debt.save()
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f'Debt "{name}" updated successfully!',
+                    "debt": {
+                        "id": debt.id,
+                        "name": debt.name,
+                        "description": debt.description,
+                        "total_amount": str(debt.total_amount),
+                    },
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"success": False, "error": f"Error updating debt: {str(e)}"}, status=400
+            )
+
+
+class DebtDeleteView(View):
+    """View for deleting debts via AJAX."""
+
+    def post(self, request, *args, **kwargs):
+        debt_id = request.POST.get("debt_id")
+
+        if not debt_id:
+            return JsonResponse({"success": False, "error": "Debt ID is required"}, status=400)
+
+        try:
+            debt = get_object_or_404(Debt, id=debt_id)
+            debt_name = debt.name
+
+            # Check if debt has any transactions
+            if debt.transactions.exists():
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": (
+                            f'Cannot delete debt "{debt_name}" because it has borrowing '
+                            "transactions. Delete the transactions first."
+                        ),
+                    },
+                    status=400,
+                )
+
+            debt.delete()
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f'Debt "{debt_name}" deleted successfully!',
+                    "debt_id": debt_id,
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"success": False, "error": f"Error deleting debt: {str(e)}"}, status=400
+            )
+
+
+class DebtBorrowingView(View):
+    """View for adding borrowing transactions via AJAX."""
+
+    def post(self, request, *args, **kwargs):
+        debt_id = request.POST.get("debt_id")
+        amount = request.POST.get("amount")
+        date = request.POST.get("date")
+        notes = request.POST.get("notes", "")
+
+        if not debt_id or not amount or not date:
+            return JsonResponse(
+                {"success": False, "error": "Debt ID, amount, and date are required"}, status=400
+            )
+
+        try:
+            amount = Decimal(amount)
+            if amount <= 0:
+                return JsonResponse(
+                    {"success": False, "error": "Amount must be greater than zero"}, status=400
+                )
+
+            debt = get_object_or_404(Debt, id=debt_id)
+
+            # Check if this would exceed total amount
+            current_borrowed = debt.borrowed_amount
+            if current_borrowed + amount > debt.total_amount:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": (
+                            f"This borrowing would exceed the total debt amount of "
+                            f"{debt.total_amount}"
+                        ),
+                    },
+                    status=400,
+                )
+
+            transaction = DebtTransaction.objects.create(
+                debt=debt, amount=amount, date=date, notes=notes
+            )
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f'Added {amount} borrowing to "{debt.name}"',
+                    "transaction": {
+                        "id": transaction.id,
+                        "amount": str(transaction.amount),
+                        "date": transaction.date.strftime("%Y-%m-%d"),
+                        "notes": transaction.notes,
+                    },
+                    "debt": {
+                        "borrowed_amount": str(debt.borrowed_amount),
+                        "progress_percentage": debt.progress_percentage,
+                    },
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"success": False, "error": f"Error adding borrowing: {str(e)}"}, status=400
             )

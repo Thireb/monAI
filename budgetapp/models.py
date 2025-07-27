@@ -106,6 +106,9 @@ class Tag(models.Model):
     slug = models.SlugField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     color = models.CharField(max_length=7, default="#2196f3", help_text="Hex color code")
+    is_active = models.BooleanField(
+        default=True, help_text="Whether this tag is active for new expenses"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -467,3 +470,98 @@ class GoalContribution(models.Model):
 
     def __str__(self):
         return f"{self.amount} contribution to {self.goal.name}"
+
+
+class Debt(models.Model):
+    """Represents money borrowed from external sources."""
+
+    name = models.CharField(max_length=200)  # e.g., "Motherboard Purchase"
+    description = models.TextField(blank=True)  # e.g., "Borrowed from friend for new motherboard"
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)  # e.g., 27,000
+    borrowed_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # e.g., 4,000
+    debt_tag = models.ForeignKey(
+        Tag, on_delete=models.PROTECT, related_name="debts"
+    )  # Auto-generated tag
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name_plural = "Debts"
+
+    def __str__(self):
+        return f"{self.name} - {self.borrowed_amount}"
+
+    def save(self, *args, **kwargs):
+        # Auto-generate tag if not provided
+        if not self.debt_tag:
+            tag_name = self.generate_debt_tag_name()
+            self.debt_tag = Tag.objects.create(
+                name=tag_name,
+                description=f"Tracking tag for debt: {self.name}",
+                color="#ff5722",  # Orange-red for debt tags
+            )
+        super().save(*args, **kwargs)
+
+    def generate_debt_tag_name(self):
+        """Generate unique tag name for debt tracking"""
+        base_name = f"Debt: {self.name}"
+        counter = 1
+
+        while Tag.objects.filter(name=base_name).exists():
+            base_name = f"Debt: {self.name} ({counter})"
+            counter += 1
+
+        return base_name
+
+    @property
+    def repaid_amount(self):
+        """Calculate total repaid from expenses with this tag"""
+        return self.debt_tag.expenses.aggregate(total=models.Sum("amount"))["total"] or Decimal("0")
+
+    @property
+    def remaining_to_repay(self):
+        return self.borrowed_amount - self.repaid_amount
+
+    @property
+    def repayment_progress_percentage(self):
+        if self.borrowed_amount == 0:
+            return 0
+        return min(100, int((self.repaid_amount / self.borrowed_amount) * 100))
+
+    @property
+    def is_fully_repaid(self):
+        return self.repaid_amount >= self.borrowed_amount
+
+    def check_and_update_status(self):
+        """Check if debt is fully repaid and disable tag if so"""
+        if self.is_fully_repaid and self.debt_tag.is_active:
+            self.debt_tag.is_active = False
+            self.debt_tag.save()
+            return True
+        return False
+
+
+class DebtTransaction(models.Model):
+    """Individual borrowing transactions."""
+
+    debt = models.ForeignKey(Debt, on_delete=models.CASCADE, related_name="transactions")
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateField(default=timezone.now)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date"]
+        verbose_name_plural = "Debt transactions"
+
+    def __str__(self):
+        return f"{self.amount} borrowed for {self.debt.name} on {self.date}"
+
+    def save(self, *args, **kwargs):
+        # Update debt's borrowed_amount when transaction is saved
+        if not self.pk:  # Only on creation
+            self.debt.borrowed_amount += self.amount
+            self.debt.save(update_fields=["borrowed_amount"])
+        super().save(*args, **kwargs)
