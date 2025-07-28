@@ -84,14 +84,28 @@
   overflow: hidden;
 }
 
+/* Remove the top gradient bar entirely */
 .debt-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #2196f3, #4caf50);
+  display: none;
+}
+
+/* Enhanced left border that extends to the top */
+.debt-card.border-left-primary {
+  border-left: 4px solid #2196f3 !important;
+  border-top-left-radius: 16px;
+  border-bottom-left-radius: 16px;
+}
+
+.debt-card.border-left-success {
+  border-left: 4px solid #4caf50 !important;
+  border-top-left-radius: 16px;
+  border-bottom-left-radius: 16px;
+}
+
+.debt-card.border-left-warning {
+  border-left: 4px solid #ff9800 !important;
+  border-top-left-radius: 16px;
+  border-bottom-left-radius: 16px;
 }
 
 .debt-card:hover {
