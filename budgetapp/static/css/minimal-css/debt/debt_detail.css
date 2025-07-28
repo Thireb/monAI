@@ -1,5 +1,11 @@
 /* Minimal Debt Detail Page Styles */
 
+/* Ensure full page height and background */
+.debt-detail-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f3f6fa 0%, #e9eafc 100%) !important;
+}
+
 /* Debt Header */
 .debt-header {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
