@@ -480,7 +480,7 @@ class Debt(models.Model):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)  # e.g., 27,000
     borrowed_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # e.g., 4,000
     debt_tag = models.ForeignKey(
-        Tag, on_delete=models.PROTECT, related_name="debts"
+        Tag, on_delete=models.PROTECT, related_name="debts", null=True, blank=True
     )  # Auto-generated tag
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -494,15 +494,22 @@ class Debt(models.Model):
         return f"{self.name} - {self.borrowed_amount}"
 
     def save(self, *args, **kwargs):
-        # Auto-generate tag if not provided
-        if not self.debt_tag:
+        # Check if this is a new instance (no pk yet)
+        is_new = self.pk is None  # noqa: F841
+
+        # Save first to get the pk
+        super().save(*args, **kwargs)
+
+        # Auto-generate tag if not provided and we have a name
+        if not self.debt_tag and self.name:
             tag_name = self.generate_debt_tag_name()
             self.debt_tag = Tag.objects.create(
                 name=tag_name,
                 description=f"Tracking tag for debt: {self.name}",
                 color="#ff5722",  # Orange-red for debt tags
             )
-        super().save(*args, **kwargs)
+            # Save again to update the debt_tag field
+            super().save(update_fields=["debt_tag"])
 
     def generate_debt_tag_name(self):
         """Generate unique tag name for debt tracking"""
@@ -541,6 +548,14 @@ class Debt(models.Model):
             self.debt_tag.save()
             return True
         return False
+
+    def recalculate_borrowed_amount(self):
+        """Recalculate borrowed_amount from transactions"""
+        total = self.transactions.aggregate(total=models.Sum("amount"))["total"] or Decimal("0")
+        if self.borrowed_amount != total:
+            self.borrowed_amount = total
+            self.save(update_fields=["borrowed_amount"])
+        return total
 
 
 class DebtTransaction(models.Model):
