@@ -64,35 +64,40 @@ $(document).ready(function () {
     $('#editDebtModal').modal('show');
   };
 
-  $('#editDebtForm').on('submit', function (e) {
-    e.preventDefault();
+  // Note: Edit debt form is handled in debt_list.js for dynamic updates
+  // This handler is only for debt detail page which should reload after edit
+  if (window.location.pathname.match(/\/debts\/\d+\/?$/)) {
+    // Only attach this handler on debt detail pages (not the list page)
+    $('#editDebtForm').on('submit', function (e) {
+      e.preventDefault();
 
-    // Debug: Log form data
-    console.log('Edit form data:', $(this).serialize());
+      // Debug: Log form data
+      console.log('Edit form data:', $(this).serialize());
 
-    $.ajax({
-      url: '/minimal/debts/update/',
-      method: 'POST',
-      data: $(this).serialize(),
-      success: function (response) {
-        console.log('Edit success response:', response);
-        if (response.success) {
-          showToast('Success', response.message, 'success');
-          $('#editDebtModal').modal('hide');
-          setTimeout(function () {
-            location.reload();
-          }, 1000);
-        } else {
-          showToast('Error', response.error, 'error');
-        }
-      },
-      error: function (xhr) {
-        console.log('Edit error response:', xhr.responseText);
-        const response = xhr.responseJSON;
-        showToast('Error', response ? response.error : 'An error occurred', 'error');
-      },
+      $.ajax({
+        url: '/minimal/debts/update/',
+        method: 'POST',
+        data: $(this).serialize(),
+        success: function (response) {
+          console.log('Edit success response:', response);
+          if (response.success) {
+            showToast('Success', response.message, 'success');
+            $('#editDebtModal').modal('hide');
+            setTimeout(function () {
+              location.reload();
+            }, 1000);
+          } else {
+            showToast('Error', response.error, 'error');
+          }
+        },
+        error: function (xhr) {
+          console.log('Edit error response:', xhr.responseText);
+          const response = xhr.responseJSON;
+          showToast('Error', response ? response.error : 'An error occurred', 'error');
+        },
+      });
     });
-  });
+  }
 
   // Delete Debt
   window.deleteDebt = function (debtId, debtName) {
