@@ -59,7 +59,7 @@
     <div class="progress-section mb-4">
         <div class="row">
             <div class="col-md-6">
-                <div class="progress-item">
+                <div class="progress-card">
                     <div class="progress-header">
                         <span class="progress-label">Repayment Progress</span>
                         <span class="progress-percentage">{{ debt.repayment_progress_percentage }}%</span>
@@ -73,13 +73,13 @@
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="progress-item">
+                <div class="progress-card">
                     <div class="progress-header">
                         <span class="progress-label">Borrowing Progress</span>
                         <span class="progress-percentage">{{ debt.progress_percentage }}%</span>
                     </div>
                     <div class="progress">
-                        <div class="progress-bar bg-primary" style="width: {{ debt.progress_percentage }}%"></div>
+                        <div class="progress-bar bg-success" style="width: {{ debt.progress_percentage }}%"></div>
                     </div>
                     <div class="progress-description">{{ debt.borrowed_amount }} of {{ debt.total_amount }} borrowed
                     </div>
