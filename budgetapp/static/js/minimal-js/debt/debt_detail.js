@@ -1,4 +1,4 @@
-// Debt Detail Page JavaScript
+// Debt Detail Page JavaScript - Dynamic Updates with Animations
 
 // Toast notification function
 function showToast(title, message, type) {
@@ -51,11 +51,176 @@ function showToast(title, message, type) {
   });
 }
 
+// Animation functions
+function animateValue(element, startValue, endValue, duration = 1000) {
+  const start = performance.now();
+  const change = endValue - startValue;
+
+  function updateValue(currentTime) {
+    const elapsed = currentTime - start;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Easing function (ease-out)
+    const easeOut = 1 - Math.pow(1 - progress, 3);
+    const currentValue = startValue + change * easeOut;
+
+    element.text(currentValue.toFixed(2));
+
+    if (progress < 1) {
+      requestAnimationFrame(updateValue);
+    }
+  }
+
+  requestAnimationFrame(updateValue);
+}
+
+function animateProgressBar(progressBar, startWidth, endWidth, duration = 800) {
+  const start = performance.now();
+  const change = endWidth - startWidth;
+
+  function updateProgress(currentTime) {
+    const elapsed = currentTime - start;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Easing function (ease-out)
+    const easeOut = 1 - Math.pow(1 - progress, 3);
+    const currentWidth = startWidth + change * easeOut;
+
+    progressBar.css('width', currentWidth + '%');
+
+    if (progress < 1) {
+      requestAnimationFrame(updateProgress);
+    }
+  }
+
+  requestAnimationFrame(updateProgress);
+}
+
+// Update summary cards with animation
+function updateSummaryCards(debtData) {
+  const cards = {
+    'total-amount': debtData.total_amount,
+    'borrowed-amount': debtData.borrowed_amount,
+    'repaid-amount': debtData.repaid_amount,
+    'remaining-amount': debtData.remaining_to_repay,
+  };
+
+  Object.keys(cards).forEach(cardId => {
+    const card = $(`.summary-card[data-card="${cardId}"] .summary-value`);
+    const currentValue = parseFloat(card.text().replace(/[^\d.-]/g, '') || 0);
+    const newValue = parseFloat(cards[cardId]);
+
+    if (currentValue !== newValue) {
+      animateValue(card, currentValue, newValue);
+    }
+  });
+}
+
+// Update progress bars with animation
+function updateProgressBars(debtData) {
+  // Repayment progress
+  const repaymentBar = $('.progress-card:first .progress-bar');
+  const repaymentPercentage = debtData.repayment_progress_percentage;
+  const currentRepaymentWidth =
+    (parseFloat(repaymentBar.css('width')) / parseFloat(repaymentBar.parent().css('width'))) * 100;
+
+  if (Math.abs(currentRepaymentWidth - repaymentPercentage) > 1) {
+    animateProgressBar(repaymentBar, currentRepaymentWidth, repaymentPercentage);
+    $('.progress-card:first .progress-percentage').text(repaymentPercentage + '%');
+    $('.progress-card:first .progress-description').text(
+      `${debtData.repaid_amount} of ${debtData.borrowed_amount} repaid`
+    );
+  }
+
+  // Borrowing progress
+  const borrowingBar = $('.progress-card:last .progress-bar');
+  const borrowingPercentage = debtData.progress_percentage;
+  const currentBorrowingWidth =
+    (parseFloat(borrowingBar.css('width')) / parseFloat(borrowingBar.parent().css('width'))) * 100;
+
+  if (Math.abs(currentBorrowingWidth - borrowingPercentage) > 1) {
+    animateProgressBar(borrowingBar, currentBorrowingWidth, borrowingPercentage);
+    $('.progress-card:last .progress-percentage').text(borrowingPercentage + '%');
+    $('.progress-card:last .progress-description').text(
+      `${debtData.borrowed_amount} of ${debtData.total_amount} borrowed`
+    );
+  }
+}
+
+// Update transaction table with animation
+function updateTransactionTable(transactions) {
+  const tbody = $('.wide-expense-table tbody');
+
+  // Animate out existing rows
+  tbody.find('tr').each(function (index) {
+    const row = $(this);
+    setTimeout(() => {
+      row.fadeOut(300, function () {
+        row.remove();
+      });
+    }, index * 50);
+  });
+
+  // After all rows are removed, add new ones
+  setTimeout(
+    () => {
+      transactions.forEach((transaction, index) => {
+        const newRow = createTransactionRow(transaction);
+        tbody.append(newRow);
+
+        // Animate in new row
+        newRow.hide().fadeIn(300);
+      });
+    },
+    transactions.length * 50 + 300
+  );
+}
+
+function createTransactionRow(transaction) {
+  return $(`
+    <tr class="transaction-row" data-transaction-id="${transaction.id}">
+      <td>${transaction.date}</td>
+      <td><strong>${transaction.amount}</strong></td>
+      <td>${transaction.notes || '-'}</td>
+      <td><small class="text-muted">${transaction.created_at}</small></td>
+      <td class="expense-actions-cell">
+        <button class="btn-icon edit-transaction-btn minimal-tooltip-trigger" aria-label="Edit"
+          data-tooltip="Edit"
+          onclick="editTransaction(${transaction.id}, '${transaction.date_iso}', ${transaction.amount}, '${transaction.notes_escaped}')">
+          ✏️
+        </button>
+        <button class="btn-icon btn-danger delete-transaction-btn minimal-tooltip-trigger"
+          aria-label="Delete" data-tooltip="Delete"
+          onclick="deleteTransaction(${transaction.id}, ${transaction.amount})">
+          🗑️
+        </button>
+      </td>
+    </tr>
+  `);
+}
+
+// Loading state management
+function showLoading(element) {
+  element.addClass('loading');
+  element.append('<div class="loading-spinner"></div>');
+}
+
+function hideLoading(element) {
+  element.removeClass('loading');
+  element.find('.loading-spinner').remove();
+}
+
 $(document).ready(function () {
   // Set default date for borrowing form
   $('#borrowingDate').val(new Date().toISOString().split('T')[0]);
 
-  // Edit Debt
+  // Add data attributes to summary cards for easy targeting
+  $('.summary-card').each(function (index) {
+    const labels = ['total-amount', 'borrowed-amount', 'repaid-amount', 'remaining-amount'];
+    $(this).attr('data-card', labels[index]);
+  });
+
+  // Edit Debt - Dynamic Update
   window.editDebt = function (debtId, name, description, totalAmount) {
     $('#editDebtId').val(debtId);
     $('#editDebtName').val(name);
@@ -64,40 +229,46 @@ $(document).ready(function () {
     $('#editDebtModal').modal('show');
   };
 
-  // Note: Edit debt form is handled in debt_list.js for dynamic updates
-  // This handler is only for debt detail page which should reload after edit
-  if (window.location.pathname.match(/\/debts\/\d+\/?$/)) {
-    // Only attach this handler on debt detail pages (not the list page)
-    $('#editDebtForm').on('submit', function (e) {
-      e.preventDefault();
+  $('#editDebtForm').on('submit', function (e) {
+    e.preventDefault();
 
-      // Debug: Log form data
-      console.log('Edit form data:', $(this).serialize());
+    const form = $(this);
+    const submitBtn = form.find('button[type="submit"]');
+    const originalText = submitBtn.text();
 
-      $.ajax({
-        url: '/minimal/debts/update/',
-        method: 'POST',
-        data: $(this).serialize(),
-        success: function (response) {
-          console.log('Edit success response:', response);
-          if (response.success) {
-            showToast('Success', response.message, 'success');
-            $('#editDebtModal').modal('hide');
-            setTimeout(function () {
-              location.reload();
-            }, 1000);
-          } else {
-            showToast('Error', response.error, 'error');
-          }
-        },
-        error: function (xhr) {
-          console.log('Edit error response:', xhr.responseText);
-          const response = xhr.responseJSON;
-          showToast('Error', response ? response.error : 'An error occurred', 'error');
-        },
-      });
+    showLoading(submitBtn);
+    submitBtn.text('Updating...');
+
+    $.ajax({
+      url: '/minimal/debts/update/',
+      method: 'POST',
+      data: form.serialize(),
+      success: function (response) {
+        if (response.success) {
+          showToast('Success', response.message, 'success');
+          $('#editDebtModal').modal('hide');
+
+          // Update page content dynamically
+          updateSummaryCards(response.debt);
+          updateProgressBars(response.debt);
+
+          // Update debt name in header
+          $('.debt-header h1').text(response.debt.name);
+          $('.breadcrumb-item.active').text(response.debt.name);
+        } else {
+          showToast('Error', response.error, 'error');
+        }
+      },
+      error: function (xhr) {
+        const response = xhr.responseJSON;
+        showToast('Error', response ? response.error : 'An error occurred', 'error');
+      },
+      complete: function () {
+        hideLoading(submitBtn);
+        submitBtn.text(originalText);
+      },
     });
-  }
+  });
 
   // Delete Debt
   window.deleteDebt = function (debtId, debtName) {
@@ -105,6 +276,12 @@ $(document).ready(function () {
     $('#confirmDeleteBtn')
       .off('click')
       .on('click', function () {
+        const btn = $(this);
+        const originalText = btn.text();
+
+        showLoading(btn);
+        btn.text('Deleting...');
+
         $.ajax({
           url: '/minimal/debts/delete/',
           method: 'POST',
@@ -116,9 +293,11 @@ $(document).ready(function () {
             if (response.success) {
               showToast('Success', response.message, 'success');
               $('#deleteModal').modal('hide');
-              setTimeout(function () {
+
+              // Animate page transition
+              $('body').fadeOut(500, function () {
                 window.location.href = '/minimal/debts/';
-              }, 1000);
+              });
             } else {
               showToast('Error', response.error, 'error');
             }
@@ -127,38 +306,54 @@ $(document).ready(function () {
             const response = xhr.responseJSON;
             showToast('Error', response ? response.error : 'An error occurred', 'error');
           },
+          complete: function () {
+            hideLoading(btn);
+            btn.text(originalText);
+          },
         });
       });
     $('#deleteModal').modal('show');
   };
 
-  // Add Borrowing
+  // Add Borrowing - Dynamic Update
   $('#borrowingForm').on('submit', function (e) {
     e.preventDefault();
 
-    // Debug: Log form data
-    console.log('Borrowing form data:', $(this).serialize());
+    const form = $(this);
+    const submitBtn = form.find('button[type="submit"]');
+    const originalText = submitBtn.text();
+
+    showLoading(submitBtn);
+    submitBtn.text('Adding...');
 
     $.ajax({
       url: '/minimal/debts/borrow/',
       method: 'POST',
-      data: $(this).serialize(),
+      data: form.serialize(),
       success: function (response) {
-        console.log('Borrowing success response:', response);
         if (response.success) {
           showToast('Success', response.message, 'success');
           $('#borrowModal').modal('hide');
-          setTimeout(function () {
-            location.reload();
-          }, 1000);
+
+          // Update page content dynamically
+          updateSummaryCards(response.debt);
+          updateProgressBars(response.debt);
+
+          // Add new transaction to table with animation
+          const newRow = createTransactionRow(response.transaction);
+          $('.wide-expense-table tbody').prepend(newRow);
+          newRow.hide().fadeIn(300);
         } else {
           showToast('Error', response.error, 'error');
         }
       },
       error: function (xhr) {
-        console.log('Borrowing error response:', xhr.responseText);
         const response = xhr.responseJSON;
         showToast('Error', response ? response.error : 'An error occurred', 'error');
+      },
+      complete: function () {
+        hideLoading(submitBtn);
+        submitBtn.text(originalText);
       },
     });
   });
@@ -173,7 +368,7 @@ $(document).ready(function () {
     }
   });
 
-  // Edit Transaction
+  // Edit Transaction - Dynamic Update
   window.editTransaction = function (transactionId, date, amount, notes) {
     $('#editTransactionId').val(transactionId);
     $('#editTransactionAmount').val(amount);
@@ -185,39 +380,60 @@ $(document).ready(function () {
   $('#editTransactionForm').on('submit', function (e) {
     e.preventDefault();
 
-    // Debug: Log form data
-    console.log('Edit transaction form data:', $(this).serialize());
+    const form = $(this);
+    const submitBtn = form.find('button[type="submit"]');
+    const originalText = submitBtn.text();
+
+    showLoading(submitBtn);
+    submitBtn.text('Updating...');
 
     $.ajax({
       url: '/minimal/debts/transaction/update/',
       method: 'POST',
-      data: $(this).serialize(),
+      data: form.serialize(),
       success: function (response) {
-        console.log('Edit transaction success response:', response);
         if (response.success) {
           showToast('Success', response.message, 'success');
           $('#editTransactionModal').modal('hide');
-          setTimeout(function () {
-            location.reload();
-          }, 1000);
+
+          // Update page content dynamically
+          updateSummaryCards(response.debt);
+          updateProgressBars(response.debt);
+
+          // Update transaction row
+          const row = $(`.transaction-row[data-transaction-id="${response.transaction.id}"]`);
+          const newRow = createTransactionRow(response.transaction);
+          row.fadeOut(200, function () {
+            row.replaceWith(newRow);
+            newRow.hide().fadeIn(200);
+          });
         } else {
           showToast('Error', response.error, 'error');
         }
       },
       error: function (xhr) {
-        console.log('Edit transaction error response:', xhr.responseText);
         const response = xhr.responseJSON;
         showToast('Error', response ? response.error : 'An error occurred', 'error');
+      },
+      complete: function () {
+        hideLoading(submitBtn);
+        submitBtn.text(originalText);
       },
     });
   });
 
-  // Delete Transaction
+  // Delete Transaction - Dynamic Update
   window.deleteTransaction = function (transactionId, amount) {
     $('#transactionAmount').text(amount);
     $('#confirmDeleteTransactionBtn')
       .off('click')
       .on('click', function () {
+        const btn = $(this);
+        const originalText = btn.text();
+
+        showLoading(btn);
+        btn.text('Deleting...');
+
         $.ajax({
           url: '/minimal/debts/transaction/delete/',
           method: 'POST',
@@ -229,9 +445,16 @@ $(document).ready(function () {
             if (response.success) {
               showToast('Success', response.message, 'success');
               $('#deleteTransactionModal').modal('hide');
-              setTimeout(function () {
-                location.reload();
-              }, 1000);
+
+              // Update page content dynamically
+              updateSummaryCards(response.debt);
+              updateProgressBars(response.debt);
+
+              // Remove transaction row with animation
+              const row = $(`.transaction-row[data-transaction-id="${transactionId}"]`);
+              row.fadeOut(300, function () {
+                row.remove();
+              });
             } else {
               showToast('Error', response.error, 'error');
             }
@@ -239,6 +462,10 @@ $(document).ready(function () {
           error: function (xhr) {
             const response = xhr.responseJSON;
             showToast('Error', response ? response.error : 'An error occurred', 'error');
+          },
+          complete: function () {
+            hideLoading(btn);
+            btn.text(originalText);
           },
         });
       });

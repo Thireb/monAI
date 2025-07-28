@@ -231,6 +231,28 @@
 }
 
 /* Debt Tag Styling */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.info-value {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
 .debt-tag {
   display: inline-block;
   background: rgba(33, 150, 243, 0.1);
@@ -289,8 +311,9 @@
 
 /* Action buttons */
 .expense-actions-cell {
-  text-align: center;
+  text-align: left;
   white-space: nowrap;
+  padding-left: 0.5rem;
 }
 
 .btn-icon {
@@ -594,6 +617,83 @@
   background: rgba(255, 255, 255, 0.25);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Loading states */
+.loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.loading-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #2196f3;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.fade-out {
+  animation: fadeOut 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* Progress bar animations */
+.progress-bar {
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Summary card hover animations */
+.summary-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(33, 150, 243, 0.15);
 }
 
 /* Print styles */
