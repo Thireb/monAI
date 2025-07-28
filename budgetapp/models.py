@@ -538,6 +538,13 @@ class Debt(models.Model):
         return min(100, int((self.repaid_amount / self.borrowed_amount) * 100))
 
     @property
+    def progress_percentage(self):
+        """Calculate borrowing progress as percentage of total amount"""
+        if self.total_amount == 0:
+            return 0
+        return min(100, int((self.borrowed_amount / self.total_amount) * 100))
+
+    @property
     def is_fully_repaid(self):
         return self.repaid_amount >= self.borrowed_amount
 

@@ -105,32 +105,18 @@
 
 /* Progress Section */
 .progress-section {
+  margin-bottom: 2rem;
+}
+
+.progress-card {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   padding: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.progress-item {
-  margin-bottom: 2rem;
-  position: relative;
-}
-
-.progress-item:last-child {
-  margin-bottom: 0;
-}
-
-.progress-item:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  bottom: -1rem;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #e0e0e0, transparent);
+  transition: box-shadow 0.2s ease;
 }
 
 .progress-header {
@@ -160,15 +146,22 @@
   background-color: #e9ecef;
   margin-bottom: 0.5rem;
   overflow: hidden;
+  position: relative;
+  width: 100%;
 }
 
 .progress-bar {
   border-radius: 4px;
   transition: width 0.6s ease;
+  height: 100%;
+  display: block;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .progress-bar.bg-primary {
-  background-color: #2196f3 !important;
+  background-color: #4caf50 !important;
 }
 
 .progress-bar.bg-success {
@@ -521,6 +514,10 @@
     padding: 1rem;
   }
 
+  .progress-card {
+    margin-bottom: 1.5rem;
+  }
+
   .progress-header {
     flex-direction: column;
     align-items: flex-start;
@@ -528,6 +525,10 @@
 
   .progress-percentage {
     margin-top: 0.25rem;
+  }
+
+  .progress-divider {
+    display: none;
   }
 
   .btn-group {
@@ -583,8 +584,9 @@
   }
 }
 
+/* Remove animation that might interfere with inline styles */
 .progress-bar {
-  animation: progress-animation 1s ease-out;
+  /* animation: progress-animation 1s ease-out; */
 }
 
 /* Glassmorphism effect */
