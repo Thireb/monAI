@@ -1,5 +1,5 @@
 import calendar
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from django.contrib import messages
@@ -1021,7 +1021,7 @@ class DebtDetailView(TemplateView):
         context.update(
             {
                 "debt": debt,
-                "transactions": transactions,
+                "transactions_page": transactions,  # Match template variable name
                 "total_borrowed": total_borrowed,
             }
         )
@@ -1062,9 +1062,12 @@ class DebtCreateView(View):
                         "name": debt.name,
                         "description": debt.description,
                         "total_amount": str(debt.total_amount),
+                        "borrowed_amount": str(debt.borrowed_amount),
+                        "repaid_amount": str(debt.repaid_amount),
+                        "remaining_to_repay": str(debt.remaining_to_repay),
+                        "repayment_progress_percentage": debt.repayment_progress_percentage,
                         "debt_tag": debt.debt_tag.name,
                     },
-                    "redirect_url": reverse("minimal:debt_detail", kwargs={"debt_id": debt.id}),
                 }
             )
         except Exception as e:
@@ -1111,6 +1114,10 @@ class DebtUpdateView(View):
                         "name": debt.name,
                         "description": debt.description,
                         "total_amount": str(debt.total_amount),
+                        "borrowed_amount": str(debt.borrowed_amount),
+                        "repaid_amount": str(debt.repaid_amount),
+                        "remaining_to_repay": str(debt.remaining_to_repay),
+                        "repayment_progress_percentage": debt.repayment_progress_percentage,
                     },
                 }
             )
@@ -1182,6 +1189,14 @@ class DebtBorrowingView(View):
                     {"success": False, "error": "Amount must be greater than zero"}, status=400
                 )
 
+            # Parse the date string to a date object
+            try:
+                parsed_date = datetime.strptime(date, "%Y-%m-%d").date()
+            except ValueError:
+                return JsonResponse(
+                    {"success": False, "error": "Invalid date format. Use YYYY-MM-DD"}, status=400
+                )
+
             debt = get_object_or_404(Debt, id=debt_id)
 
             # Check if this would exceed total amount
@@ -1199,8 +1214,11 @@ class DebtBorrowingView(View):
                 )
 
             transaction = DebtTransaction.objects.create(
-                debt=debt, amount=amount, date=date, notes=notes
+                debt=debt, amount=amount, date=parsed_date, notes=notes
             )
+
+            # Recalculate borrowed amount from transactions
+            debt.recalculate_borrowed_amount()
 
             return JsonResponse(
                 {
@@ -1214,11 +1232,118 @@ class DebtBorrowingView(View):
                     },
                     "debt": {
                         "borrowed_amount": str(debt.borrowed_amount),
-                        "progress_percentage": debt.progress_percentage,
+                        "progress_percentage": debt.repayment_progress_percentage,
                     },
                 }
             )
         except Exception as e:
             return JsonResponse(
                 {"success": False, "error": f"Error adding borrowing: {str(e)}"}, status=400
+            )
+
+
+class DebtTransactionUpdateView(View):
+    """View for updating borrowing transactions via AJAX."""
+
+    def post(self, request, *args, **kwargs):
+        transaction_id = request.POST.get("transaction_id")
+        debt_id = request.POST.get("debt_id")
+        amount = request.POST.get("amount")
+        date = request.POST.get("date")
+        notes = request.POST.get("notes", "")
+
+        if not transaction_id or not debt_id or not amount or not date:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Transaction ID, debt ID, amount, and date are required",
+                },
+                status=400,
+            )
+
+        try:
+            amount = Decimal(amount)
+            if amount <= 0:
+                return JsonResponse(
+                    {"success": False, "error": "Amount must be greater than zero"}, status=400
+                )
+
+            # Parse the date string to a date object
+            try:
+                parsed_date = datetime.strptime(date, "%Y-%m-%d").date()
+            except ValueError:
+                return JsonResponse(
+                    {"success": False, "error": "Invalid date format. Use YYYY-MM-DD"}, status=400
+                )
+
+            transaction = get_object_or_404(DebtTransaction, id=transaction_id, debt_id=debt_id)
+            debt = transaction.debt
+
+            # Update transaction
+            transaction.amount = amount
+            transaction.date = parsed_date
+            transaction.notes = notes
+            transaction.save()
+
+            # Recalculate borrowed amount from transactions
+            debt.recalculate_borrowed_amount()
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f'Updated borrowing transaction for "{debt.name}"',
+                    "transaction": {
+                        "id": transaction.id,
+                        "amount": str(transaction.amount),
+                        "date": transaction.date.strftime("%Y-%m-%d"),
+                        "notes": transaction.notes,
+                    },
+                    "debt": {
+                        "borrowed_amount": str(debt.borrowed_amount),
+                        "progress_percentage": debt.repayment_progress_percentage,
+                    },
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"success": False, "error": f"Error updating transaction: {str(e)}"}, status=400
+            )
+
+
+class DebtTransactionDeleteView(View):
+    """View for deleting borrowing transactions via AJAX."""
+
+    def post(self, request, *args, **kwargs):
+        transaction_id = request.POST.get("transaction_id")
+
+        if not transaction_id:
+            return JsonResponse(
+                {"success": False, "error": "Transaction ID is required"}, status=400
+            )
+
+        try:
+            transaction = get_object_or_404(DebtTransaction, id=transaction_id)
+            debt = transaction.debt
+            transaction_amount = transaction.amount
+
+            # Delete the transaction
+            transaction.delete()
+
+            # Recalculate borrowed amount from transactions
+            debt.recalculate_borrowed_amount()
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f'Deleted borrowing\n\
+                        transaction of {transaction_amount} from "{debt.name}"',
+                    "debt": {
+                        "borrowed_amount": str(debt.borrowed_amount),
+                        "progress_percentage": debt.repayment_progress_percentage,
+                    },
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"success": False, "error": f"Error deleting transaction: {str(e)}"}, status=400
             )

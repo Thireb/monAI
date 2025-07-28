@@ -15,6 +15,8 @@ from .views import (
     DebtDeleteView,
     DebtDetailView,
     DebtListView,
+    DebtTransactionDeleteView,
+    DebtTransactionUpdateView,
     DebtUpdateView,
     ExpenseCreateUpdateView,
     ExpenseDeleteView,
@@ -99,4 +101,14 @@ urlpatterns = [
     path("debts/update/", DebtUpdateView.as_view(), name="debt_update"),
     path("debts/delete/", DebtDeleteView.as_view(), name="debt_delete"),
     path("debts/borrow/", DebtBorrowingView.as_view(), name="debt_borrow"),
+    path(
+        "debts/transaction/update/",
+        DebtTransactionUpdateView.as_view(),
+        name="debt_transaction_update",
+    ),
+    path(
+        "debts/transaction/delete/",
+        DebtTransactionDeleteView.as_view(),
+        name="debt_transaction_delete",
+    ),
 ]
