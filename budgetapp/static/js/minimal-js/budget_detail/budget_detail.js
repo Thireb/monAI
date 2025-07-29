@@ -154,16 +154,16 @@ $(function () {
     deleteType = $(this).data('type') || 'expense';
     expenseId = $(this).data('expense-id') || null;
     subexpenseId = $(this).data('subexpense-id') || null;
-    $('#deleteExpenseModal').fadeIn(150);
+    openModalWithAnimation('#deleteExpenseModal');
   });
   $(document).on('click', '.delete-cancel-btn', function () {
-    $('#deleteExpenseModal').fadeOut(150);
+    closeModalWithAnimation('#deleteExpenseModal');
     deleteType = null;
     expenseId = null;
     subexpenseId = null;
   });
   $(document).on('click', '.delete-confirm-btn', function () {
-    $('#deleteExpenseModal').fadeOut(150);
+    closeModalWithAnimation('#deleteExpenseModal');
     const year = $('#js-budget-meta').data('year');
     const month = $('#js-budget-meta').data('month');
     let url, data;
@@ -422,11 +422,40 @@ $(function () {
   }
 
   function updateBudgetTotals() {
+    // Instead of client-side calculation, reload the summary cards from server
+    const year = $('#js-budget-meta').data('year');
+    const month = $('#js-budget-meta').data('month');
+
+    $.ajax({
+      url: `/minimal/budget/${year}/${month}/`,
+      type: 'GET',
+      success: function (data) {
+        // Parse the response and extract the summary cards
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data, 'text/html');
+
+        // Update summary cards with server-calculated values
+        const newSummaryCards = $(doc).find('.summary-cards').html();
+        $('.summary-cards').html(newSummaryCards);
+
+        // Update category stats
+        updateCategoryStats();
+      },
+      error: function () {
+        // Fallback to client-side calculation if AJAX fails
+        updateBudgetTotalsClientSide();
+      },
+    });
+  }
+
+  // Fallback client-side calculation (kept for backward compatibility)
+  function updateBudgetTotalsClientSide() {
     // Calculate total expenses
     let totalExpenses = 0;
     $('.expense-row').each(function () {
       const amountText = $(this).find('td:nth-child(2)').text();
-      const amount = parseFloat(amountText.replace(/[^0-9.-]+/g, ''));
+      // Better parsing that handles currency symbols and commas
+      const amount = parseFloat(amountText.replace(/[^\d.-]/g, ''));
       if (!isNaN(amount)) {
         totalExpenses += amount;
       }
@@ -434,7 +463,7 @@ $(function () {
 
     // Get income
     const incomeText = $('.income-value').text();
-    const income = parseFloat(incomeText.replace(/[^0-9.-]+/g, ''));
+    const income = parseFloat(incomeText.replace(/[^\d.-]/g, ''));
 
     // Calculate remaining budget
     const remainingBudget = income - totalExpenses;
@@ -445,9 +474,6 @@ $(function () {
     // Update UI with client-side formatting
     $('.total-expenses-value').text(currency + ' ' + formatCurrency(totalExpenses));
     $('.remaining-budget-value').text(currency + ' ' + formatCurrency(remainingBudget));
-
-    // Update category stats
-    updateCategoryStats();
   }
 
   // Helper function to update category stats
@@ -967,6 +993,15 @@ $(function () {
   // Budget Delete Functionality
   $('#delete-budget-btn').on('click', function () {
     openModalWithAnimation('#deleteBudgetModal');
+  });
+
+  // Budget delete modal cancel and close buttons
+  $('.budget-delete-cancel-btn').on('click', function () {
+    closeModalWithAnimation('#deleteBudgetModal');
+  });
+
+  $('.budget-delete-close-btn').on('click', function () {
+    closeModalWithAnimation('#deleteBudgetModal');
   });
 
   $('#confirm-delete-budget').on('click', function () {
