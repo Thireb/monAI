@@ -5,6 +5,12 @@
 
 // Initialize modals when document is ready
 $(function () {
+  // Prevent Bootstrap from initializing on our custom modals
+  $('.modal-minimal').each(function () {
+    // Remove any Bootstrap modal attributes that might cause conflicts
+    $(this).removeAttr('data-bs-toggle data-bs-target data-bs-dismiss');
+  });
+
   // Handle modal triggers with data-modal-target attribute
   $('[data-modal-target]').on('click', function () {
     const modalId = $(this).data('modal-target');
@@ -31,7 +37,7 @@ $(function () {
  */
 function openModalWithAnimation(modalId) {
   const $modal = $(modalId);
-  $modal.css('display', 'flex');
+  $modal.css('display', 'flex').addClass('show');
 
   // Use anime.js for smooth animation
   anime({
@@ -75,7 +81,7 @@ function closeModalWithAnimation(modalId) {
     duration: 300,
     easing: 'easeInQuad',
     complete: function () {
-      $modal.hide();
+      $modal.hide().removeClass('show');
       // Trigger custom event for modal closed
       $modal.trigger('modal:closed');
     },
