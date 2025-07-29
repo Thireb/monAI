@@ -1,11 +1,37 @@
 /* Minimal Theme Modal Styles */
 
+/* Prevent Bootstrap modal styles from affecting our custom modals */
 .modal-minimal {
-  /* Bootstrap modal will handle positioning and backdrop */
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1050 !important;
+  opacity: 0;
+  visibility: hidden;
+  /* Override Bootstrap modal styles */
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  outline: none !important;
 }
 
-.modal-minimal .modal-dialog {
+.modal-minimal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-minimal .modal-content {
   max-width: 500px;
+  width: 90%;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1051;
 }
 
 .modal-minimal .modal-content {
@@ -163,8 +189,8 @@
 }
 
 @media (max-width: 576px) {
-  .modal-minimal .modal-dialog {
-    max-width: 90%;
-    margin: 0 auto;
+  .modal-minimal .modal-content {
+    width: 95%;
+    max-width: 400px;
   }
 }

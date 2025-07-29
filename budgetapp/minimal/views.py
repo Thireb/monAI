@@ -283,7 +283,9 @@ class BudgetCreateView(View):
         )
 
     def post(self, request, *args, **kwargs):
-        copy_recurring = request.POST.get("copy_recurring", "true") == "true"
+        copy_recurring_param = request.POST.get("copy_recurring", "true")
+        copy_recurring = copy_recurring_param.lower() == "true"
+
         target_year = request.POST.get("target_year")
         target_month = request.POST.get("target_month")
 
@@ -316,11 +318,19 @@ class BudgetCreateView(View):
         # Create new budget
         budget = Budget.objects.create(month=target_month_date)
 
-        # Copy recurring expenses from previous budget if requested
+        # Copy recurring expenses and income from previous budget if requested
         if copy_recurring:
-            last_budget = Budget.objects.order_by("-month").first()
-            if last_budget:
-                recurring_expenses = last_budget.expenses.filter(is_recurring=True)
+            # Get the budget before the one we just created
+            previous_budget = (
+                Budget.objects.filter(month__lt=target_month_date).order_by("-month").first()
+            )
+            if previous_budget:
+                # Copy income from previous budget
+                budget.income = previous_budget.income
+                budget.save()
+
+                # Copy recurring expenses
+                recurring_expenses = previous_budget.expenses.filter(is_recurring=True)
                 for expense in recurring_expenses:
                     Expense.objects.create(
                         budget=budget,
@@ -330,20 +340,32 @@ class BudgetCreateView(View):
                         category=expense.category,
                         tag_foreign_key=expense.tag_foreign_key,
                     )
+                # Add success message about copied expenses and income
+                if recurring_expenses.exists():
+                    messages.success(
+                        request,
+                        f"Copied income and \n"
+                        f"{recurring_expenses.count()} recurring expense(s) from previous budget",
+                    )
+                else:
+                    messages.success(request, "Copied income from previous budget")
+            else:
+                messages.error(request, "No previous budget found to copy from")
 
         messages.success(
             request, f'Budget for {target_month_date.strftime("%B %Y")} has been created'
         )
 
         # Return JSON response with redirect URL
+        redirect_url = reverse(
+            "minimal:budget_detail",
+            kwargs={"year": target_month_date.year, "month": target_month_date.month},
+        )
         return JsonResponse(
             {
                 "status": "success",
                 "message": f'Budget for {target_month_date.strftime("%B %Y")} has been created',
-                "redirect": reverse(
-                    "minimal:budget_detail",
-                    kwargs={"year": target_month_date.year, "month": target_month_date.month},
-                ),
+                "redirect": redirect_url,
             }
         )
 
