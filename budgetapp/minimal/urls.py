@@ -25,6 +25,7 @@ from .views import (
     SubExpenseCreateView,
     SubExpenseDeleteView,
     SubExpenseUpdateView,
+    SummaryCardsView,
     TagCreateView,
     TagDeleteView,
     TagManagementView,
@@ -67,6 +68,11 @@ urlpatterns = [
         "budget/<int:year>/<int:month>/tag-stats/",
         TagStatsView.as_view(),
         name="tag_stats",
+    ),
+    path(
+        "budget/<int:year>/<int:month>/summary-cards/",
+        SummaryCardsView.as_view(),
+        name="summary_cards",
     ),
     path(
         "budget/<int:year>/<int:month>/subexpense/create/",

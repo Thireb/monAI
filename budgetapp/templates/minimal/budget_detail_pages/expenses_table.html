@@ -27,7 +27,7 @@
                 <tbody>
                     {% for expense in expenses %}
                     <tr class="expense-row" data-expense-id="{{ expense.id }}">
-                        <td>{{ expense.name }}</td>
+                        <td class="minimal-tooltip-trigger" data-tooltip="{{ expense.name|escapejs }}">{{ expense.name }}</td>
                         <td>{{ budget.currency }} {{ expense.amount_display }}</td>
                         <td data-category-id="{{ expense.category.id|default:'' }}">
                             {% if expense.category %}{{ expense.category.name }}{% else %}<span
@@ -48,6 +48,14 @@
                             <span class="subexpense-total-toggle minimal-tooltip-trigger"
                                 data-expense-id="{{ expense.id }}" data-tooltip="Click to reveal more" tabindex="0">
                                 {{ budget.currency }} {{ expense.subexpense_total_display }}
+                                {% if expense.returns > 0 %}
+                                <br>
+                                <span id="total-returns" class="text-green"
+                                    style="color: #2a9155 !important; font-weight: 600;"
+                                    data-expense-id="{{ expense.id }}">
+                                    {{ budget.currency }} {{ expense.total_returns }}
+                                </span>
+                                {% endif %}
                             </span>
                         </td>
                         <td class="expense-actions-cell">
