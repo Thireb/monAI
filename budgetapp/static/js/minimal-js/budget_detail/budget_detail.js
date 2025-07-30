@@ -240,7 +240,11 @@ $(function () {
     const newRow = $('<tr>').addClass('expense-row').attr('data-expense-id', expense.id);
 
     // Add cells
-    newRow.append($('<td>').text(expense.name));
+    const nameCell = $('<td>')
+      .addClass('minimal-tooltip-trigger')
+      .attr('data-tooltip', expense.name)
+      .text(expense.name);
+    newRow.append(nameCell);
 
     // Always format with currency to ensure consistency
     const currencyText = $('.budget-currency').text();
@@ -283,6 +287,23 @@ $(function () {
       })
       .text(currencyText + ' ' + subTotal);
     subExpensesCell.append(subTotalSpan);
+
+    // Add returns display if returns exist
+    if (expense.returns && expense.returns > 0) {
+      const returnsSpan = $('<span>')
+        .attr('id', 'total-returns')
+        .addClass('text-green')
+        .attr('data-expense-id', expense.id)
+        .css({
+          color: '#2a9155 !important',
+          'font-weight': '600',
+          display: 'block',
+          'margin-top': '4px',
+        })
+        .text('Returns: ' + currencyText + ' ' + expense.total_returns);
+      subExpensesCell.append(returnsSpan);
+    }
+
     newRow.append(subExpensesCell);
 
     // Add action buttons
@@ -392,6 +413,41 @@ $(function () {
       recurringCell.append($('<span>').addClass('badge bg-secondary').text('No'));
     }
 
+    // Update sub-expenses cell and returns display
+    const subExpensesCell = row.find('td:nth-child(6)');
+    const currencyText = $('.budget-currency').text();
+
+    // Update sub-expense total
+    const subTotal = expense.subexpense_total_display || '0.00';
+    const subTotalSpan = subExpensesCell.find('.subexpense-total-toggle');
+    if (subTotalSpan.length > 0) {
+      subTotalSpan.text(currencyText + ' ' + subTotal);
+    }
+
+    // Update returns display
+    const currentReturns = subExpensesCell.find('#total-returns');
+    if (expense.returns && expense.returns > 0) {
+      const returnsText = 'Returns: ' + currencyText + ' ' + expense.total_returns;
+      if (currentReturns.length > 0) {
+        currentReturns.text(returnsText);
+      } else {
+        const returnsSpan = $('<span>')
+          .attr('id', 'total-returns')
+          .addClass('text-green')
+          .attr('data-expense-id', expense.id)
+          .css({
+            color: '#2a9155 !important',
+            'font-weight': '600',
+            display: 'block',
+            'margin-top': '4px',
+          })
+          .text(returnsText);
+        subExpensesCell.append(returnsSpan);
+      }
+    } else {
+      currentReturns.remove();
+    }
+
     // Update data attributes on the edit button
     const editBtn = row.find('.edit-expense-btn');
     editBtn.attr({
@@ -427,16 +483,11 @@ $(function () {
     const month = $('#js-budget-meta').data('month');
 
     $.ajax({
-      url: `/minimal/budget/${year}/${month}/`,
+      url: `/minimal/budget/${year}/${month}/summary-cards/`,
       type: 'GET',
-      success: function (data) {
-        // Parse the response and extract the summary cards
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(data, 'text/html');
-
+      success: function (response) {
         // Update summary cards with server-calculated values
-        const newSummaryCards = $(doc).find('.summary-cards').html();
-        $('.summary-cards').html(newSummaryCards);
+        $('.summary-cards').html(response.html);
 
         // Update category stats
         updateCategoryStats();
@@ -846,6 +897,10 @@ $(function () {
             updateSubexpenseSummary(expenseId, response.summary);
           }
         });
+
+        // Update summary cards to reflect changes in expenses/returns
+        updateBudgetTotals();
+
         showToast('Success', response.message, 'success');
         $form.removeClass('show').hide();
       },
@@ -887,6 +942,7 @@ $(function () {
       const doc = parser.parseFromString(data, 'text/html');
       const newSubList = $(doc).find(`#subexpenses-${expenseId} .subexpenses-list`).parent().html();
       $(`#subexpenses-${expenseId} .subexpenses-list`).parent().html(newSubList);
+
       // Update sub-expense total in main table
       const newTotal = $(doc)
         .find(`.expense-row[data-expense-id="${expenseId}"] .subexpense-total-toggle`)
@@ -894,6 +950,30 @@ $(function () {
       if (newTotal) {
         $(`.expense-row[data-expense-id="${expenseId}"] .subexpense-total-toggle`).html(newTotal);
       }
+
+      // Update returns display in main table
+      const returnsElement = $(doc).find(
+        `.expense-row[data-expense-id="${expenseId}"] #total-returns`
+      );
+      const currentReturnsElement = $(
+        `.expense-row[data-expense-id="${expenseId}"] #total-returns`
+      );
+
+      if (returnsElement.length > 0) {
+        // Returns exist, update or add the element
+        if (currentReturnsElement.length > 0) {
+          currentReturnsElement.replaceWith(returnsElement);
+        } else {
+          // Add returns element after the sub-expense total
+          $(`.expense-row[data-expense-id="${expenseId}"] .subexpense-total-toggle`).after(
+            returnsElement
+          );
+        }
+      } else {
+        // No returns, remove the element if it exists
+        currentReturnsElement.remove();
+      }
+
       if (callback) callback();
     });
   }

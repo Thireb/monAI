@@ -24,6 +24,14 @@ from budgetapp.models import (
 )
 
 
+class UnicodeJsonResponse(JsonResponse):
+    """Custom JsonResponse that doesn't escape Unicode characters."""
+
+    def __init__(self, data, **kwargs):
+        kwargs.setdefault("json_dumps_params", {"ensure_ascii": False})
+        super().__init__(data, **kwargs)
+
+
 class HomeView(TemplateView):
     template_name = "minimal/home.html"
 
@@ -120,6 +128,7 @@ class BudgetDetailView(TemplateView):
                     "sub_expenses_exists": expense.sub_expenses.exists(),
                     "subexpense_total": subexpense_total,
                     "subexpense_total_display": self._format_currency(subexpense_total),
+                    "returns": total_returns,
                     "total_returns": self._format_currency(float(total_returns)),
                     "remaining_amount": self._format_currency(float(remaining_amount)),
                 }
@@ -264,6 +273,41 @@ class TagStatsView(View):
 
         # Render the tag stats template
         html = render_to_string("minimal/budget_detail_pages/tag_stats_content.html", context)
+        return JsonResponse({"html": html})
+
+
+class SummaryCardsView(View):
+    """View for getting summary cards."""
+
+    def _format_currency(self, val: float) -> str:
+        return intcomma(f"{val:,.2f}")
+
+    def get(self, request, *args, **kwargs):
+        year = kwargs.get("year")
+        month = kwargs.get("month")
+        budget_date = timezone.datetime(year=year, month=month, day=1).date()
+        budget = get_object_or_404(Budget, month=budget_date)
+
+        # Get all expenses for this budget
+        expenses_qs = budget.expenses.all()
+        total_expenses = sum(e.amount for e in expenses_qs)
+
+        # Format numbers for display
+        budget_income_display = self._format_currency(budget.income)
+        total_expenses_display = self._format_currency(total_expenses)
+        remaining_budget_display = self._format_currency(budget.get_remaining_budget())
+
+        # Render the summary cards section
+        html = render_to_string(
+            "minimal/budget_detail_pages/summary_cards.html",
+            {
+                "budget": budget,
+                "budget_income_display": budget_income_display,
+                "total_expenses_display": total_expenses_display,
+                "remaining_budget_display": remaining_budget_display,
+            },
+        )
+
         return JsonResponse({"html": html})
 
 
@@ -492,7 +536,7 @@ class ExpenseCreateUpdateView(View):
                 category_name = expense.category.name if expense.category else "Uncategorized"
                 category_color = expense.category.color if expense.category else "#e0e0e0"
 
-                return JsonResponse(
+                return UnicodeJsonResponse(
                     {
                         "status": "success",
                         "message": "Expense updated successfully!",
@@ -506,9 +550,16 @@ class ExpenseCreateUpdateView(View):
                             "category_name": category_name,
                             "category_color": category_color,
                             "tag_foreign_key_id": expense.tag_foreign_key_id,
-                            "tag_display": (
-                                expense.tag_foreign_key.name if expense.tag_foreign_key else "None"
-                            ),
+                            "tag_foreign_key": {
+                                "id": (
+                                    expense.tag_foreign_key.id if expense.tag_foreign_key else None
+                                ),
+                                "name": (
+                                    expense.tag_foreign_key.name
+                                    if expense.tag_foreign_key
+                                    else None
+                                ),
+                            },
                         },
                         "action": "update",
                     }
@@ -531,7 +582,7 @@ class ExpenseCreateUpdateView(View):
                 # Format sub-expenses for response
                 sub_expenses = []
 
-                return JsonResponse(
+                return UnicodeJsonResponse(
                     {
                         "status": "success",
                         "message": "Expense added successfully!",
@@ -545,9 +596,16 @@ class ExpenseCreateUpdateView(View):
                             "category_name": category_name,
                             "category_color": category_color,
                             "tag_foreign_key_id": expense.tag_foreign_key_id,
-                            "tag_display": (
-                                expense.tag_foreign_key.name if expense.tag_foreign_key else "None"
-                            ),
+                            "tag_foreign_key": {
+                                "id": (
+                                    expense.tag_foreign_key.id if expense.tag_foreign_key else None
+                                ),
+                                "name": (
+                                    expense.tag_foreign_key.name
+                                    if expense.tag_foreign_key
+                                    else None
+                                ),
+                            },
                             "sub_expenses": sub_expenses,
                             "sub_expenses_exists": False,
                         },
@@ -555,7 +613,7 @@ class ExpenseCreateUpdateView(View):
                     }
                 )
         except Exception as e:
-            return JsonResponse(
+            return UnicodeJsonResponse(
                 {"status": "error", "message": f"Error handling expense: {str(e)}"}, status=400
             )
 
