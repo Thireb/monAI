@@ -415,7 +415,6 @@ $(function () {
 
     // Update sub-expenses cell and returns display
     const subExpensesCell = row.find('td:nth-child(6)');
-    const currencyText = $('.budget-currency').text();
 
     // Update sub-expense total
     const subTotal = expense.subexpense_total_display || '0.00';
