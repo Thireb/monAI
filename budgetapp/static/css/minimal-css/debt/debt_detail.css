@@ -485,10 +485,19 @@
   box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.25);
 }
 
+.form-control.is-invalid {
+  border-color: #e53935;
+  box-shadow: 0 0 0 0.2rem rgba(229, 57, 53, 0.25);
+}
+
 .form-text {
   font-size: 0.875rem;
   color: #6c757d;
   margin-top: 0.25rem;
+}
+
+.form-text.text-danger {
+  color: #e53935 !important;
 }
 
 /* Responsive adjustments */

@@ -1,5 +1,59 @@
 // Debt Detail Page JavaScript - Dynamic Updates with Animations
 
+// Ensure modal functions are available globally
+if (typeof openModalWithAnimation === 'undefined') {
+  function openModalWithAnimation(modalId) {
+    const $modal = $(modalId);
+    $modal.css('display', 'flex').addClass('show');
+
+    // Use anime.js for smooth animation
+    anime({
+      targets: modalId,
+      opacity: [0, 1],
+      duration: 300,
+      easing: 'easeOutQuad',
+    });
+
+    anime({
+      targets: modalId + ' .modal-content',
+      translateY: [20, 0],
+      opacity: [0.8, 1],
+      duration: 400,
+      easing: 'easeOutQuad',
+    });
+
+    // Trigger custom event for modal opened
+    $modal.trigger('modal:opened');
+  }
+}
+
+if (typeof closeModalWithAnimation === 'undefined') {
+  function closeModalWithAnimation(modalId) {
+    const $modal = $(modalId);
+
+    // Use anime.js for smooth animation
+    anime({
+      targets: modalId + ' .modal-content',
+      translateY: [0, 20],
+      opacity: [1, 0.8],
+      duration: 250,
+      easing: 'easeInQuad',
+    });
+
+    anime({
+      targets: modalId,
+      opacity: [1, 0],
+      duration: 300,
+      easing: 'easeInQuad',
+      complete: function () {
+        $modal.hide().removeClass('show');
+        // Trigger custom event for modal closed
+        $modal.trigger('modal:closed');
+      },
+    });
+  }
+}
+
 // Toast notification function
 function showToast(title, message, type) {
   // Check if we have a toast container, if not create one
@@ -108,9 +162,9 @@ function updateSummaryCards(debtData) {
   Object.keys(cards).forEach(cardId => {
     const card = $(`.summary-card[data-card="${cardId}"] .summary-value`);
     const currentValue = parseFloat(card.text().replace(/[^\d.-]/g, '') || 0);
-    const newValue = parseFloat(cards[cardId]);
+    const newValue = parseFloat(cards[cardId] || 0);
 
-    if (currentValue !== newValue) {
+    if (!isNaN(newValue) && currentValue !== newValue) {
       animateValue(card, currentValue, newValue);
     }
   });
@@ -120,29 +174,29 @@ function updateSummaryCards(debtData) {
 function updateProgressBars(debtData) {
   // Repayment progress
   const repaymentBar = $('.progress-card:first .progress-bar');
-  const repaymentPercentage = debtData.repayment_progress_percentage;
+  const repaymentPercentage = parseFloat(debtData.repayment_progress_percentage || 0);
   const currentRepaymentWidth =
     (parseFloat(repaymentBar.css('width')) / parseFloat(repaymentBar.parent().css('width'))) * 100;
 
-  if (Math.abs(currentRepaymentWidth - repaymentPercentage) > 1) {
+  if (!isNaN(repaymentPercentage) && Math.abs(currentRepaymentWidth - repaymentPercentage) > 1) {
     animateProgressBar(repaymentBar, currentRepaymentWidth, repaymentPercentage);
     $('.progress-card:first .progress-percentage').text(repaymentPercentage + '%');
     $('.progress-card:first .progress-description').text(
-      `${debtData.repaid_amount} of ${debtData.borrowed_amount} repaid`
+      `${debtData.repaid_amount || 0} of ${debtData.borrowed_amount || 0} repaid`
     );
   }
 
   // Borrowing progress
   const borrowingBar = $('.progress-card:last .progress-bar');
-  const borrowingPercentage = debtData.progress_percentage;
+  const borrowingPercentage = parseFloat(debtData.progress_percentage || 0);
   const currentBorrowingWidth =
     (parseFloat(borrowingBar.css('width')) / parseFloat(borrowingBar.parent().css('width'))) * 100;
 
-  if (Math.abs(currentBorrowingWidth - borrowingPercentage) > 1) {
+  if (!isNaN(borrowingPercentage) && Math.abs(currentBorrowingWidth - borrowingPercentage) > 1) {
     animateProgressBar(borrowingBar, currentBorrowingWidth, borrowingPercentage);
     $('.progress-card:last .progress-percentage').text(borrowingPercentage + '%');
     $('.progress-card:last .progress-description').text(
-      `${debtData.borrowed_amount} of ${debtData.total_amount} borrowed`
+      `${debtData.borrowed_amount || 0} of ${debtData.total_amount || 0} borrowed`
     );
   }
 }
@@ -226,7 +280,7 @@ $(document).ready(function () {
     $('#editDebtName').val(name);
     $('#editDebtDescription').val(description);
     $('#editDebtTotalAmount').val(totalAmount);
-    $('#editDebtModal').modal('show');
+    openModalWithAnimation('#editDebtModal');
   };
 
   $('#editDebtForm').on('submit', function (e) {
@@ -234,10 +288,16 @@ $(document).ready(function () {
 
     const form = $(this);
     const submitBtn = form.find('button[type="submit"]');
+
+    // Prevent double submission
+    if (submitBtn.hasClass('loading')) {
+      return;
+    }
+
     const originalText = submitBtn.text();
 
     showLoading(submitBtn);
-    submitBtn.text('Updating...');
+    submitBtn.text('Updating...').prop('disabled', true);
 
     $.ajax({
       url: '/minimal/debts/update/',
@@ -246,7 +306,7 @@ $(document).ready(function () {
       success: function (response) {
         if (response.success) {
           showToast('Success', response.message, 'success');
-          $('#editDebtModal').modal('hide');
+          closeModalWithAnimation('#editDebtModal');
 
           // Update page content dynamically
           updateSummaryCards(response.debt);
@@ -265,7 +325,7 @@ $(document).ready(function () {
       },
       complete: function () {
         hideLoading(submitBtn);
-        submitBtn.text(originalText);
+        submitBtn.text(originalText).prop('disabled', false);
       },
     });
   });
@@ -292,7 +352,7 @@ $(document).ready(function () {
           success: function (response) {
             if (response.success) {
               showToast('Success', response.message, 'success');
-              $('#deleteModal').modal('hide');
+              closeModalWithAnimation('#deleteModal');
 
               // Animate page transition
               $('body').fadeOut(500, function () {
@@ -312,7 +372,7 @@ $(document).ready(function () {
           },
         });
       });
-    $('#deleteModal').modal('show');
+    openModalWithAnimation('#deleteModal');
   };
 
   // Add Borrowing - Dynamic Update
@@ -321,10 +381,38 @@ $(document).ready(function () {
 
     const form = $(this);
     const submitBtn = form.find('button[type="submit"]');
+
+    // Prevent double submission
+    if (submitBtn.hasClass('loading')) {
+      return;
+    }
+
+    // Client-side validation
+    const amount = parseFloat($('#borrowingAmount').val());
+    const currentBorrowed = parseFloat(
+      $('.summary-card[data-card="borrowed-amount"] .summary-value')
+        .text()
+        .replace(/[^\d.-]/g, '') || 0
+    );
+    const totalAmount = parseFloat(
+      $('.summary-card[data-card="total-amount"] .summary-value')
+        .text()
+        .replace(/[^\d.-]/g, '') || 0
+    );
+
+    if (currentBorrowed + amount > totalAmount) {
+      showToast(
+        'Error',
+        `This borrowing would exceed the total debt amount of ${totalAmount}`,
+        'error'
+      );
+      return;
+    }
+
     const originalText = submitBtn.text();
 
     showLoading(submitBtn);
-    submitBtn.text('Adding...');
+    submitBtn.text('Adding...').prop('disabled', true);
 
     $.ajax({
       url: '/minimal/debts/borrow/',
@@ -333,7 +421,7 @@ $(document).ready(function () {
       success: function (response) {
         if (response.success) {
           showToast('Success', response.message, 'success');
-          $('#borrowModal').modal('hide');
+          closeModalWithAnimation('#borrowModal');
 
           // Update page content dynamically
           updateSummaryCards(response.debt);
@@ -353,18 +441,45 @@ $(document).ready(function () {
       },
       complete: function () {
         hideLoading(submitBtn);
-        submitBtn.text(originalText);
+        submitBtn.text(originalText).prop('disabled', false);
       },
     });
   });
 
   // Modal form reset
-  $('.modal').on('hidden.bs.modal', function () {
+  $('.modal-minimal').on('modal:closed', function () {
     $(this).find('form')[0].reset();
     $(this).find('.is-invalid').removeClass('is-invalid');
     // Reset date to today for borrowing form
     if ($(this).attr('id') === 'borrowModal') {
       $('#borrowingDate').val(new Date().toISOString().split('T')[0]);
+    }
+  });
+
+  // Real-time validation for borrowing form
+  $('#borrowingAmount').on('input', function () {
+    const amount = parseFloat($(this).val()) || 0;
+    const currentBorrowed = parseFloat(
+      $('.summary-card[data-card="borrowed-amount"] .summary-value')
+        .text()
+        .replace(/[^\d.-]/g, '') || 0
+    );
+    const totalAmount = parseFloat(
+      $('.summary-card[data-card="total-amount"] .summary-value')
+        .text()
+        .replace(/[^\d.-]/g, '') || 0
+    );
+    const remaining = totalAmount - currentBorrowed;
+
+    if (amount > remaining) {
+      $(this).addClass('is-invalid');
+      $(this)
+        .next('.form-text')
+        .text(`Maximum amount you can borrow: ${remaining.toFixed(2)}`)
+        .addClass('text-danger');
+    } else {
+      $(this).removeClass('is-invalid');
+      $(this).next('.form-text').text('Amount to borrow').removeClass('text-danger');
     }
   });
 
@@ -374,7 +489,7 @@ $(document).ready(function () {
     $('#editTransactionAmount').val(amount);
     $('#editTransactionDate').val(date);
     $('#editTransactionNotes').val(notes);
-    $('#editTransactionModal').modal('show');
+    openModalWithAnimation('#editTransactionModal');
   };
 
   $('#editTransactionForm').on('submit', function (e) {
@@ -382,10 +497,16 @@ $(document).ready(function () {
 
     const form = $(this);
     const submitBtn = form.find('button[type="submit"]');
+
+    // Prevent double submission
+    if (submitBtn.hasClass('loading')) {
+      return;
+    }
+
     const originalText = submitBtn.text();
 
     showLoading(submitBtn);
-    submitBtn.text('Updating...');
+    submitBtn.text('Updating...').prop('disabled', true);
 
     $.ajax({
       url: '/minimal/debts/transaction/update/',
@@ -394,7 +515,7 @@ $(document).ready(function () {
       success: function (response) {
         if (response.success) {
           showToast('Success', response.message, 'success');
-          $('#editTransactionModal').modal('hide');
+          closeModalWithAnimation('#editTransactionModal');
 
           // Update page content dynamically
           updateSummaryCards(response.debt);
@@ -417,7 +538,7 @@ $(document).ready(function () {
       },
       complete: function () {
         hideLoading(submitBtn);
-        submitBtn.text(originalText);
+        submitBtn.text(originalText).prop('disabled', false);
       },
     });
   });
@@ -444,7 +565,7 @@ $(document).ready(function () {
           success: function (response) {
             if (response.success) {
               showToast('Success', response.message, 'success');
-              $('#deleteTransactionModal').modal('hide');
+              closeModalWithAnimation('#deleteTransactionModal');
 
               // Update page content dynamically
               updateSummaryCards(response.debt);
@@ -469,6 +590,34 @@ $(document).ready(function () {
           },
         });
       });
-    $('#deleteTransactionModal').modal('show');
+    openModalWithAnimation('#deleteTransactionModal');
   };
+
+  // Add cancel button handlers for custom modals
+  $('.borrow-cancel-btn').on('click', function () {
+    closeModalWithAnimation('#borrowModal');
+  });
+
+  $('.edit-debt-cancel-btn').on('click', function () {
+    closeModalWithAnimation('#editDebtModal');
+  });
+
+  $('.delete-cancel-btn').on('click', function () {
+    closeModalWithAnimation('#deleteModal');
+  });
+
+  $('.edit-transaction-cancel-btn').on('click', function () {
+    closeModalWithAnimation('#editTransactionModal');
+  });
+
+  $('.delete-transaction-cancel-btn').on('click', function () {
+    closeModalWithAnimation('#deleteTransactionModal');
+  });
+
+  // Close modals when clicking outside
+  $('.modal-minimal').on('click', function (e) {
+    if (e.target === this) {
+      closeModalWithAnimation('#' + $(this).attr('id'));
+    }
+  });
 });
