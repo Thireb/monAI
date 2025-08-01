@@ -217,6 +217,7 @@ New pages/components should:
 - Avoid unnecessary complexity—keep UI and code simple and maintainable.
 - Use the right tool for the job: Alpine.js for state, Anime.js for animations, jQuery for AJAX.
 - Document new components and patterns in this strategy file as the theme evolves.
+- Use the custom modal system for adding modals instead of using bootstarp modals.
 
 ## Page Height and Background Standards
 

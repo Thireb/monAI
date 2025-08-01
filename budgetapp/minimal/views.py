@@ -1197,6 +1197,7 @@ class DebtUpdateView(View):
                         "borrowed_amount": str(debt.borrowed_amount),
                         "repaid_amount": str(debt.repaid_amount),
                         "remaining_to_repay": str(debt.remaining_to_repay),
+                        "progress_percentage": debt.progress_percentage,
                         "repayment_progress_percentage": debt.repayment_progress_percentage,
                     },
                 }
@@ -1308,11 +1309,21 @@ class DebtBorrowingView(View):
                         "id": transaction.id,
                         "amount": str(transaction.amount),
                         "date": transaction.date.strftime("%Y-%m-%d"),
+                        "date_iso": transaction.date.strftime("%Y-%m-%d"),
                         "notes": transaction.notes,
+                        "notes_escaped": (
+                            transaction.notes.replace("'", "\\'") if transaction.notes else ""
+                        ),
+                        "created_at": transaction.created_at.strftime("%Y-%m-%d"),
                     },
                     "debt": {
+                        "name": debt.name,
+                        "total_amount": str(debt.total_amount),
                         "borrowed_amount": str(debt.borrowed_amount),
-                        "progress_percentage": debt.repayment_progress_percentage,
+                        "repaid_amount": str(debt.repaid_amount),
+                        "remaining_to_repay": str(debt.remaining_to_repay),
+                        "progress_percentage": debt.progress_percentage,
+                        "repayment_progress_percentage": debt.repayment_progress_percentage,
                     },
                 }
             )
@@ -1376,11 +1387,21 @@ class DebtTransactionUpdateView(View):
                         "id": transaction.id,
                         "amount": str(transaction.amount),
                         "date": transaction.date.strftime("%Y-%m-%d"),
+                        "date_iso": transaction.date.strftime("%Y-%m-%d"),
                         "notes": transaction.notes,
+                        "notes_escaped": (
+                            transaction.notes.replace("'", "\\'") if transaction.notes else ""
+                        ),
+                        "created_at": transaction.created_at.strftime("%Y-%m-%d"),
                     },
                     "debt": {
+                        "name": debt.name,
+                        "total_amount": str(debt.total_amount),
                         "borrowed_amount": str(debt.borrowed_amount),
-                        "progress_percentage": debt.repayment_progress_percentage,
+                        "repaid_amount": str(debt.repaid_amount),
+                        "remaining_to_repay": str(debt.remaining_to_repay),
+                        "progress_percentage": debt.progress_percentage,
+                        "repayment_progress_percentage": debt.repayment_progress_percentage,
                     },
                 }
             )
@@ -1415,11 +1436,15 @@ class DebtTransactionDeleteView(View):
             return JsonResponse(
                 {
                     "success": True,
-                    "message": f'Deleted borrowing\n\
-                        transaction of {transaction_amount} from "{debt.name}"',
+                    "message": f'Deleted borrowing transaction of {transaction_amount} from "{debt.name}"',  # noqa: E501
                     "debt": {
+                        "name": debt.name,
+                        "total_amount": str(debt.total_amount),
                         "borrowed_amount": str(debt.borrowed_amount),
-                        "progress_percentage": debt.repayment_progress_percentage,
+                        "repaid_amount": str(debt.repaid_amount),
+                        "remaining_to_repay": str(debt.remaining_to_repay),
+                        "progress_percentage": debt.progress_percentage,
+                        "repayment_progress_percentage": debt.repayment_progress_percentage,
                     },
                 }
             )
