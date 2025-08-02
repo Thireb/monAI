@@ -154,16 +154,16 @@ $(function () {
     deleteType = $(this).data('type') || 'expense';
     expenseId = $(this).data('expense-id') || null;
     subexpenseId = $(this).data('subexpense-id') || null;
-    $('#deleteExpenseModal').fadeIn(150);
+    openModalWithAnimation('#deleteExpenseModal');
   });
   $(document).on('click', '.delete-cancel-btn', function () {
-    $('#deleteExpenseModal').fadeOut(150);
+    closeModalWithAnimation('#deleteExpenseModal');
     deleteType = null;
     expenseId = null;
     subexpenseId = null;
   });
   $(document).on('click', '.delete-confirm-btn', function () {
-    $('#deleteExpenseModal').fadeOut(150);
+    closeModalWithAnimation('#deleteExpenseModal');
     const year = $('#js-budget-meta').data('year');
     const month = $('#js-budget-meta').data('month');
     let url, data;
@@ -240,7 +240,11 @@ $(function () {
     const newRow = $('<tr>').addClass('expense-row').attr('data-expense-id', expense.id);
 
     // Add cells
-    newRow.append($('<td>').text(expense.name));
+    const nameCell = $('<td>')
+      .addClass('minimal-tooltip-trigger')
+      .attr('data-tooltip', expense.name)
+      .text(expense.name);
+    newRow.append(nameCell);
 
     // Always format with currency to ensure consistency
     const currencyText = $('.budget-currency').text();
@@ -283,6 +287,23 @@ $(function () {
       })
       .text(currencyText + ' ' + subTotal);
     subExpensesCell.append(subTotalSpan);
+
+    // Add returns display if returns exist
+    if (expense.returns && expense.returns > 0) {
+      const returnsSpan = $('<span>')
+        .attr('id', 'total-returns')
+        .addClass('text-green')
+        .attr('data-expense-id', expense.id)
+        .css({
+          color: '#2a9155 !important',
+          'font-weight': '600',
+          display: 'block',
+          'margin-top': '4px',
+        })
+        .text('Returns: ' + currencyText + ' ' + expense.total_returns);
+      subExpensesCell.append(returnsSpan);
+    }
+
     newRow.append(subExpensesCell);
 
     // Add action buttons
@@ -392,6 +413,40 @@ $(function () {
       recurringCell.append($('<span>').addClass('badge bg-secondary').text('No'));
     }
 
+    // Update sub-expenses cell and returns display
+    const subExpensesCell = row.find('td:nth-child(6)');
+
+    // Update sub-expense total
+    const subTotal = expense.subexpense_total_display || '0.00';
+    const subTotalSpan = subExpensesCell.find('.subexpense-total-toggle');
+    if (subTotalSpan.length > 0) {
+      subTotalSpan.text(currencyText + ' ' + subTotal);
+    }
+
+    // Update returns display
+    const currentReturns = subExpensesCell.find('#total-returns');
+    if (expense.returns && expense.returns > 0) {
+      const returnsText = 'Returns: ' + currencyText + ' ' + expense.total_returns;
+      if (currentReturns.length > 0) {
+        currentReturns.text(returnsText);
+      } else {
+        const returnsSpan = $('<span>')
+          .attr('id', 'total-returns')
+          .addClass('text-green')
+          .attr('data-expense-id', expense.id)
+          .css({
+            color: '#2a9155 !important',
+            'font-weight': '600',
+            display: 'block',
+            'margin-top': '4px',
+          })
+          .text(returnsText);
+        subExpensesCell.append(returnsSpan);
+      }
+    } else {
+      currentReturns.remove();
+    }
+
     // Update data attributes on the edit button
     const editBtn = row.find('.edit-expense-btn');
     editBtn.attr({
@@ -422,11 +477,35 @@ $(function () {
   }
 
   function updateBudgetTotals() {
+    // Instead of client-side calculation, reload the summary cards from server
+    const year = $('#js-budget-meta').data('year');
+    const month = $('#js-budget-meta').data('month');
+
+    $.ajax({
+      url: `/minimal/budget/${year}/${month}/summary-cards/`,
+      type: 'GET',
+      success: function (response) {
+        // Update summary cards with server-calculated values
+        $('.summary-cards').html(response.html);
+
+        // Update category stats
+        updateCategoryStats();
+      },
+      error: function () {
+        // Fallback to client-side calculation if AJAX fails
+        updateBudgetTotalsClientSide();
+      },
+    });
+  }
+
+  // Fallback client-side calculation (kept for backward compatibility)
+  function updateBudgetTotalsClientSide() {
     // Calculate total expenses
     let totalExpenses = 0;
     $('.expense-row').each(function () {
       const amountText = $(this).find('td:nth-child(2)').text();
-      const amount = parseFloat(amountText.replace(/[^0-9.-]+/g, ''));
+      // Better parsing that handles currency symbols and commas
+      const amount = parseFloat(amountText.replace(/[^\d.-]/g, ''));
       if (!isNaN(amount)) {
         totalExpenses += amount;
       }
@@ -434,7 +513,7 @@ $(function () {
 
     // Get income
     const incomeText = $('.income-value').text();
-    const income = parseFloat(incomeText.replace(/[^0-9.-]+/g, ''));
+    const income = parseFloat(incomeText.replace(/[^\d.-]/g, ''));
 
     // Calculate remaining budget
     const remainingBudget = income - totalExpenses;
@@ -445,9 +524,6 @@ $(function () {
     // Update UI with client-side formatting
     $('.total-expenses-value').text(currency + ' ' + formatCurrency(totalExpenses));
     $('.remaining-budget-value').text(currency + ' ' + formatCurrency(remainingBudget));
-
-    // Update category stats
-    updateCategoryStats();
   }
 
   // Helper function to update category stats
@@ -820,6 +896,10 @@ $(function () {
             updateSubexpenseSummary(expenseId, response.summary);
           }
         });
+
+        // Update summary cards to reflect changes in expenses/returns
+        updateBudgetTotals();
+
         showToast('Success', response.message, 'success');
         $form.removeClass('show').hide();
       },
@@ -861,6 +941,7 @@ $(function () {
       const doc = parser.parseFromString(data, 'text/html');
       const newSubList = $(doc).find(`#subexpenses-${expenseId} .subexpenses-list`).parent().html();
       $(`#subexpenses-${expenseId} .subexpenses-list`).parent().html(newSubList);
+
       // Update sub-expense total in main table
       const newTotal = $(doc)
         .find(`.expense-row[data-expense-id="${expenseId}"] .subexpense-total-toggle`)
@@ -868,6 +949,30 @@ $(function () {
       if (newTotal) {
         $(`.expense-row[data-expense-id="${expenseId}"] .subexpense-total-toggle`).html(newTotal);
       }
+
+      // Update returns display in main table
+      const returnsElement = $(doc).find(
+        `.expense-row[data-expense-id="${expenseId}"] #total-returns`
+      );
+      const currentReturnsElement = $(
+        `.expense-row[data-expense-id="${expenseId}"] #total-returns`
+      );
+
+      if (returnsElement.length > 0) {
+        // Returns exist, update or add the element
+        if (currentReturnsElement.length > 0) {
+          currentReturnsElement.replaceWith(returnsElement);
+        } else {
+          // Add returns element after the sub-expense total
+          $(`.expense-row[data-expense-id="${expenseId}"] .subexpense-total-toggle`).after(
+            returnsElement
+          );
+        }
+      } else {
+        // No returns, remove the element if it exists
+        currentReturnsElement.remove();
+      }
+
       if (callback) callback();
     });
   }
@@ -967,6 +1072,15 @@ $(function () {
   // Budget Delete Functionality
   $('#delete-budget-btn').on('click', function () {
     openModalWithAnimation('#deleteBudgetModal');
+  });
+
+  // Budget delete modal cancel and close buttons
+  $('.budget-delete-cancel-btn').on('click', function () {
+    closeModalWithAnimation('#deleteBudgetModal');
+  });
+
+  $('.budget-delete-close-btn').on('click', function () {
+    closeModalWithAnimation('#deleteBudgetModal');
   });
 
   $('#confirm-delete-budget').on('click', function () {

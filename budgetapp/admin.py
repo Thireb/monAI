@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Budget, Expense, Goal, GoalContribution, Tag
+from .models import Budget, Debt, DebtTransaction, Expense, Goal, GoalContribution, Tag
 
 
 @admin.register(Budget)
@@ -18,8 +18,8 @@ class ExpenseAdmin(admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ("name", "description", "color", "created_at")
-    list_filter = ("created_at",)
+    list_display = ("name", "description", "color", "is_active", "created_at")
+    list_filter = ("is_active", "created_at")
     search_fields = ("name", "description")
     readonly_fields = ("created_at", "updated_at")
 
@@ -44,4 +44,32 @@ class GoalContributionAdmin(admin.ModelAdmin):
     list_display = ("goal", "amount", "date", "source")
     list_filter = ("source", "date")
     search_fields = ("goal__name", "notes")
+    date_hierarchy = "date"
+
+
+@admin.register(Debt)
+class DebtAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "total_amount",
+        "borrowed_amount",
+        "repaid_amount",
+        "repayment_progress_percentage",
+        "is_active",
+        "created_at",
+    )
+    list_filter = ("is_active", "created_at")
+    search_fields = ("name", "description")
+    readonly_fields = ("repaid_amount", "repayment_progress_percentage", "is_fully_repaid")
+    fieldsets = (
+        (None, {"fields": ("name", "description", "total_amount", "debt_tag")}),
+        ("Status", {"fields": ("borrowed_amount", "is_active")}),
+    )
+
+
+@admin.register(DebtTransaction)
+class DebtTransactionAdmin(admin.ModelAdmin):
+    list_display = ("debt", "amount", "date", "created_at")
+    list_filter = ("date", "created_at")
+    search_fields = ("debt__name", "notes")
     date_hierarchy = "date"

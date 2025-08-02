@@ -26,6 +26,11 @@
                     <a class="nav-link" href="#">Goals</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {% if 'debt' in request.resolver_match.url_name %}active{% endif %}"
+                        aria-current="{% if 'debt' in request.resolver_match.url_name %}page{% endif %}"
+                        href="{% url 'minimal:debt_list' %}">Debts</a>
+                </li>
+                <li class="nav-item">
                     <button class="nav-link minimal-calc-btn" data-bs-toggle="modal" data-bs-target="#calculatorModal"
                         aria-label="Open calculator">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"

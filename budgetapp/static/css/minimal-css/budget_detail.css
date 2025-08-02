@@ -204,6 +204,17 @@ h6 {
   vertical-align: middle;
 }
 
+/* Handle long expense names */
+.wide-expense-table td:first-child {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+/* Remove the hover expansion and CSS tooltip - we'll use the custom tooltip system instead */
+
 .wide-expense-table th {
   color: #2196f3;
   font-weight: 700;
@@ -524,33 +535,34 @@ h6 {
   .subexpenses-table th,
   .subexpenses-table td {
     display: block;
-    width: 100%;
   }
 
-  .subexpenses-table thead {
-    display: none;
+  .subexpenses-table thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
   }
 
   .subexpenses-table tr {
-    margin-bottom: 10px;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px 0 rgba(33, 150, 243, 0.08);
-    background: #fff;
-    padding: 8px 0;
+    border: 1px solid #ccc;
+    margin-bottom: 0.5rem;
   }
 
   .subexpenses-table td {
-    padding: 8px 12px;
     border: none;
     position: relative;
+    padding-left: 50%;
+    text-align: left;
   }
 
   .subexpenses-table td:before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: #1976d2;
-    display: block;
-    margin-bottom: 2px;
+    content: attr(data-label) ': ';
+    position: absolute;
+    left: 6px;
+    width: 45%;
+    padding-right: 10px;
+    white-space: nowrap;
+    font-weight: bold;
   }
 }
 

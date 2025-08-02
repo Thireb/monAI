@@ -3,6 +3,14 @@ body {
   min-height: 100vh;
 }
 
+/* Ensure all pages have full height background */
+.page-content-wrapper {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f3f6fa 0%, #e9eafc 100%) !important;
+  padding-bottom: 2rem;
+  /* Add bottom padding for content */
+}
+
 /* Generic Button Styles */
 .btn-minimal {
   background: rgba(33, 150, 243, 0.12);

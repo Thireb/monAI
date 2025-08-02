@@ -14,13 +14,17 @@
         <link rel="stylesheet" href="{% static 'css/minimal-css/theme/theme.css' %}">
         <link rel="stylesheet" href="{% static 'css/minimal-css/nav/nav.css' %}">
         <link rel="stylesheet" href="{% static 'css/minimal-css/calculator/calculator.css' %}">
+        <link rel="stylesheet" href="{% static 'css/minimal-css/modal/modal.css' %}">
+        <link rel="stylesheet" href="{% static 'css/minimal-css/debt/debt_common.css' %}">
+        <link rel="stylesheet" href="{% static 'css/minimal-css/debt/debt_dashboard.css' %}">
+        <link rel="stylesheet" href="{% static 'css/minimal-css/debt/debt_detail.css' %}">
         <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
         {% block extra_css %}{% endblock extra_css %}
     </head>
 
     <body>
         {% include "minimal/components/nav.html" %}
-        <div class="container mt-4">
+        <div class="container mt-4 page-content-wrapper">
             {% block content %}{% endblock content %}
         </div>
         {% include "minimal/components/calculator.html" %}
@@ -33,6 +37,9 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
         <script src="{% static 'js/minimal-js/nav/nav.js' %}"></script>
         <script src="{% static 'js/minimal-js/calculator/calculator.js' %}"></script>
+        <script src="{% static 'js/minimal-js/modal/modal.js' %}"></script>
+        <script src="{% static 'js/minimal-js/debt/debt_list.js' %}"></script>
+        <script src="{% static 'js/minimal-js/debt/debt_detail.js' %}"></script>
         <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
         {% block extra_js %}
         {{ block.super }}
