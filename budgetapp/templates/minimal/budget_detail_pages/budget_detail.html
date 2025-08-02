@@ -1,0 +1,51 @@
+{% extends "minimal/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/minimal-css/budget_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/minimal-css/modal/modal.css' %}">
+<link rel="stylesheet" href="{% static 'css/minimal-css/tooltip/tooltip.css' %}">
+{% endblock extra_css %}
+
+{% block content %}
+<div>
+    <!-- Hidden element to store currency for JavaScript -->
+    <span class="budget-currency d-none">{{ budget.currency }}</span>
+    <span id="js-budget-meta" data-year="{{ budget.month.year }}" data-month="{{ budget.month.month }}"
+        data-home-url="{% url 'minimal:home' %}"></span>
+
+    <div class="budget-header colorful-bg mb-4">
+        <div class="d-flex align-items-center">
+            <h1 class="mb-0">Budget for {{ budget.month|date:"F Y" }}</h1>
+            <button class="budget-delete-link delete-tooltip-trigger" id="delete-budget-btn"
+                data-tooltip="⚠️ Delete this budget permanently">
+                <span class="delete-text">Delete</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards Section -->
+    {% include "minimal/budget_detail_pages/summary_cards.html" %}
+
+    <!-- Category Stats Section -->
+    {% include "minimal/budget_detail_pages/category_stats.html" %}
+
+    <!-- Expenses Table Section -->
+    {% include "minimal/budget_detail_pages/expenses_table.html" %}
+
+    <!-- Income History Section -->
+    {% include "minimal/budget_detail_pages/income_history.html" %}
+
+    <!-- Modals -->
+    {% include "minimal/budget_detail_pages/income_modal.html" %}
+    {% include "minimal/budget_detail_pages/expense_modal.html" %}
+    {% include "minimal/budget_detail_pages/delete_expense_modal.html" %}
+    {% include "minimal/budget_detail_pages/delete_budget_modal.html" %}
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script src="{% static 'js/minimal-js/modal/modal.js' %}"></script>
+<script src="{% static 'js/minimal-js/budget_detail/budget_detail.js' %}"></script>
+<script src="{% static 'js/minimal-js/tooltip/tooltip.js' %}"></script>
+{% endblock extra_js %}

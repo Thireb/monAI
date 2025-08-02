@@ -99,6 +99,32 @@ class Category(models.Model):
         super().save(*args, **kwargs)
 
 
+class Tag(models.Model):
+    """Custom tags for expenses that can be created by users."""
+
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    color = models.CharField(max_length=7, default="#2196f3", help_text="Hex color code")
+    is_active = models.BooleanField(
+        default=True, help_text="Whether this tag is active for new expenses"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Tags"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
 class Expense(models.Model):
     budget = models.ForeignKey(Budget, on_delete=models.CASCADE, related_name="expenses")
     name = models.CharField(max_length=200)
@@ -126,6 +152,14 @@ class Expense(models.Model):
         ("other", "Other"),
     ]
     tag = models.CharField(max_length=255, choices=TAG_CHOICES, default="meezan")
+    tag_foreign_key = models.ForeignKey(
+        Tag,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="expenses",
+        help_text="Custom tag for this expense",
+    )
 
     def __str__(self):
         return f"{self.name} - {self.amount}"
@@ -151,6 +185,14 @@ class Expense(models.Model):
     def get_net_amount(self):
         """Return the net amount (amount minus returns) for this expense."""
         return self.amount - self.get_remaining_amount()
+
+    @property
+    def subexpense_total(self):
+        # Sum of all sub-expenses (excluding returns)
+        return (
+            self.sub_expenses.filter(is_return=False).aggregate(total=models.Sum("amount"))["total"]
+            or 0
+        )
 
 
 class SubExpense(models.Model):
@@ -428,3 +470,120 @@ class GoalContribution(models.Model):
 
     def __str__(self):
         return f"{self.amount} contribution to {self.goal.name}"
+
+
+class Debt(models.Model):
+    """Represents money borrowed from external sources."""
+
+    name = models.CharField(max_length=200)  # e.g., "Motherboard Purchase"
+    description = models.TextField(blank=True)  # e.g., "Borrowed from friend for new motherboard"
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)  # e.g., 27,000
+    borrowed_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # e.g., 4,000
+    debt_tag = models.ForeignKey(
+        Tag, on_delete=models.PROTECT, related_name="debts", null=True, blank=True
+    )  # Auto-generated tag
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name_plural = "Debts"
+
+    def __str__(self):
+        return f"{self.name} - {self.borrowed_amount}"
+
+    def save(self, *args, **kwargs):
+        # Check if this is a new instance (no pk yet)
+        is_new = self.pk is None  # noqa: F841
+
+        # Save first to get the pk
+        super().save(*args, **kwargs)
+
+        # Auto-generate tag if not provided and we have a name
+        if not self.debt_tag and self.name:
+            tag_name = self.generate_debt_tag_name()
+            self.debt_tag = Tag.objects.create(
+                name=tag_name,
+                description=f"Tracking tag for debt: {self.name}",
+                color="#ff5722",  # Orange-red for debt tags
+            )
+            # Save again to update the debt_tag field
+            super().save(update_fields=["debt_tag"])
+
+    def generate_debt_tag_name(self):
+        """Generate unique tag name for debt tracking"""
+        base_name = f"Debt: {self.name}"
+        counter = 1
+
+        while Tag.objects.filter(name=base_name).exists():
+            base_name = f"Debt: {self.name} ({counter})"
+            counter += 1
+
+        return base_name
+
+    @property
+    def repaid_amount(self):
+        """Calculate total repaid from expenses with this tag"""
+        return self.debt_tag.expenses.aggregate(total=models.Sum("amount"))["total"] or Decimal("0")
+
+    @property
+    def remaining_to_repay(self):
+        return self.borrowed_amount - self.repaid_amount
+
+    @property
+    def repayment_progress_percentage(self):
+        if self.borrowed_amount == 0:
+            return 0
+        return min(100, int((self.repaid_amount / self.borrowed_amount) * 100))
+
+    @property
+    def progress_percentage(self):
+        """Calculate borrowing progress as percentage of total amount"""
+        if self.total_amount == 0:
+            return 0
+        return min(100, int((self.borrowed_amount / self.total_amount) * 100))
+
+    @property
+    def is_fully_repaid(self):
+        return self.repaid_amount >= self.borrowed_amount
+
+    def check_and_update_status(self):
+        """Check if debt is fully repaid and disable tag if so"""
+        if self.is_fully_repaid and self.debt_tag.is_active:
+            self.debt_tag.is_active = False
+            self.debt_tag.save()
+            return True
+        return False
+
+    def recalculate_borrowed_amount(self):
+        """Recalculate borrowed_amount from transactions"""
+        total = self.transactions.aggregate(total=models.Sum("amount"))["total"] or Decimal("0")
+        if self.borrowed_amount != total:
+            self.borrowed_amount = total
+            self.save(update_fields=["borrowed_amount"])
+        return total
+
+
+class DebtTransaction(models.Model):
+    """Individual borrowing transactions."""
+
+    debt = models.ForeignKey(Debt, on_delete=models.CASCADE, related_name="transactions")
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateField(default=timezone.now)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date"]
+        verbose_name_plural = "Debt transactions"
+
+    def __str__(self):
+        return f"{self.amount} borrowed for {self.debt.name} on {self.date}"
+
+    def save(self, *args, **kwargs):
+        # Update debt's borrowed_amount when transaction is saved
+        if not self.pk:  # Only on creation
+            self.debt.borrowed_amount += self.amount
+            self.debt.save(update_fields=["borrowed_amount"])
+        super().save(*args, **kwargs)
