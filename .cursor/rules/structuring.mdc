@@ -1,0 +1,22 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+## Rules for Interface
+* Keeps templates, js, css in separate files.
+* Make reusable template components
+* Keep styling and html in one file for weasyprint templates.
+* Avoid inline styles but if needed in templates, wrap them with djlint ignore
+* No backend code line should be more than 100 characters long. If long, split and move to next line.
+
+## Rules for Backend
+* Use classes for views and API
+
+## General Rules
+* Don't delete anything until told to.
+* Templates should only handle display, if any logic or calculation is needed, get it from backend.
+* If a template tag is to be loaded for math operations, then that means logic needs to be put in backend and sent via context.
+* Use anime.js for animation.
+* Use mcp memory tool to create entities and relations and keep them updated.
+* Use normal string if there's no variable to display, instead of f-string.

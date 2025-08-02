@@ -43,7 +43,13 @@ repos:
     rev: v1.36.3
     hooks:
       - id: djlint-django
-        args: [--profile=django, --indent=2, --preserve-blank-lines]
+        args:
+          [
+            --profile=django,
+            --indent=2,
+            --preserve-blank-lines,
+            --configuration=.djlintrc,
+          ]
         types_or: [html]
         # Only run on changed files by default
         pass_filenames: true
@@ -67,7 +73,7 @@ repos:
       - id: debug-statements
       - id: check-yaml
       - id: check-added-large-files
-        args: ['--maxkb=500']
+        args: ["--maxkb=500"]
 
   # Check for security issues
   - repo: https://github.com/pycqa/bandit

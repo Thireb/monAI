@@ -1,0 +1,88 @@
+<!-- Alpine.js CDN: <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script> -->
+<!-- Wide, Colorful Expense Table Section -->
+<div class="expenses-section mb-5">
+    <div class="expenses-header d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Expenses</h2>
+        <button class="btn btn-minimal btn-action" data-modal-target="#expenseModal">
+            Add Expense
+        </button>
+    </div>
+    <div class="expenses-table glassy p-3">
+        <div class="table-responsive">
+            <table class="table table-borderless wide-expense-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Tag</th>
+                        <th>Recurring</th>
+                        <th>Sub-Expenses</th>
+                        <th class="actions-header" scope="col">
+                            <span aria-hidden="true">Actions ⚙️</span>
+                            <span class="visually-hidden">Actions</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                    <tr class="expense-row" data-expense-id="{{ expense.id }}">
+                        <td class="minimal-tooltip-trigger" data-tooltip="{{ expense.name|escapejs }}">{{ expense.name }}</td>
+                        <td>{{ budget.currency }} {{ expense.amount_display }}</td>
+                        <td data-category-id="{{ expense.category.id|default:'' }}">
+                            {% if expense.category %}{{ expense.category.name }}{% else %}<span
+                                class="text-muted">Uncategorized</span>{% endif %}</td>
+                        <td>
+                            {% if expense.tag_foreign_key %}
+                            <span
+                                style="color: {{ expense.tag_foreign_key.color }}; font-weight: 500; text-transform: capitalize;">
+                                {{ expense.tag_foreign_key.name|title }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">No Tag</span>
+                            {% endif %}
+                        </td>
+                        <td>{% if expense.is_recurring %}<span class="badge bg-success">Yes</span>{% else %}<span
+                                class="badge bg-secondary">No</span>{% endif %}</td>
+                        <td>
+                            <span class="subexpense-total-toggle minimal-tooltip-trigger"
+                                data-expense-id="{{ expense.id }}" data-tooltip="Click to reveal more" tabindex="0">
+                                {{ budget.currency }} {{ expense.subexpense_total_display }}
+                                {% if expense.returns > 0 %}
+                                <br>
+                                <span id="total-returns" class="text-green"
+                                    style="color: #2a9155 !important; font-weight: 600;"
+                                    data-expense-id="{{ expense.id }}">
+                                    {{ budget.currency }} {{ expense.total_returns }}
+                                </span>
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td class="expense-actions-cell">
+                            <button class="btn-icon edit-expense-btn minimal-tooltip-trigger" aria-label="Edit"
+                                data-tooltip="Edit" data-expense-id="{{ expense.id }}"
+                                data-expense-name="{{ expense.name|escapejs }}"
+                                data-expense-amount="{{ expense.amount }}"
+                                data-expense-category="{% if expense.category %}{{ expense.category.id }}{% else %}{% endif %}"
+                                data-expense-tag="{% if expense.tag_foreign_key %}{{ expense.tag_foreign_key.id }}{% else %}{% endif %}"
+                                data-expense-recurring="{% if expense.is_recurring %}true{% else %}false{% endif %}">✏️</button>
+                            <button class="btn-icon btn-danger delete-expense-btn minimal-tooltip-trigger"
+                                aria-label="Delete" data-tooltip="Delete"
+                                data-expense-id="{{ expense.id }}">🗑️</button>
+                        </td>
+                    </tr>
+                    <!-- djlint:off H021 -->
+                    <tr class="subexpenses-row" id="subexpenses-{{ expense.id }}" style="display:none;">
+                        <!-- djlint:on H021 -->
+                        <td colspan="7">
+                            <div class="subexpenses-content">
+                                {% include "minimal/budget_detail_pages/subexpenses_list.html" with subexpenses=expense.sub_expenses expense=expense %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
