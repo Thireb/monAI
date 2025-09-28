@@ -559,6 +559,11 @@ class ExpenseCreateUpdateView(View):
                                     if expense.tag_foreign_key
                                     else None
                                 ),
+                                "color": (
+                                    expense.tag_foreign_key.color
+                                    if expense.tag_foreign_key
+                                    else None
+                                ),
                             },
                         },
                         "action": "update",
@@ -602,6 +607,11 @@ class ExpenseCreateUpdateView(View):
                                 ),
                                 "name": (
                                     expense.tag_foreign_key.name
+                                    if expense.tag_foreign_key
+                                    else None
+                                ),
+                                "color": (
+                                    expense.tag_foreign_key.color
                                     if expense.tag_foreign_key
                                     else None
                                 ),
