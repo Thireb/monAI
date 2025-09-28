@@ -66,6 +66,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "budgetapp.middleware.RequestLoggingMiddleware",
 ]
 
 ROOT_URLCONF = "budget_tracker.urls"
@@ -144,18 +145,86 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {pathname}:{lineno} {funcName}() {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {name}:{funcName}() {message}",
+            "style": "{",
+        },
+        "console": {
+            "format": "{levelname} {asctime} {name} {message}",
+            "style": "{",
+        },
+    },
+    "filters": {
+        "exclude_autoreload": {
+            "()": "django.utils.log.CallbackFilter",
+            "callback": lambda record: not (
+                record.name == "django.utils.autoreload"
+                and record.funcName in ["run_with_reloader", "trigger_reload"]
+            ),
+        },
+        "exclude_server_logs": {
+            "()": "django.utils.log.CallbackFilter",
+            "callback": lambda record: not (
+                record.name == "django.server" and record.funcName == "log_message"
+            ),
+        },
+    },
     "handlers": {
+        "console": {
+            "level": "DEBUG" if DEBUG else "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "console",
+            "filters": ["exclude_autoreload", "exclude_server_logs"],
+        },
         "file": {
             "level": "ERROR",
             "class": "logging.FileHandler",
-            "filename": "debug.log",
+            "filename": BASE_DIR / "debug.log",
+            "formatter": "verbose",
         },
+        "app_file": {
+            "level": "DEBUG" if DEBUG else "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "app.log",
+            "maxBytes": 1024 * 1024 * 5,  # 5 MB
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "level": "INFO",
+        "handlers": ["console"],
     },
     "loggers": {
         "django": {
-            "handlers": ["file"],
-            "level": "ERROR",
-            "propagate": True,
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG" if DEBUG else "WARNING",
+            "propagate": False,
+        },
+        "budgetapp": {
+            "handlers": ["console", "app_file"],
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
+        },
+        "budgetapp.middleware": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "celery": {
+            "handlers": ["console", "app_file"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }
