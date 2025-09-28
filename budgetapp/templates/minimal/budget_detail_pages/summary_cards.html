@@ -24,27 +24,9 @@
             </div>
         </div>
 
-        <!-- Tag Summary Cards -->
+        <!-- Tag Summary Cards (Dynamic Content) -->
         <div class="tag-summary-section mt-4">
-            <h6 class="text-center mb-3 text-muted">Account Breakdown</h6>
-            {% if tag_labels %}
-            <div class="tag-summary-cards d-flex flex-wrap gap-2 justify-content-center">
-                {% for tag, label in tag_labels.items %}
-                {% if tag_totals|get_item:tag > 0 %}
-                <div class="tag-summary-card" data-tag="{{ tag }}">
-                    <div class="tag-label">{{ label }}</div>
-                    <div class="tag-value">{{ budget.currency }} {{ tag_totals|get_item:tag|floatformat:2|intcomma }}
-                    </div>
-                </div>
-                {% endif %}
-                {% endfor %}
-            </div>
-            {% if not tag_totals %}
-            <div class="text-center text-muted">No account breakdown available.</div>
-            {% endif %}
-            {% else %}
-            <div class="text-center text-muted">No account breakdown available.</div>
-            {% endif %}
+            <!-- This section will be populated via AJAX -->
         </div>
     </div>
 </div>
