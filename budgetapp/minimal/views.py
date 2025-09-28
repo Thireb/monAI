@@ -89,7 +89,6 @@ class BudgetDetailView(TemplateView):
         total_expenses = sum(e.amount for e in expenses_qs)
         categories = Category.objects.all()
         tags = Tag.objects.all().order_by("name")
-        income_history = IncomeHistory.objects.filter(budget=budget)[:5]
 
         # Format numbers for display
         budget_income_display = self._format_currency(budget.income)
@@ -174,7 +173,6 @@ class BudgetDetailView(TemplateView):
                 "categories": categories,
                 "tags": tags,
                 "total_expenses": total_expenses,
-                "income_history": income_history,
                 "currency_choices": Budget.get_currency_choices(),
                 "budget_income_display": budget_income_display,
                 "total_expenses_display": total_expenses_display,
