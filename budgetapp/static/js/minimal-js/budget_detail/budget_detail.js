@@ -567,6 +567,7 @@ $(function () {
         $('.tag-summary-section').replaceWith(response.html);
       },
       error: function () {
+        console.warn('Failed to load tag stats via AJAX, using fallback');
         // Fallback to client-side calculation if AJAX fails
         updateTagTotalsClientSide();
       },
