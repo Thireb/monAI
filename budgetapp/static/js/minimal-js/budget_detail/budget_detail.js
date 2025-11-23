@@ -261,7 +261,14 @@ $(function () {
     // Create tag cell
     const tagCell = $('<td>');
     if (expense.tag_foreign_key && expense.tag_foreign_key.name) {
-      tagCell.text(expense.tag_foreign_key.name);
+      const tagSpan = $('<span>')
+        .css({
+          color: expense.tag_foreign_key.color || '#2196f3',
+          fontWeight: '500',
+          textTransform: 'capitalize',
+        })
+        .text(expense.tag_foreign_key.name.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()));
+      tagCell.append(tagSpan);
     } else {
       tagCell.append($('<span>').addClass('text-muted').text('No Tag'));
     }
@@ -400,7 +407,14 @@ $(function () {
     const tagCell = row.find('td:nth-child(4)');
     tagCell.empty();
     if (expense.tag_foreign_key && expense.tag_foreign_key.name) {
-      tagCell.text(expense.tag_foreign_key.name);
+      const tagSpan = $('<span>')
+        .css({
+          color: expense.tag_foreign_key.color || '#2196f3',
+          fontWeight: '500',
+          textTransform: 'capitalize',
+        })
+        .text(expense.tag_foreign_key.name.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()));
+      tagCell.append(tagSpan);
     } else {
       tagCell.append($('<span>').addClass('text-muted').text('No Tag'));
     }
@@ -553,6 +567,7 @@ $(function () {
         $('.tag-summary-section').replaceWith(response.html);
       },
       error: function () {
+        console.warn('Failed to load tag stats via AJAX, using fallback');
         // Fallback to client-side calculation if AJAX fails
         updateTagTotalsClientSide();
       },
