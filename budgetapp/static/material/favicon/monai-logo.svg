@@ -1,0 +1,49 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient matching the nav bar style -->
+    <linearGradient id="monaiGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2196f3;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4caf50;stop-opacity:1" />
+    </linearGradient>
+    <!-- Background gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f3f6fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e9eafc;stop-opacity:1" />
+    </linearGradient>
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGradient)"/>
+
+  <!-- Decorative circle elements -->
+  <circle cx="128" cy="128" r="40" fill="#2196f3" opacity="0.1"/>
+  <circle cx="384" cy="384" r="50" fill="#4caf50" opacity="0.1"/>
+  <circle cx="384" cy="128" r="30" fill="#2196f3" opacity="0.08"/>
+  <circle cx="128" cy="384" r="35" fill="#4caf50" opacity="0.08"/>
+
+  <!-- Main text: monAI -->
+  <text
+    x="256"
+    y="300"
+    font-family="Arial, sans-serif"
+    font-weight="700"
+    font-size="140"
+    text-anchor="middle"
+    fill="url(#monaiGradient)"
+    letter-spacing="0.05em"
+    filter="url(#glow)"
+    style="text-transform: lowercase;">
+    monAI
+  </text>
+
+  <!-- Subtle accent line -->
+  <line x1="120" y1="320" x2="392" y2="320" stroke="url(#monaiGradient)" stroke-width="4" opacity="0.3" stroke-linecap="round"/>
+</svg>
