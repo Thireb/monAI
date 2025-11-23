@@ -39,7 +39,7 @@
                     <select name="tag" id="expense_tag_foreign_key" class="form-select" aria-label="Expense tag">
                         <option value="">No Tag</option>
                         {% for tag in tags %}
-                        <option value="{{ tag.id }}">{{ tag.name }}</option>
+                        <option value="{{ tag.id }}" data-tag-color="{{ tag.color }}" data-tag-name="{{ tag.name }}">{{ tag.name|title }}</option>
                         {% endfor %}
                     </select>
                     <div class="form-text">Select the account for this expense</div>
