@@ -1,26 +1,31 @@
 // Service Worker for Budget Tracker PWA
-// Version for cache management
-const CACHE_VERSION = 'v1';
+// Version for cache management - increment to force update
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `budget-tracker-${CACHE_VERSION}`;
+
+// Offline fallback page
+const OFFLINE_URL = '/minimal/offline/';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
   '/minimal/',
+  '/minimal/offline/',
   '/static/css/minimal-css/theme/theme.css',
   '/static/css/minimal-css/nav/nav.css',
   '/static/css/minimal-css/calculator/calculator.css',
   '/static/css/minimal-css/modal/modal.css',
-  '/static/material/css/style.css',
-  '/static/material/css/table-styles.css',
-  '/static/material/css/goal-styles.css',
+  '/static/css/minimal-css/debt/debt_common.css',
+  '/static/css/minimal-css/debt/debt_dashboard.css',
+  '/static/css/minimal-css/debt/debt_detail.css',
   '/static/js/minimal-js/nav/nav.js',
   '/static/js/minimal-js/calculator/calculator.js',
   '/static/js/minimal-js/modal/modal.js',
-  '/static/material/js/scripts.js',
-  '/static/material/js/alerts.js',
+  '/static/js/minimal-js/debt/debt_list.js',
+  '/static/js/minimal-js/debt/debt_detail.js',
   '/static/material/favicon/site.webmanifest',
   '/static/material/favicon/android-chrome-192x192.png',
   '/static/material/favicon/android-chrome-512x512.png',
+  '/static/material/favicon/monai-icon.svg',
 ];
 
 // Install event - cache static assets
@@ -130,7 +135,11 @@ self.addEventListener('fetch', event => {
             if (cachedResponse) {
               return cachedResponse;
             }
-            // Fallback to minimal theme home page if nothing in cache
+            // Fallback to offline page if nothing in cache
+            if (request.destination === 'document' || request.mode === 'navigate') {
+              return caches.match(OFFLINE_URL);
+            }
+            // For other requests, return minimal home if available
             return caches.match('/minimal/');
           });
         })

@@ -32,6 +32,12 @@ class UnicodeJsonResponse(JsonResponse):
         super().__init__(data, **kwargs)
 
 
+class OfflineView(TemplateView):
+    """Offline fallback page for PWA."""
+
+    template_name = "minimal/offline.html"
+
+
 class HomeView(TemplateView):
     template_name = "minimal/home.html"
 
