@@ -166,3 +166,15 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 backup_20241204_103004.json
+
+# Capacitor env files
+capacitor-app/.env
+capacitor-app/android/local.properties
+
+# Capacitor Android build artifacts
+capacitor-app/android/.gradle/
+capacitor-app/android/app/build/
+capacitor-app/android/build/
+capacitor-app/android/capacitor-cordova-android-plugins/build/
+capacitor-app/android/capacitor-android/build/
+capacitor-app/node_modules/

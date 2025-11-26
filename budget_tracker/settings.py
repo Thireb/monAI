@@ -31,7 +31,9 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = True
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS").split(",")
 
-
+# settings.py - Allow iframe embedding for Capacitor app
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+X_FRAME_OPTIONS = "ALLOWALL"
 # Application definition
 
 INSTALLED_APPS = [
@@ -64,7 +66,8 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Disabled for Capacitor app iframe embedding
+    # "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "budgetapp.middleware.RequestLoggingMiddleware",
 ]
 
