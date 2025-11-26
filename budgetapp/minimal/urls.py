@@ -22,6 +22,7 @@ from .views import (
     ExpenseDeleteView,
     HomeView,
     IncomeUpdateView,
+    OfflineView,
     SubExpenseCreateView,
     SubExpenseDeleteView,
     SubExpenseUpdateView,
@@ -37,6 +38,7 @@ app_name = "minimal"
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
+    path("offline/", OfflineView.as_view(), name="offline"),
     path("budget/<int:year>/<int:month>/", BudgetDetailView.as_view(), name="budget_detail"),
     path("budget/create/", BudgetCreateView.as_view(), name="budget_create"),
     path(

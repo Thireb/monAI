@@ -3,7 +3,7 @@
     "short_name": "monAI",
     "description": "A personal budget tracking application to help manage expenses, income, and financial goals",
     "start_url": "/minimal/",
-    "scope": "/minimal/",
+    "scope": "/",
     "display": "standalone",
     "orientation": "portrait-primary",
     "theme_color": "#2196F3",
