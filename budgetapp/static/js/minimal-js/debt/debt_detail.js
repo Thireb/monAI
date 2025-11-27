@@ -1,58 +1,5 @@
 // Debt Detail Page JavaScript - Dynamic Updates with Animations
-
-// Ensure modal functions are available globally
-if (typeof openModalWithAnimation === 'undefined') {
-  function openModalWithAnimation(modalId) {
-    const $modal = $(modalId);
-    $modal.css('display', 'flex').addClass('show');
-
-    // Use anime.js for smooth animation
-    anime({
-      targets: modalId,
-      opacity: [0, 1],
-      duration: 300,
-      easing: 'easeOutQuad',
-    });
-
-    anime({
-      targets: modalId + ' .modal-content',
-      translateY: [20, 0],
-      opacity: [0.8, 1],
-      duration: 400,
-      easing: 'easeOutQuad',
-    });
-
-    // Trigger custom event for modal opened
-    $modal.trigger('modal:opened');
-  }
-}
-
-if (typeof closeModalWithAnimation === 'undefined') {
-  function closeModalWithAnimation(modalId) {
-    const $modal = $(modalId);
-
-    // Use anime.js for smooth animation
-    anime({
-      targets: modalId + ' .modal-content',
-      translateY: [0, 20],
-      opacity: [1, 0.8],
-      duration: 250,
-      easing: 'easeInQuad',
-    });
-
-    anime({
-      targets: modalId,
-      opacity: [1, 0],
-      duration: 300,
-      easing: 'easeInQuad',
-      complete: function () {
-        $modal.hide().removeClass('show');
-        // Trigger custom event for modal closed
-        $modal.trigger('modal:closed');
-      },
-    });
-  }
-}
+// Note: openModalWithAnimation and closeModalWithAnimation are defined in modal.js
 
 // Toast notification function
 function showToast(title, message, type) {
@@ -446,14 +393,9 @@ $(document).ready(function () {
     });
   });
 
-  // Modal form reset
-  $('.modal-minimal').on('modal:closed', function () {
-    $(this).find('form')[0].reset();
-    $(this).find('.is-invalid').removeClass('is-invalid');
-    // Reset date to today for borrowing form
-    if ($(this).attr('id') === 'borrowModal') {
-      $('#borrowingDate').val(new Date().toISOString().split('T')[0]);
-    }
+  // Reset date to today for borrowing form when modal closes
+  $('#borrowModal').on('modal:closed', function () {
+    $('#borrowingDate').val(new Date().toISOString().split('T')[0]);
   });
 
   // Real-time validation for borrowing form

@@ -3,40 +3,20 @@
  * Provides smooth animations and functionality for modals
  */
 
-// Initialize modals when document is ready
-$(function () {
-  // Prevent Bootstrap from initializing on our custom modals
-  $('.modal-minimal').each(function () {
-    // Remove any Bootstrap modal attributes that might cause conflicts
-    $(this).removeAttr('data-bs-toggle data-bs-target data-bs-dismiss');
-  });
-
-  // Handle modal triggers with data-modal-target attribute
-  $('[data-modal-target]').on('click', function () {
-    const modalId = $(this).data('modal-target');
-    openModalWithAnimation(modalId);
-  });
-
-  // Close modal when clicking outside the modal content
-  $('.modal-minimal').on('click', function (e) {
-    if ($(e.target).hasClass('modal-minimal')) {
-      closeModalWithAnimation('#' + $(this).attr('id'));
-    }
-  });
-
-  // Generic modal cancel buttons
-  $('.modal-minimal .btn-minimal[aria-label="Cancel"]').on('click', function () {
-    const modalId = '#' + $(this).closest('.modal-minimal').attr('id');
-    closeModalWithAnimation(modalId);
-  });
-});
-
 /**
  * Opens a modal with animation
  * @param {string} modalId - The ID of the modal to open (with # prefix)
  */
 function openModalWithAnimation(modalId) {
   const $modal = $(modalId);
+  if (!$modal.length) {
+    console.warn('Modal not found:', modalId);
+    return;
+  }
+
+  // Remove Bootstrap classes if present
+  $modal.removeClass('modal fade');
+
   $modal.css('display', 'flex').addClass('show');
 
   // Use anime.js for smooth animation
@@ -65,6 +45,7 @@ function openModalWithAnimation(modalId) {
  */
 function closeModalWithAnimation(modalId) {
   const $modal = $(modalId);
+  if (!$modal.length || !$modal.hasClass('show')) return;
 
   // Use anime.js for smooth animation
   anime({
@@ -100,3 +81,58 @@ function resetModalForm(modalId) {
     $form.find('.is-invalid').removeClass('is-invalid');
   }
 }
+
+// Initialize modals when document is ready
+$(function () {
+  // Prevent Bootstrap from initializing on our custom modals
+  $('.modal-minimal').each(function () {
+    // Remove any Bootstrap modal attributes that might cause conflicts
+    $(this).removeAttr('data-bs-toggle data-bs-target data-bs-dismiss');
+    $(this).removeClass('modal fade');
+  });
+
+  // Handle modal triggers with data-modal-target attribute
+  $(document).on('click', '[data-modal-target]', function () {
+    const modalId = $(this).data('modal-target');
+    openModalWithAnimation(modalId);
+  });
+
+  // Close modal when clicking outside the modal content (delegated)
+  $(document).on('click', '.modal-minimal', function (e) {
+    if ($(e.target).hasClass('modal-minimal')) {
+      closeModalWithAnimation('#' + $(this).attr('id'));
+    }
+  });
+
+  // Generic modal cancel buttons - delegated event handler
+  // Matches any button with aria-label="Cancel" inside modal-minimal
+  $(document).on('click', '.modal-minimal .btn[aria-label="Cancel"]', function () {
+    const modalId = '#' + $(this).closest('.modal-minimal').attr('id');
+    closeModalWithAnimation(modalId);
+  });
+
+  // Handle close buttons (X button in header) - delegated
+  $(document).on('click', '.modal-minimal .btn-close', function () {
+    const modalId = '#' + $(this).closest('.modal-minimal').attr('id');
+    closeModalWithAnimation(modalId);
+  });
+
+  // ESC key to close any open modal
+  $(document).on('keydown', function (e) {
+    if (e.key === 'Escape') {
+      const $openModal = $('.modal-minimal.show');
+      if ($openModal.length) {
+        closeModalWithAnimation('#' + $openModal.attr('id'));
+      }
+    }
+  });
+
+  // Reset forms when modal closes
+  $(document).on('modal:closed', '.modal-minimal', function () {
+    const $form = $(this).find('form');
+    if ($form.length) {
+      $form[0].reset();
+    }
+    $(this).find('.is-invalid').removeClass('is-invalid');
+  });
+});
