@@ -37,7 +37,5 @@ urlpatterns = [
     re_path(r"^service-worker\.js$", service_worker, name="service_worker"),
     # Redirect root to minimal theme
     path("", redirect_to_minimal, name="root_redirect"),
-    # Keep old routes for backward compatibility (optional - can remove if not needed)
-    path("old/", include("budgetapp.urls")),
     path("minimal/", include("budgetapp.minimal.urls", namespace="minimal")),
 ]
