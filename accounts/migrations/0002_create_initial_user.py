@@ -13,7 +13,7 @@ def create_initial_user(apps, schema_editor):
         User.objects.create(
             username="John Doe",
             email="johndoe@example.com",
-            password=make_password("REMOVED-SECRET"),
+            password=make_password(""),
             is_staff=True,
             is_superuser=True,
             is_active=True,
