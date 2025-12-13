@@ -219,7 +219,7 @@ class CategoryStatsView(LoginRequiredView):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         # Get all expenses for this budget
         expenses_qs = budget.expenses.all()
@@ -269,7 +269,7 @@ class TagStatsView(LoginRequiredView):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         # Get all expenses for this budget
         expenses_qs = budget.expenses.all()
@@ -306,7 +306,7 @@ class SummaryCardsView(LoginRequiredView):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         # Get all expenses for this budget
         expenses_qs = budget.expenses.all()
@@ -478,7 +478,7 @@ class IncomeUpdateView(LoginRequiredView):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         income = request.POST.get("income")
         currency = request.POST.get("currency")
@@ -534,7 +534,7 @@ class ExpenseCreateUpdateView(LoginRequiredView):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         expense_id = request.POST.get("expense_id")
         name = request.POST.get("name")
@@ -657,7 +657,7 @@ class ExpenseDeleteView(LoginRequiredView):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         expense_id = request.POST.get("expense_id")
         if expense_id:
