@@ -1,6 +1,12 @@
 // Debt List Page JavaScript
 // Note: openModalWithAnimation and closeModalWithAnimation are defined in modal.js
 
+// Helper function to escape strings for HTML attributes
+function escapeForAttr(str) {
+  if (!str) return '';
+  return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
 // Toast notification function
 function showToast(title, message, type) {
   // Check if we have a toast container, if not create one
@@ -78,18 +84,18 @@ $(document).ready(function () {
         progressText.textContent = `${debtData.repayment_progress_percentage}%`;
       }
 
-      // Update edit button data attributes
+      // Update edit button data attributes (escape values for consistency with createDebtCardHTML)
       const editBtn = debtCard.querySelector('.edit-debt-btn');
       if (editBtn) {
-        editBtn.setAttribute('data-debt-name', debtData.name);
-        editBtn.setAttribute('data-debt-description', debtData.description || '');
+        editBtn.setAttribute('data-debt-name', escapeForAttr(debtData.name));
+        editBtn.setAttribute('data-debt-description', escapeForAttr(debtData.description));
         editBtn.setAttribute('data-debt-total', debtData.total_amount);
       }
 
       // Update delete button data attributes
       const deleteBtn = debtCard.querySelector('.delete-debt-btn');
       if (deleteBtn) {
-        deleteBtn.setAttribute('data-debt-name', debtData.name);
+        deleteBtn.setAttribute('data-debt-name', escapeForAttr(debtData.name));
       }
     }
   }
@@ -115,8 +121,8 @@ $(document).ready(function () {
   }
 
   function createDebtCardHTML(debtData) {
-    const escapedName = (debtData.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const escapedDesc = (debtData.description || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const escapedName = escapeForAttr(debtData.name);
+    const escapedDesc = escapeForAttr(debtData.description);
 
     return `
       <div class="debt-card debt-card-active" data-debt-id="${debtData.id}">
