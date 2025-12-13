@@ -9,10 +9,10 @@ def create_initial_user(apps, schema_editor):
     User = apps.get_model("accounts", "CustomUser")
 
     # Check if user already exists
-    if not User.objects.filter(email="muhammadahmadashiq@gmail.com").exists():
+    if not User.objects.filter(email="johndoe@example.com").exists():
         User.objects.create(
-            username="Ahmad",
-            email="muhammadahmadashiq@gmail.com",
+            username="John Doe",
+            email="johndoe@example.com",
             password=make_password("randomnull1"),
             is_staff=True,
             is_superuser=True,
@@ -23,7 +23,7 @@ def create_initial_user(apps, schema_editor):
 def reverse_create_user(apps, schema_editor):
     """Reverse: delete the initial user."""
     User = apps.get_model("accounts", "CustomUser")
-    User.objects.filter(email="muhammadahmadashiq@gmail.com").delete()
+    User.objects.filter(email="johndoe@example.com").delete()
 
 
 class Migration(migrations.Migration):
