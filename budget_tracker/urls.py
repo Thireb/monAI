@@ -35,6 +35,10 @@ urlpatterns = [
     path("api-token-auth/", obtain_auth_token, name="api_token_auth"),
     # Service worker must be at root level for PWA
     re_path(r"^service-worker\.js$", service_worker, name="service_worker"),
+    # Authentication URLs (django-allauth)
+    path("accounts/", include("allauth.urls")),
+    # Profile URLs
+    path("accounts/", include("accounts.urls", namespace="accounts")),
     # Redirect root to minimal theme
     path("", redirect_to_minimal, name="root_redirect"),
     path("minimal/", include("budgetapp.minimal.urls", namespace="minimal")),
