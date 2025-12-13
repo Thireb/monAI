@@ -1,0 +1,27 @@
+{% extends "account/base.html" %}
+{% load static %}
+
+{% block title %}Confirm Email - monAI{% endblock title %}
+
+{% block content %}
+<div class="auth-header">
+    <h1 class="auth-title">Confirm Email</h1>
+    <p class="auth-subtitle">Please confirm your email address</p>
+</div>
+
+<div class="auth-info">
+    <p>Please confirm that <strong>{{ email }}</strong> is your email address by clicking the button below.</p>
+</div>
+
+<form method="post" class="auth-form">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary btn-auth">
+        Confirm Email
+    </button>
+</form>
+
+<div class="auth-footer">
+    <p><a href="{% url 'account_login' %}">Back to Sign In</a></p>
+</div>
+{% endblock content %}
+

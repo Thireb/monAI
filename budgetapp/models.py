@@ -13,6 +13,13 @@ class Budget(models.Model):
     Represents a monthly budget with income and expenses.
     """
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="budgets",
+        null=True,
+        blank=True,
+    )
     month = models.DateField()
     income = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0"))
     currency = models.CharField(max_length=3, default="PKR")
@@ -79,8 +86,15 @@ class Budget(models.Model):
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    slug = models.SlugField(max_length=100, unique=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="categories",
+        null=True,
+        blank=True,
+    )
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100)
     description = models.TextField(blank=True)
     icon = models.CharField(max_length=50, blank=True, help_text="Font Awesome icon class")
     color = models.CharField(max_length=7, default="#000000", help_text="Hex color code")
@@ -89,6 +103,16 @@ class Category(models.Model):
     class Meta:
         verbose_name_plural = "Categories"
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "name"],
+                name="unique_category_name_per_user",
+            ),
+            models.UniqueConstraint(
+                fields=["user", "slug"],
+                name="unique_category_slug_per_user",
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -102,8 +126,15 @@ class Category(models.Model):
 class Tag(models.Model):
     """Custom tags for expenses that can be created by users."""
 
-    name = models.CharField(max_length=100, unique=True)
-    slug = models.SlugField(max_length=100, unique=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="tags",
+        null=True,
+        blank=True,
+    )
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100)
     description = models.TextField(blank=True)
     color = models.CharField(max_length=7, default="#2196f3", help_text="Hex color code")
     is_active = models.BooleanField(
@@ -115,6 +146,16 @@ class Tag(models.Model):
     class Meta:
         verbose_name_plural = "Tags"
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "name"],
+                name="unique_tag_name_per_user",
+            ),
+            models.UniqueConstraint(
+                fields=["user", "slug"],
+                name="unique_tag_slug_per_user",
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -475,6 +516,13 @@ class GoalContribution(models.Model):
 class Debt(models.Model):
     """Represents money borrowed from external sources."""
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="debts",
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=200)  # e.g., "Motherboard Purchase"
     description = models.TextField(blank=True)  # e.g., "Borrowed from friend for new motherboard"
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)  # e.g., 27,000
@@ -504,6 +552,7 @@ class Debt(models.Model):
         if not self.debt_tag and self.name:
             tag_name = self.generate_debt_tag_name()
             self.debt_tag = Tag.objects.create(
+                user=self.user,
                 name=tag_name,
                 description=f"Tracking tag for debt: {self.name}",
                 color="#ff5722",  # Orange-red for debt tags
@@ -516,9 +565,17 @@ class Debt(models.Model):
         base_name = f"Debt: {self.name}"
         counter = 1
 
-        while Tag.objects.filter(name=base_name).exists():
+        # Filter by user if available
+        queryset = Tag.objects.filter(name=base_name)
+        if self.user:
+            queryset = queryset.filter(user=self.user)
+
+        while queryset.exists():
             base_name = f"Debt: {self.name} ({counter})"
             counter += 1
+            queryset = Tag.objects.filter(name=base_name)
+            if self.user:
+                queryset = queryset.filter(user=self.user)
 
         return base_name
 
