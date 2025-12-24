@@ -1,4 +1,11 @@
 // Debt List Page JavaScript
+// Note: openModalWithAnimation and closeModalWithAnimation are defined in modal.js
+
+// Helper function to escape strings for HTML attributes
+function escapeForAttr(str) {
+  if (!str) return '';
+  return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
 
 // Toast notification function
 function showToast(title, message, type) {
@@ -77,10 +84,18 @@ $(document).ready(function () {
         progressText.textContent = `${debtData.repayment_progress_percentage}%`;
       }
 
+      // Update edit button data attributes (escape values for consistency with createDebtCardHTML)
+      const editBtn = debtCard.querySelector('.edit-debt-btn');
+      if (editBtn) {
+        editBtn.setAttribute('data-debt-name', escapeForAttr(debtData.name));
+        editBtn.setAttribute('data-debt-description', escapeForAttr(debtData.description));
+        editBtn.setAttribute('data-debt-total', debtData.total_amount);
+      }
+
       // Update delete button data attributes
       const deleteBtn = debtCard.querySelector('.delete-debt-btn');
       if (deleteBtn) {
-        deleteBtn.setAttribute('data-debt-name', debtData.name);
+        deleteBtn.setAttribute('data-debt-name', escapeForAttr(debtData.name));
       }
     }
   }
@@ -106,6 +121,9 @@ $(document).ready(function () {
   }
 
   function createDebtCardHTML(debtData) {
+    const escapedName = escapeForAttr(debtData.name);
+    const escapedDesc = escapeForAttr(debtData.description);
+
     return `
       <div class="debt-card debt-card-active" data-debt-id="${debtData.id}">
         <div class="debt-card-header">
@@ -144,10 +162,16 @@ $(document).ready(function () {
           <a href="/minimal/debts/${debtData.id}/" class="btn btn-minimal">
             <i class="fas fa-eye"></i> View
           </a>
-          <button type="button" class="btn btn-minimal" onclick="editDebt(${debtData.id}, '${debtData.name.replace(/'/g, "\\'")}', '${(debtData.description || '').replace(/'/g, "\\'")}', ${debtData.total_amount})">
+          <button type="button" class="btn btn-minimal edit-debt-btn"
+            data-debt-id="${debtData.id}"
+            data-debt-name="${escapedName}"
+            data-debt-description="${escapedDesc}"
+            data-debt-total="${debtData.total_amount}">
             <i class="fas fa-edit"></i> Edit
           </button>
-          <button type="button" class="btn btn-minimal btn-danger delete-debt-btn" data-debt-id="${debtData.id}" data-debt-name="${debtData.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}">
+          <button type="button" class="btn btn-minimal btn-danger delete-debt-btn"
+            data-debt-id="${debtData.id}"
+            data-debt-name="${escapedName}">
             <i class="fas fa-trash"></i> Delete
           </button>
         </div>
@@ -189,7 +213,7 @@ $(document).ready(function () {
       success: function (response) {
         if (response.success) {
           showToast('Success', response.message, 'success');
-          $('#createDebtModal').modal('hide');
+          closeModalWithAnimation('#createDebtModal');
 
           // Hide empty state if it exists
           hideEmptyState();
@@ -210,14 +234,20 @@ $(document).ready(function () {
     });
   });
 
-  // Edit Debt
-  window.editDebt = function (debtId, name, description, totalAmount) {
+  // Edit Debt - Click handler using data attributes
+  $(document).on('click', '.edit-debt-btn', function () {
+    const $btn = $(this);
+    const debtId = $btn.data('debt-id');
+    const name = $btn.data('debt-name');
+    const description = $btn.data('debt-description');
+    const totalAmount = $btn.data('debt-total');
+
     $('#editDebtId').val(debtId);
     $('#editDebtName').val(name);
     $('#editDebtDescription').val(description);
     $('#editDebtTotalAmount').val(totalAmount);
-    $('#editDebtModal').modal('show');
-  };
+    openModalWithAnimation('#editDebtModal');
+  });
 
   // Edit Debt - Dynamic Update
   $('#editDebtForm').on('submit', function (e) {
@@ -230,7 +260,7 @@ $(document).ready(function () {
       success: function (response) {
         if (response.success) {
           showToast('Success', response.message, 'success');
-          $('#editDebtModal').modal('hide');
+          closeModalWithAnimation('#editDebtModal');
 
           // Update debt card dynamically
           updateDebtCard(response.debt);
@@ -250,18 +280,11 @@ $(document).ready(function () {
     const debtId = $(this).data('debt-id');
     const debtName = $(this).data('debt-name');
 
-    console.log('deleteDebt clicked with:', { debtId, debtName });
-    console.log('Button element:', this);
-    console.log('All data attributes:', $(this).data());
-
     // Ensure debtName is not empty and properly escape it for display
     const safeDebtName = debtName || 'this debt';
-    const escapedDebtName = safeDebtName.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    console.log('Setting debt name to:', escapedDebtName);
-    console.log('Target element:', $('#deleteDebtName'));
+    const escapedDebtName = $('<div>').text(safeDebtName).html();
 
     $('#deleteDebtName').html(escapedDebtName);
-    console.log('After setting HTML:', $('#deleteDebtName').html());
     $('#confirmDeleteBtn')
       .off('click')
       .on('click', function () {
@@ -275,7 +298,7 @@ $(document).ready(function () {
           success: function (response) {
             if (response.success) {
               showToast('Success', response.message, 'success');
-              $('#deleteModal').modal('hide');
+              closeModalWithAnimation('#deleteModal');
 
               // Remove debt card dynamically
               removeDebtCard(debtId);
@@ -295,12 +318,7 @@ $(document).ready(function () {
           },
         });
       });
-    $('#deleteModal').modal('show');
+    openModalWithAnimation('#deleteModal');
   });
 
-  // Modal form reset
-  $('.modal').on('hidden.bs.modal', function () {
-    $(this).find('form')[0].reset();
-    $(this).find('.is-invalid').removeClass('is-invalid');
-  });
 });

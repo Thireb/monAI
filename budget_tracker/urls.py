@@ -16,14 +16,30 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import include, path
+from django.shortcuts import redirect
+from django.urls import include, path, re_path
 
 from rest_framework.authtoken.views import obtain_auth_token
+
+from budgetapp.views import service_worker
+
+
+def redirect_to_minimal(request):
+    """Redirect root URL to minimal theme."""
+    return redirect("minimal:home")
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("budgetapp.api_urls")),
     path("api-token-auth/", obtain_auth_token, name="api_token_auth"),
-    path("", include("budgetapp.urls")),
+    # Service worker must be at root level for PWA
+    re_path(r"^service-worker\.js$", service_worker, name="service_worker"),
+    # Authentication URLs (django-allauth)
+    path("accounts/", include("allauth.urls")),
+    # Profile URLs
+    path("accounts/", include("accounts.urls", namespace="accounts")),
+    # Redirect root to minimal theme
+    path("", redirect_to_minimal, name="root_redirect"),
     path("minimal/", include("budgetapp.minimal.urls", namespace="minimal")),
 ]

@@ -4,6 +4,7 @@ from .views import (
     BudgetCreateView,
     BudgetDeleteView,
     BudgetDetailView,
+    CalendarContentView,
     CategoryCreateView,
     CategoryDeleteView,
     CategoryListView,
@@ -22,6 +23,7 @@ from .views import (
     ExpenseDeleteView,
     HomeView,
     IncomeUpdateView,
+    OfflineView,
     SubExpenseCreateView,
     SubExpenseDeleteView,
     SubExpenseUpdateView,
@@ -37,6 +39,9 @@ app_name = "minimal"
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
+    path("<int:year>/", HomeView.as_view(), name="home_year"),
+    path("calendar/<int:year>/", CalendarContentView.as_view(), name="calendar_content"),
+    path("offline/", OfflineView.as_view(), name="offline"),
     path("budget/<int:year>/<int:month>/", BudgetDetailView.as_view(), name="budget_detail"),
     path("budget/create/", BudgetCreateView.as_view(), name="budget_create"),
     path(

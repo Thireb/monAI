@@ -1,8 +1,10 @@
 import calendar
+import json
 from datetime import date, datetime
 from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -11,6 +13,18 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
+
+
+class LoginRequiredView(LoginRequiredMixin, View):
+    """Base view that requires login for all Views."""
+
+    pass
+
+
+class LoginRequiredTemplateView(LoginRequiredMixin, TemplateView):
+    """Base view that requires login for all TemplateViews."""
+
+    pass
 
 from budgetapp.models import (
     Budget,
@@ -32,42 +46,147 @@ class UnicodeJsonResponse(JsonResponse):
         super().__init__(data, **kwargs)
 
 
-class HomeView(TemplateView):
-    template_name = "minimal/home.html"
+class OfflineView(TemplateView):
+    """Offline fallback page for PWA."""
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        months = [calendar.month_name[i] for i in range(1, 13)]
-        abbrs = [calendar.month_abbr[i] for i in range(1, 13)]
-        today = date.today()
-        budgets_by_month = {b.month.month: b for b in Budget.objects.filter(is_archived=False)}
-        months_data = []
-        for i, (month_name, abbr) in enumerate(zip(months, abbrs), 1):
+    template_name = "minimal/offline.html"
+
+
+def get_calendar_context_for_year(selected_year, budgets_by_year_month, today):
+    """
+    Generate calendar context data for a single year.
+    Uses pre-fetched budget data to avoid extra queries.
+    """
+    months = [calendar.month_name[i] for i in range(1, 13)]
+    abbrs = [calendar.month_abbr[i] for i in range(1, 13)]
+
+    # Get budgets for this specific year
+    budgets_by_month = budgets_by_year_month.get(selected_year, {})
+
+    months_data = []
+    for i, (month_name, abbr) in enumerate(zip(months, abbrs), 1):
+        # Determine month status based on year comparison
+        if selected_year < today.year:
+            status = "past" if i in budgets_by_month else "future"
+        elif selected_year > today.year:
+            status = "future-created" if i in budgets_by_month else "future"
+        else:
             if i < today.month:
                 status = "past" if i in budgets_by_month else "future"
             elif i == today.month:
                 status = "current" if i in budgets_by_month else "future"
             else:
                 status = "future-created" if i in budgets_by_month else "future"
-            months_data.append(
-                {
-                    "name": month_name,
-                    "abbr": abbr,
-                    "status": status,
-                    "number": i,
-                }
+
+        months_data.append(
+            {
+                "name": month_name,
+                "abbr": abbr,
+                "status": status,
+                "number": i,
+            }
+        )
+
+    # Group into 3 rows of 4 months each, right-to-left
+    months_grid = []
+    for i in range(0, 12, 4):
+        row = months_data[i : i + 4][::-1]
+        months_grid.append(row)
+
+    return {
+        "months_grid": months_grid,
+        "year": selected_year,
+        "prev_year": selected_year - 1,
+        "next_year": selected_year + 1,
+    }
+
+
+class HomeView(LoginRequiredTemplateView):
+    template_name = "minimal/home.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = date.today()
+        selected_year = self.kwargs.get("year", today.year)
+
+        # Prefetch 5 years of data (current ± 2) in a single query
+        years_to_cache = range(selected_year - 2, selected_year + 3)
+        min_year = selected_year - 2
+        max_year = selected_year + 2
+
+        # Single query for all budgets in the 5-year range
+        all_budgets = Budget.objects.filter(
+            user=self.request.user,
+            is_archived=False,
+            month__year__gte=min_year,
+            month__year__lte=max_year,
+        )
+
+        # Organize budgets by year and month
+        budgets_by_year_month = {}
+        for budget in all_budgets:
+            year = budget.month.year
+            month = budget.month.month
+            if year not in budgets_by_year_month:
+                budgets_by_year_month[year] = {}
+            budgets_by_year_month[year][month] = budget
+
+        # Generate calendar data for current year (for initial render)
+        current_context = get_calendar_context_for_year(
+            selected_year, budgets_by_year_month, today
+        )
+        context.update(current_context)
+
+        # Pre-render HTML for all 5 years and store as JSON for JavaScript
+        cached_calendars = {}
+        for year in years_to_cache:
+            year_context = get_calendar_context_for_year(
+                year, budgets_by_year_month, today
             )
-        # Group into 3 rows of 4 months each, right-to-left
-        months_grid = []
-        for i in range(0, 12, 4):
-            row = months_data[i : i + 4][::-1]  # reverse for right-to-left
-            months_grid.append(row)
-        context["months_grid"] = months_grid
-        context["year"] = today.year
+            html = render_to_string(
+                "minimal/components/calendar_content.html",
+                year_context,
+                request=self.request,
+            )
+            cached_calendars[str(year)] = html
+
+        # Serialize to JSON string for safe embedding in JavaScript
+        context["cached_calendars_json"] = json.dumps(cached_calendars)
+        context["cache_min_year"] = min_year
+        context["cache_max_year"] = max_year
+
         return context
 
 
-class BudgetDetailView(TemplateView):
+class CalendarContentView(LoginRequiredView):
+    """AJAX view to return calendar content HTML for a given year (fallback for uncached years)."""
+
+    def get(self, request, *args, **kwargs):
+        selected_year = kwargs.get("year", date.today().year)
+        today = date.today()
+
+        # Fetch budgets for this specific year
+        budgets_by_year_month = {
+            selected_year: {
+                b.month.month: b
+                for b in Budget.objects.filter(
+                    user=request.user,
+                    is_archived=False,
+                    month__year=selected_year,
+                )
+            }
+        }
+
+        context = get_calendar_context_for_year(selected_year, budgets_by_year_month, today)
+        html = render_to_string(
+            "minimal/components/calendar_content.html",
+            context,
+            request=request,
+        )
+        return JsonResponse({"html": html, "year": selected_year})
+
+
+class BudgetDetailView(LoginRequiredTemplateView):
     template_name = "minimal/budget_detail_pages/budget_detail.html"
 
     def _format_currency(self, val: float) -> str:
@@ -82,13 +201,13 @@ class BudgetDetailView(TemplateView):
         year = self.kwargs.get("year")
         month = self.kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         # Get all expenses for this budget
         expenses_qs = budget.expenses.all().order_by("created_at")
         total_expenses = sum(e.amount for e in expenses_qs)
-        categories = Category.objects.all()
-        tags = Tag.objects.all().order_by("name")
+        categories = Category.objects.filter(user=self.request.user)
+        tags = Tag.objects.filter(user=self.request.user).order_by("name")
 
         # Format numbers for display
         budget_income_display = self._format_currency(budget.income)
@@ -185,7 +304,7 @@ class BudgetDetailView(TemplateView):
         return context
 
 
-class CategoryStatsView(View):
+class CategoryStatsView(LoginRequiredView):
     """View for AJAX updates to category statistics."""
 
     def _format_currency(self, val: float) -> str:
@@ -197,7 +316,7 @@ class CategoryStatsView(View):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         # Get all expenses for this budget
         expenses_qs = budget.expenses.all()
@@ -235,7 +354,7 @@ class CategoryStatsView(View):
         return JsonResponse({"html": html})
 
 
-class TagStatsView(View):
+class TagStatsView(LoginRequiredView):
     """View for AJAX updates to tag statistics."""
 
     def _format_currency(self, val: float) -> str:
@@ -247,7 +366,7 @@ class TagStatsView(View):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         # Get all expenses for this budget
         expenses_qs = budget.expenses.all()
@@ -274,7 +393,7 @@ class TagStatsView(View):
         return JsonResponse({"html": html})
 
 
-class SummaryCardsView(View):
+class SummaryCardsView(LoginRequiredView):
     """View for getting summary cards."""
 
     def _format_currency(self, val: float) -> str:
@@ -284,7 +403,7 @@ class SummaryCardsView(View):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         # Get all expenses for this budget
         expenses_qs = budget.expenses.all()
@@ -309,7 +428,7 @@ class SummaryCardsView(View):
         return JsonResponse({"html": html})
 
 
-class BudgetCreateView(View):
+class BudgetCreateView(LoginRequiredView):
     """Class-based view for creating a new budget."""
 
     def get(self, request, *args, **kwargs):
@@ -339,7 +458,7 @@ class BudgetCreateView(View):
             ).date()
         else:
             # Fallback to the original logic (next month after last budget)
-            last_budget = Budget.objects.order_by("-month").first()
+            last_budget = Budget.objects.filter(user=request.user).order_by("-month").first()
             if last_budget:
                 target_month_date = (
                     last_budget.month.replace(day=1) + timezone.timedelta(days=32)
@@ -348,7 +467,7 @@ class BudgetCreateView(View):
                 target_month_date = timezone.now().date().replace(day=1)
 
         # Check if budget already exists for this month
-        if Budget.objects.filter(month=target_month_date).exists():
+        if Budget.objects.filter(user=request.user, month=target_month_date).exists():
             return JsonResponse(
                 {
                     "status": "error",
@@ -358,13 +477,15 @@ class BudgetCreateView(View):
             )
 
         # Create new budget
-        budget = Budget.objects.create(month=target_month_date)
+        budget = Budget.objects.create(user=request.user, month=target_month_date)
 
         # Copy recurring expenses and income from previous budget if requested
         if copy_recurring:
             # Get the budget before the one we just created
             previous_budget = (
-                Budget.objects.filter(month__lt=target_month_date).order_by("-month").first()
+                Budget.objects.filter(user=request.user, month__lt=target_month_date)
+                .order_by("-month")
+                .first()
             )
             if previous_budget:
                 # Copy income from previous budget
@@ -412,7 +533,7 @@ class BudgetCreateView(View):
         )
 
 
-class BudgetDeleteView(View):
+class BudgetDeleteView(LoginRequiredView):
     """Class-based view for deleting a budget."""
 
     def post(self, request, *args, **kwargs):
@@ -421,7 +542,7 @@ class BudgetDeleteView(View):
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
 
         try:
-            budget = Budget.objects.get(month=budget_date)
+            budget = Budget.objects.get(user=request.user, month=budget_date)
         except Budget.DoesNotExist:
             return JsonResponse(
                 {
@@ -447,14 +568,14 @@ class BudgetDeleteView(View):
         )
 
 
-class IncomeUpdateView(View):
+class IncomeUpdateView(LoginRequiredView):
     """Class-based view for updating budget income."""
 
     def post(self, request, *args, **kwargs):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         income = request.POST.get("income")
         currency = request.POST.get("currency")
@@ -498,7 +619,7 @@ class IncomeUpdateView(View):
         return JsonResponse({"status": "error", "message": "Income value is required"}, status=400)
 
 
-class ExpenseCreateUpdateView(View):
+class ExpenseCreateUpdateView(LoginRequiredView):
     """Class-based view for creating or updating expenses."""
 
     def _format_currency(self, val: float) -> str:
@@ -510,7 +631,7 @@ class ExpenseCreateUpdateView(View):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         expense_id = request.POST.get("expense_id")
         name = request.POST.get("name")
@@ -626,14 +747,14 @@ class ExpenseCreateUpdateView(View):
             )
 
 
-class ExpenseDeleteView(View):
+class ExpenseDeleteView(LoginRequiredView):
     """Class-based view for deleting expenses."""
 
     def post(self, request, *args, **kwargs):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date)
+        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         expense_id = request.POST.get("expense_id")
         if expense_id:
@@ -667,7 +788,7 @@ class ExpenseDeleteView(View):
         return JsonResponse({"status": "error", "message": "No expense ID provided"}, status=400)
 
 
-class SubExpenseCreateView(View):
+class SubExpenseCreateView(LoginRequiredView):
     """Class-based view for creating a new sub-expense."""
 
     def _format_currency(self, val: float) -> str:
@@ -713,7 +834,7 @@ class SubExpenseCreateView(View):
             )
 
 
-class SubExpenseUpdateView(View):
+class SubExpenseUpdateView(LoginRequiredView):
     """Class-based view for updating a sub-expense."""
 
     def _format_currency(self, val: float) -> str:
@@ -758,7 +879,7 @@ class SubExpenseUpdateView(View):
             )
 
 
-class SubExpenseDeleteView(View):
+class SubExpenseDeleteView(LoginRequiredView):
     """Class-based view for deleting a sub-expense."""
 
     def post(self, request, *args, **kwargs):
@@ -788,18 +909,18 @@ class SubExpenseDeleteView(View):
             )
 
 
-class TagManagementView(TemplateView):
+class TagManagementView(LoginRequiredTemplateView):
     """View for managing tags."""
 
     template_name = "minimal/tag_management.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["tags"] = Tag.objects.all().order_by("name")
+        context["tags"] = Tag.objects.filter(user=self.request.user).order_by("name")
         return context
 
 
-class TagCreateView(View):
+class TagCreateView(LoginRequiredView):
     """View for creating new tags via AJAX."""
 
     def post(self, request, *args, **kwargs):
@@ -811,7 +932,9 @@ class TagCreateView(View):
             return JsonResponse({"status": "error", "message": "Tag name is required"}, status=400)
 
         try:
-            tag = Tag.objects.create(name=name, description=description, color=color)
+            tag = Tag.objects.create(
+                user=request.user, name=name, description=description, color=color
+            )
             return JsonResponse(
                 {
                     "status": "success",
@@ -831,7 +954,7 @@ class TagCreateView(View):
             )
 
 
-class TagUpdateView(View):
+class TagUpdateView(LoginRequiredView):
     """View for updating tags via AJAX."""
 
     def post(self, request, *args, **kwargs):
@@ -846,7 +969,7 @@ class TagUpdateView(View):
             )
 
         try:
-            tag = get_object_or_404(Tag, id=tag_id)
+            tag = get_object_or_404(Tag, id=tag_id, user=request.user)
             tag.name = name
             tag.description = description
             tag.color = color
@@ -871,7 +994,7 @@ class TagUpdateView(View):
             )
 
 
-class TagDeleteView(View):
+class TagDeleteView(LoginRequiredView):
     """View for deleting tags via AJAX."""
 
     def post(self, request, *args, **kwargs):
@@ -881,7 +1004,7 @@ class TagDeleteView(View):
             return JsonResponse({"status": "error", "message": "Tag ID is required"}, status=400)
 
         try:
-            tag = get_object_or_404(Tag, id=tag_id)
+            tag = get_object_or_404(Tag, id=tag_id, user=request.user)
             tag_name = tag.name
             tag.delete()
 
@@ -898,18 +1021,18 @@ class TagDeleteView(View):
             )
 
 
-class CategoryManagementView(TemplateView):
+class CategoryManagementView(LoginRequiredTemplateView):
     """View for managing categories."""
 
     template_name = "minimal/category_management.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["categories"] = Category.objects.all().order_by("name")
+        context["categories"] = Category.objects.filter(user=self.request.user).order_by("name")
         return context
 
 
-class CategoryListView(View):
+class CategoryListView(LoginRequiredView):
     """View for listing categories via AJAX."""
 
     def get(self, request, *args, **kwargs):
@@ -918,7 +1041,7 @@ class CategoryListView(View):
         if category_id:
             # Return specific category for editing
             try:
-                category = Category.objects.get(id=category_id)
+                category = Category.objects.get(id=category_id, user=request.user)
                 return JsonResponse(
                     {
                         "success": True,
@@ -933,8 +1056,8 @@ class CategoryListView(View):
             except Category.DoesNotExist:
                 return JsonResponse({"success": False, "error": "Category not found"}, status=404)
         else:
-            # Return all categories
-            categories = Category.objects.all().order_by("name")
+            # Return all categories for this user
+            categories = Category.objects.filter(user=request.user).order_by("name")
             return JsonResponse(
                 {
                     "success": True,
@@ -951,7 +1074,7 @@ class CategoryListView(View):
             )
 
 
-class CategoryCreateView(View):
+class CategoryCreateView(LoginRequiredView):
     """View for creating new categories via AJAX."""
 
     def post(self, request, *args, **kwargs):
@@ -965,7 +1088,9 @@ class CategoryCreateView(View):
             )
 
         try:
-            category = Category.objects.create(name=name, description=description, color=color)
+            category = Category.objects.create(
+                user=request.user, name=name, description=description, color=color
+            )
             return JsonResponse(
                 {
                     "success": True,
@@ -984,7 +1109,7 @@ class CategoryCreateView(View):
             )
 
 
-class CategoryUpdateView(View):
+class CategoryUpdateView(LoginRequiredView):
     """View for updating categories via AJAX."""
 
     def post(self, request, *args, **kwargs):
@@ -999,7 +1124,7 @@ class CategoryUpdateView(View):
             )
 
         try:
-            category = get_object_or_404(Category, id=category_id)
+            category = get_object_or_404(Category, id=category_id, user=request.user)
             category.name = name
             category.description = description
             category.color = color
@@ -1023,7 +1148,7 @@ class CategoryUpdateView(View):
             )
 
 
-class CategoryDeleteView(View):
+class CategoryDeleteView(LoginRequiredView):
     """View for deleting categories via AJAX."""
 
     def post(self, request, *args, **kwargs):
@@ -1033,7 +1158,7 @@ class CategoryDeleteView(View):
             return JsonResponse({"success": False, "error": "Category ID is required"}, status=400)
 
         try:
-            category = get_object_or_404(Category, id=category_id)
+            category = get_object_or_404(Category, id=category_id, user=request.user)
             category_name = category.name
 
             # Check if category is being used by any expenses
@@ -1066,15 +1191,19 @@ class CategoryDeleteView(View):
 
 
 # Debt Views
-class DebtListView(TemplateView):
+class DebtListView(LoginRequiredTemplateView):
     """View for listing all debts."""
 
     template_name = "minimal/debts/debt_list.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        active_debts = Debt.objects.filter(is_active=True).order_by("-created_at")
-        completed_debts = Debt.objects.filter(is_active=False).order_by("-created_at")
+        active_debts = Debt.objects.filter(
+            user=self.request.user, is_active=True
+        ).order_by("-created_at")
+        completed_debts = Debt.objects.filter(
+            user=self.request.user, is_active=False
+        ).order_by("-created_at")
 
         # Check and update debt status (disable tags if fully repaid)
         for debt in active_debts:
@@ -1089,7 +1218,7 @@ class DebtListView(TemplateView):
         return context
 
 
-class DebtDetailView(TemplateView):
+class DebtDetailView(LoginRequiredTemplateView):
     """View for displaying debt details."""
 
     template_name = "minimal/debts/debt_detail.html"
@@ -1097,7 +1226,7 @@ class DebtDetailView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         debt_id = self.kwargs.get("debt_id")
-        debt = get_object_or_404(Debt, id=debt_id)
+        debt = get_object_or_404(Debt, id=debt_id, user=self.request.user)
         transactions = debt.transactions.all().order_by("-date")
 
         # Check and update debt status
@@ -1116,7 +1245,7 @@ class DebtDetailView(TemplateView):
         return context
 
 
-class DebtCreateView(View):
+class DebtCreateView(LoginRequiredView):
     """View for creating new debts via AJAX."""
 
     def post(self, request, *args, **kwargs):
@@ -1138,7 +1267,7 @@ class DebtCreateView(View):
                 )
 
             debt = Debt.objects.create(
-                name=name, description=description, total_amount=total_amount
+                user=request.user, name=name, description=description, total_amount=total_amount
             )
 
             return JsonResponse(
@@ -1164,7 +1293,7 @@ class DebtCreateView(View):
             )
 
 
-class DebtUpdateView(View):
+class DebtUpdateView(LoginRequiredView):
     """View for updating debts via AJAX."""
 
     def post(self, request, *args, **kwargs):
@@ -1187,7 +1316,7 @@ class DebtUpdateView(View):
                     status=400,
                 )
 
-            debt = get_object_or_404(Debt, id=debt_id)
+            debt = get_object_or_404(Debt, id=debt_id, user=request.user)
             debt.name = name
             debt.description = description
             debt.total_amount = total_amount
@@ -1216,7 +1345,7 @@ class DebtUpdateView(View):
             )
 
 
-class DebtDeleteView(View):
+class DebtDeleteView(LoginRequiredView):
     """View for deleting debts via AJAX."""
 
     def post(self, request, *args, **kwargs):
@@ -1226,7 +1355,7 @@ class DebtDeleteView(View):
             return JsonResponse({"success": False, "error": "Debt ID is required"}, status=400)
 
         try:
-            debt = get_object_or_404(Debt, id=debt_id)
+            debt = get_object_or_404(Debt, id=debt_id, user=request.user)
             debt_name = debt.name
 
             # Check if debt has any transactions
@@ -1257,7 +1386,7 @@ class DebtDeleteView(View):
             )
 
 
-class DebtBorrowingView(View):
+class DebtBorrowingView(LoginRequiredView):
     """View for adding borrowing transactions via AJAX."""
 
     def post(self, request, *args, **kwargs):
@@ -1341,7 +1470,7 @@ class DebtBorrowingView(View):
             )
 
 
-class DebtTransactionUpdateView(View):
+class DebtTransactionUpdateView(LoginRequiredView):
     """View for updating borrowing transactions via AJAX."""
 
     def post(self, request, *args, **kwargs):
@@ -1419,7 +1548,7 @@ class DebtTransactionUpdateView(View):
             )
 
 
-class DebtTransactionDeleteView(View):
+class DebtTransactionDeleteView(LoginRequiredView):
     """View for deleting borrowing transactions via AJAX."""
 
     def post(self, request, *args, **kwargs):
