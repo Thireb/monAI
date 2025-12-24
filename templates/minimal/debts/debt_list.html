@@ -1,0 +1,243 @@
+{% extends "minimal/base.html" %}
+{# djlint:off #}
+
+{% block title %}Debts{% endblock title %}
+
+{% block content %}
+<div class="debt-dashboard-container">
+    <div class="debt-header">
+        <div class="debt-header-content">
+            <h1 class="debt-title">Debt Management</h1>
+            <p class="debt-subtitle">Track your borrowed money and manage repayments through your budget system.</p>
+        </div>
+        <div class="debt-header-actions">
+            <button type="button" class="btn btn-minimal btn-success" data-modal-target="#createDebtModal">
+                <i class="fas fa-plus"></i> Create Debt
+            </button>
+        </div>
+    </div>
+
+    <!-- Active Debts -->
+    <div class="debt-section">
+        <div class="debt-section-header">
+            <h2 class="debt-section-title">Active Debts</h2>
+        </div>
+        <div class="debt-section-content">
+            {% if active_debts %}
+            <div class="debt-grid">
+                {% for debt in active_debts %}
+                <div class="debt-card debt-card-active" data-debt-id="{{ debt.id }}">
+                    <div class="debt-card-header">
+                        <h3 class="debt-card-title">{{ debt.name }}</h3>
+                        <p class="debt-card-description">{{ debt.description|truncatechars:60 }}</p>
+                    </div>
+
+                    <div class="debt-card-stats">
+                        <div class="debt-stat">
+                            <span class="debt-stat-label">Total:</span>
+                            <span class="debt-stat-value">{{ debt.total_amount }}</span>
+                        </div>
+                        <div class="debt-stat">
+                            <span class="debt-stat-label">Borrowed:</span>
+                            <span class="debt-stat-value">{{ debt.borrowed_amount }}</span>
+                        </div>
+                        <div class="debt-stat">
+                            <span class="debt-stat-label">Repaid:</span>
+                            <span class="debt-stat-value">{{ debt.repaid_amount }}</span>
+                        </div>
+                        <div class="debt-stat">
+                            <span class="debt-stat-label">Remaining:</span>
+                            <span class="debt-stat-value debt-stat-remaining">{{ debt.remaining_to_repay }}</span>
+                        </div>
+                    </div>
+
+                    <div class="debt-progress-section">
+                        <div class="debt-progress-label">Repayment Progress</div>
+                        <div class="debt-progress-bar">
+                            <div class="debt-progress-fill" style="width: {{ debt.repayment_progress_percentage }}%">
+                            </div>
+                        </div>
+                        <div class="debt-progress-text">{{ debt.repayment_progress_percentage }}%</div>
+                    </div>
+
+                    <div class="debt-card-actions">
+                        <a href="{% url 'minimal:debt_detail' debt.id %}" class="btn btn-minimal">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        <button type="button" class="btn btn-minimal edit-debt-btn"
+                            data-debt-id="{{ debt.id }}"
+                            data-debt-name="{{ debt.name|escapejs }}"
+                            data-debt-description="{{ debt.description|escapejs }}"
+                            data-debt-total="{{ debt.total_amount }}">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button type="button" class="btn btn-minimal btn-danger delete-debt-btn"
+                            data-debt-id="{{ debt.id }}" data-debt-name="{{ debt.name }}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="debt-empty-state">
+                <div class="debt-empty-icon">
+                    <i class="fas fa-hand-holding-usd"></i>
+                </div>
+                <h3 class="debt-empty-title">No Active Debts</h3>
+                <p class="debt-empty-description">Create your first debt to start tracking borrowed money.</p>
+                <button type="button" class="btn btn-minimal btn-success" data-modal-target="#createDebtModal">
+                    <i class="fas fa-plus"></i> Create First Debt
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Completed Debts -->
+    {% if completed_debts %}
+    <div class="debt-section">
+        <div class="debt-section-header">
+            <h2 class="debt-section-title">Completed Debts</h2>
+        </div>
+        <div class="debt-section-content">
+            <div class="debt-grid">
+                {% for debt in completed_debts %}
+                <div class="debt-card debt-card-completed" data-debt-id="{{ debt.id }}">
+                    <div class="debt-card-header">
+                        <h3 class="debt-card-title">{{ debt.name }}</h3>
+                        <p class="debt-card-description">{{ debt.description|truncatechars:60 }}</p>
+                    </div>
+
+                    <div class="debt-card-stats">
+                        <div class="debt-stat">
+                            <span class="debt-stat-label">Total:</span>
+                            <span class="debt-stat-value">{{ debt.total_amount }}</span>
+                        </div>
+                        <div class="debt-stat">
+                            <span class="debt-stat-label">Borrowed:</span>
+                            <span class="debt-stat-value">{{ debt.borrowed_amount }}</span>
+                        </div>
+                        <div class="debt-stat">
+                            <span class="debt-stat-label">Repaid:</span>
+                            <span class="debt-stat-value">{{ debt.repaid_amount }}</span>
+                        </div>
+                        <div class="debt-stat debt-stat-completed">
+                            <span class="debt-stat-label">Status:</span>
+                            <span class="debt-stat-value">✓ Fully Repaid</span>
+                        </div>
+                    </div>
+
+                    <div class="debt-card-actions">
+                        <a href="{% url 'minimal:debt_detail' debt.id %}" class="btn btn-minimal btn-success">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        <button type="button" class="btn btn-minimal btn-danger delete-debt-btn"
+                            data-debt-id="{{ debt.id }}" data-debt-name="{{ debt.name }}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Create Debt Modal -->
+<div id="createDebtModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="createDebtModalLabel" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="createDebtModalLabel">Create New Debt</h3>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <form id="createDebtForm" action="javascript:void(0);">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="debtName" class="form-label">Debt Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="debtName" name="name" required>
+                    <div class="form-text">Give your debt a clear, descriptive name (e.g., "Motherboard Purchase")
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="debtDescription" class="form-label">Description</label>
+                    <textarea class="form-control" id="debtDescription" name="description" rows="3"></textarea>
+                    <div class="form-text">Describe the debt (e.g., "Borrowed from friend for new motherboard")
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="debtTotalAmount" class="form-label">Total Amount <span
+                            class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="debtTotalAmount" name="total_amount" step="0.01"
+                        min="0.01" required>
+                    <div class="form-text">The total amount you plan to borrow for this debt</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-minimal" aria-label="Cancel">Cancel</button>
+                <button type="submit" class="btn btn-minimal btn-success">Create Debt</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Debt Modal -->
+<div id="editDebtModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="editDebtModalLabel" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="editDebtModalLabel">Edit Debt</h3>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <form id="editDebtForm" action="javascript:void(0);">
+            {% csrf_token %}
+            <input type="hidden" id="editDebtId" name="debt_id">
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="editDebtName" class="form-label">Debt Name <span
+                            class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="editDebtName" name="name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="editDebtDescription" class="form-label">Description</label>
+                    <textarea class="form-control" id="editDebtDescription" name="description" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="editDebtTotalAmount" class="form-label">Total Amount <span
+                            class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="editDebtTotalAmount" name="total_amount"
+                        step="0.01" min="0.01" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-minimal" aria-label="Cancel">Cancel</button>
+                <button type="submit" class="btn btn-minimal btn-success">Update Debt</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="deleteModalLabel" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="deleteModalLabel">Confirm Delete</h3>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete "<span id="deleteDebtName"></span>"?</p>
+            <p class="text-danger"><small>This action cannot be undone.</small></p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-minimal" aria-label="Cancel">Cancel</button>
+            <button type="button" class="btn btn-minimal btn-danger" id="confirmDeleteBtn">Delete</button>
+        </div>
+    </div>
+</div>
+
+
+{% endblock content %}
