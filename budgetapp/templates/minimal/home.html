@@ -1,12 +1,11 @@
 {% extends "minimal/base.html" %}
 {% load static %}
-{% block content %}
-{% csrf_token %}
-<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/minimal-css/theme/theme.css' %}">
+{% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/minimal-css/calendar/calendar.css' %}">
 <link rel="stylesheet" href="{% static 'css/minimal-css/tooltip/tooltip.css' %}">
-<link rel="stylesheet" href="{% static 'css/minimal-css/modal/modal.css' %}">
+{% endblock extra_css %}
+{% block content %}
+{% csrf_token %}
 <div class="minimal-home-outer">
     <div class="minimal-home-container">
         <div id="calendarContent">
@@ -272,4 +271,3 @@
     });
 </script>
 {% endblock content %}
-{% block extra_css %}{% endblock extra_css %}
