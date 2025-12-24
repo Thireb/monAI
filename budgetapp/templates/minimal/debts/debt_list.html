@@ -11,8 +11,7 @@
             <p class="debt-subtitle">Track your borrowed money and manage repayments through your budget system.</p>
         </div>
         <div class="debt-header-actions">
-            <button type="button" class="btn btn-minimal btn-success" data-bs-toggle="modal"
-                data-bs-target="#createDebtModal">
+            <button type="button" class="btn btn-minimal btn-success" data-modal-target="#createDebtModal">
                 <i class="fas fa-plus"></i> Create Debt
             </button>
         </div>
@@ -65,8 +64,11 @@
                         <a href="{% url 'minimal:debt_detail' debt.id %}" class="btn btn-minimal">
                             <i class="fas fa-eye"></i> View
                         </a>
-                        <button type="button" class="btn btn-minimal"
-                            onclick="editDebt({{ debt.id }}, '{{ debt.name|escapejs }}', '{{ debt.description|escapejs }}', {{ debt.total_amount }})">
+                        <button type="button" class="btn btn-minimal edit-debt-btn"
+                            data-debt-id="{{ debt.id }}"
+                            data-debt-name="{{ debt.name|escapejs }}"
+                            data-debt-description="{{ debt.description|escapejs }}"
+                            data-debt-total="{{ debt.total_amount }}">
                             <i class="fas fa-edit"></i> Edit
                         </button>
                         <button type="button" class="btn btn-minimal btn-danger delete-debt-btn"
@@ -84,8 +86,7 @@
                 </div>
                 <h3 class="debt-empty-title">No Active Debts</h3>
                 <p class="debt-empty-description">Create your first debt to start tracking borrowed money.</p>
-                <button type="button" class="btn btn-minimal btn-success" data-bs-toggle="modal"
-                    data-bs-target="#createDebtModal">
+                <button type="button" class="btn btn-minimal btn-success" data-modal-target="#createDebtModal">
                     <i class="fas fa-plus"></i> Create First Debt
                 </button>
             </div>
@@ -145,101 +146,95 @@
 </div>
 
 <!-- Create Debt Modal -->
-<div class="modal fade modal-minimal" id="createDebtModal" tabindex="-1" role="dialog" aria-modal="true"
-    aria-labelledby="createDebtModalLabel">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="createDebtModalLabel">Create New Debt</h3>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="createDebtForm" action="javascript:void(0);">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="debtName" class="form-label">Debt Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="debtName" name="name" required>
-                        <div class="form-text">Give your debt a clear, descriptive name (e.g., "Motherboard Purchase")
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="debtDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="debtDescription" name="description" rows="3"></textarea>
-                        <div class="form-text">Describe the debt (e.g., "Borrowed from friend for new motherboard")
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="debtTotalAmount" class="form-label">Total Amount <span
-                                class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="debtTotalAmount" name="total_amount" step="0.01"
-                            min="0.01" required>
-                        <div class="form-text">The total amount you plan to borrow for this debt</div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-minimal" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-minimal btn-success">Create Debt</button>
-                </div>
-            </form>
+<div id="createDebtModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="createDebtModalLabel" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="createDebtModalLabel">Create New Debt</h3>
+            <button type="button" class="btn-close" aria-label="Close"></button>
         </div>
+        <form id="createDebtForm" action="javascript:void(0);">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="debtName" class="form-label">Debt Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="debtName" name="name" required>
+                    <div class="form-text">Give your debt a clear, descriptive name (e.g., "Motherboard Purchase")
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="debtDescription" class="form-label">Description</label>
+                    <textarea class="form-control" id="debtDescription" name="description" rows="3"></textarea>
+                    <div class="form-text">Describe the debt (e.g., "Borrowed from friend for new motherboard")
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="debtTotalAmount" class="form-label">Total Amount <span
+                            class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="debtTotalAmount" name="total_amount" step="0.01"
+                        min="0.01" required>
+                    <div class="form-text">The total amount you plan to borrow for this debt</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-minimal" aria-label="Cancel">Cancel</button>
+                <button type="submit" class="btn btn-minimal btn-success">Create Debt</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <!-- Edit Debt Modal -->
-<div class="modal fade modal-minimal" id="editDebtModal" tabindex="-1" role="dialog" aria-modal="true"
-    aria-labelledby="editDebtModalLabel">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="editDebtModalLabel">Edit Debt</h3>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="editDebtForm" action="javascript:void(0);">
-                {% csrf_token %}
-                <input type="hidden" id="editDebtId" name="debt_id">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="editDebtName" class="form-label">Debt Name <span
-                                class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="editDebtName" name="name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editDebtDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="editDebtDescription" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editDebtTotalAmount" class="form-label">Total Amount <span
-                                class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="editDebtTotalAmount" name="total_amount"
-                            step="0.01" min="0.01" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-minimal" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-minimal btn-success">Update Debt</button>
-                </div>
-            </form>
+<div id="editDebtModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="editDebtModalLabel" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="editDebtModalLabel">Edit Debt</h3>
+            <button type="button" class="btn-close" aria-label="Close"></button>
         </div>
+        <form id="editDebtForm" action="javascript:void(0);">
+            {% csrf_token %}
+            <input type="hidden" id="editDebtId" name="debt_id">
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="editDebtName" class="form-label">Debt Name <span
+                            class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="editDebtName" name="name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="editDebtDescription" class="form-label">Description</label>
+                    <textarea class="form-control" id="editDebtDescription" name="description" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="editDebtTotalAmount" class="form-label">Total Amount <span
+                            class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="editDebtTotalAmount" name="total_amount"
+                        step="0.01" min="0.01" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-minimal" aria-label="Cancel">Cancel</button>
+                <button type="submit" class="btn btn-minimal btn-success">Update Debt</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div class="modal fade modal-minimal" id="deleteModal" tabindex="-1" role="dialog" aria-modal="true"
-    aria-labelledby="deleteModalLabel">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="deleteModalLabel">Confirm Delete</h3>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete "<span id="deleteDebtName"></span>"?</p>
-                <p class="text-danger"><small>This action cannot be undone.</small></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-minimal" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-minimal btn-danger" id="confirmDeleteBtn">Delete</button>
-            </div>
+<div id="deleteModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="deleteModalLabel" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="deleteModalLabel">Confirm Delete</h3>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete "<span id="deleteDebtName"></span>"?</p>
+            <p class="text-danger"><small>This action cannot be undone.</small></p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-minimal" aria-label="Cancel">Cancel</button>
+            <button type="button" class="btn btn-minimal btn-danger" id="confirmDeleteBtn">Delete</button>
         </div>
     </div>
 </div>
