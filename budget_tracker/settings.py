@@ -129,7 +129,7 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            BASE_DIR / "budgetapp" / "templates",  # Custom templates first
+            BASE_DIR / "templates",  # Custom templates first
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -197,7 +197,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 STATICFILES_DIRS = [
-    BASE_DIR / "budgetapp" / "static",
+    BASE_DIR / "static",
 ]
 
 # Default primary key field type

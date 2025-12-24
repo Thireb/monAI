@@ -1,0 +1,28 @@
+{% extends "account/base.html" %}
+{% load static %}
+
+{% block title %}Verify Your Email - monAI{% endblock title %}
+
+{% block content %}
+<div class="auth-header">
+    <h1 class="auth-title">Verify Your Email</h1>
+    <p class="auth-subtitle">We've sent a verification link to your email</p>
+</div>
+
+<div class="email-sent-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+        <polyline points="22,6 12,13 2,6"></polyline>
+    </svg>
+</div>
+
+<div class="auth-info">
+    <p>Please check your inbox and click the verification link to complete your registration.</p>
+    <p class="text-muted">Don't forget to check your spam folder!</p>
+</div>
+
+<div class="auth-footer">
+    <p><a href="{% url 'account_login' %}">Back to Sign In</a></p>
+</div>
+{% endblock content %}
+

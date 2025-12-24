@@ -1,0 +1,32 @@
+{% load budget_filters %}
+{% load humanize %}
+<!-- Alpine.js CDN: <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script> -->
+<!-- Summary Cards Section (toggleable) -->
+<div class="toggle-section mb-4" id="summary-section">
+    <button class="btn btn-minimal btn-sm mb-2 summary-toggle-btn">
+        <span class="summary-toggle-text">Hide Summary</span>
+    </button>
+    <div class="summary-toggle-content">
+        <div class="summary-cards d-flex flex-wrap gap-3 justify-content-center glassy">
+            <div class="summary-card income-card">
+                <div class="summary-label">Income</div>
+                <div class="summary-value income-value">{{ budget.currency }} {{ budget_income_display }}</div>
+                <button class="btn btn-sm btn-minimal edit-income-btn" data-modal-target="#incomeModal">Edit</button>
+            </div>
+            <div class="summary-card expenses-card">
+                <div class="summary-label">Expenses</div>
+                <div class="summary-value">{{ budget.currency }} {{ total_expenses_display }}</div>
+            </div>
+            <div class="summary-card remaining-card">
+                <div class="summary-label">Remaining</div>
+                <div class="summary-value remaining-budget-value">{{ budget.currency }} {{ remaining_budget_display }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tag Summary Cards (Dynamic Content) -->
+        <div class="tag-summary-section mt-4">
+            <!-- This section will be populated via AJAX -->
+        </div>
+    </div>
+</div>
