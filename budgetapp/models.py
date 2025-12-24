@@ -180,19 +180,7 @@ class Expense(models.Model):
         blank=True,
         related_name="expenses",
     )
-    TAG_CHOICES = [
-        ("nayapay", "Nayapay"),
-        ("meezan", "Meezan"),
-        ("cash", "Cash"),
-        ("none", "None"),
-        ("transferred", "Transferred"),
-        ("jazzcash", "Jazzcash"),
-        ("easypaisa", "Easypaisa"),
-        ("alfalah", "Alfalah"),
-        ("askari", "Askari"),
-        ("other", "Other"),
-    ]
-    tag = models.CharField(max_length=255, choices=TAG_CHOICES, default="meezan")
+    # Tag for this expense (replaces the old CharField-based tag)
     tag_foreign_key = models.ForeignKey(
         Tag,
         on_delete=models.SET_NULL,
@@ -644,3 +632,63 @@ class DebtTransaction(models.Model):
             self.debt.borrowed_amount += self.amount
             self.debt.save(update_fields=["borrowed_amount"])
         super().save(*args, **kwargs)
+
+
+class ScriptExecution(models.Model):
+    """
+    Tracks execution history of management scripts.
+
+    This model logs when each script was run, by whom, and whether it succeeded.
+    """
+
+    class Status(models.TextChoices):
+        STARTED = "started", "Started"
+        SUCCESS = "success", "Success"
+        FAILED = "failed", "Failed"
+
+    script_name = models.CharField(max_length=100, db_index=True)
+    executed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="script_executions",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.STARTED,
+    )
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    duration_seconds = models.FloatField(null=True, blank=True)
+    output = models.TextField(blank=True)
+    error_message = models.TextField(blank=True)
+    arguments = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+        verbose_name = "Script Execution"
+        verbose_name_plural = "Script Executions"
+        indexes = [
+            models.Index(fields=["script_name", "-started_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.script_name} - {self.status} at {self.started_at}"
+
+    def mark_success(self, output=""):
+        """Mark the script execution as successful."""
+        self.status = self.Status.SUCCESS
+        self.completed_at = timezone.now()
+        self.duration_seconds = (self.completed_at - self.started_at).total_seconds()
+        self.output = output
+        self.save()
+
+    def mark_failed(self, error_message):
+        """Mark the script execution as failed."""
+        self.status = self.Status.FAILED
+        self.completed_at = timezone.now()
+        self.duration_seconds = (self.completed_at - self.started_at).total_seconds()
+        self.error_message = error_message
+        self.save()

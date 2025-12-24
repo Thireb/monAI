@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Custom
+config.yaml
+.cursor/commands/*
+capacitor-app/output/*
 # C extensions
 *.so
 
