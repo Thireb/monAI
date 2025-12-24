@@ -29,10 +29,11 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = os.getenv('DEBUG') == 'True'
 DEBUG = True
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
-ALLOWED_HOSTS = ["*"]
-
-
+# settings.py - Allow iframe embedding for Capacitor app
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+X_FRAME_OPTIONS = "ALLOWALL"
 # Application definition
 
 INSTALLED_APPS = [
@@ -43,9 +44,27 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
-    "budgetapp",
-    "django_celery_beat.apps.BeatConfig",
+    "django.contrib.sites",
+    # Third party apps
+    "allauth",
+    "allauth.account",
     "rest_framework",
+    "django_celery_beat.apps.BeatConfig",
+    # Local apps
+    "accounts",
+    "budgetapp",
+]
+
+# Site ID for django-allauth
+SITE_ID = 1
+
+# Custom User Model
+AUTH_USER_MODEL = "accounts.CustomUser"
+
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 MESSAGE_TAGS = {
@@ -65,7 +84,9 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Disabled for Capacitor app iframe embedding
+    # "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "budgetapp.middleware.RequestLoggingMiddleware",
 ]
 
@@ -74,7 +95,9 @@ ROOT_URLCONF = "budget_tracker.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            BASE_DIR / "budgetapp" / "templates",  # Custom templates first
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -238,3 +261,33 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 STATICFILES_DIRS = [
     BASE_DIR / "budgetapp" / "static",
 ]
+
+# =============================================================================
+# Django-allauth Configuration
+# =============================================================================
+
+# Authentication method - email is primary
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = "optional"  # Change to "mandatory" for production
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGOUT_ON_GET = True  # Allow logout via GET request
+ACCOUNT_SESSION_REMEMBER = True
+
+# Redirects
+LOGIN_REDIRECT_URL = "minimal:home"
+LOGOUT_REDIRECT_URL = "account_login"
+LOGIN_URL = "account_login"
+
+# Email Configuration (Console backend for development)
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# For production, use SMTP:
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+# EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+# EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+# DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@monai.app")

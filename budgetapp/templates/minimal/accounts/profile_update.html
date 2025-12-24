@@ -1,0 +1,131 @@
+{% extends "minimal/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/minimal-css/accounts/auth.css' %}">
+{% endblock extra_css %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <h1 class="page-title">Edit Profile</h1>
+        <p class="page-subtitle">Update your account information</p>
+    </div>
+
+    {% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="profile-card">
+        <form method="post" class="profile-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="id_username" class="form-label">Username</label>
+                <input type="text"
+                       name="username"
+                       id="id_username"
+                       class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                       value="{{ form.username.value|default:'' }}"
+                       required>
+                {% if form.username.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.username.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_email" class="form-label">Email</label>
+                <input type="email"
+                       name="email"
+                       id="id_email"
+                       class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                       value="{{ form.email.value|default:'' }}"
+                       required>
+                {% if form.email.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.email.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_first_name" class="form-label">First Name</label>
+                <input type="text"
+                       name="first_name"
+                       id="id_first_name"
+                       class="form-control {% if form.first_name.errors %}is-invalid{% endif %}"
+                       value="{{ form.first_name.value|default:'' }}">
+                {% if form.first_name.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.first_name.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_last_name" class="form-label">Last Name</label>
+                <input type="text"
+                       name="last_name"
+                       id="id_last_name"
+                       class="form-control {% if form.last_name.errors %}is-invalid{% endif %}"
+                       value="{{ form.last_name.value|default:'' }}">
+                {% if form.last_name.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.last_name.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    Save Changes
+                </button>
+                <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        anime({
+            targets: '.profile-card',
+            opacity: [0, 1],
+            translateY: [30, 0],
+            duration: 600,
+            easing: 'easeOutCubic'
+        });
+
+        anime({
+            targets: '.form-group',
+            opacity: [0, 1],
+            translateY: [20, 0],
+            delay: anime.stagger(100, {start: 200}),
+            duration: 500,
+            easing: 'easeOutCubic'
+        });
+    });
+</script>
+{% endblock extra_js %}
+
