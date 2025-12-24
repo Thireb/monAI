@@ -1,12 +1,21 @@
 {
-  "name": "capacitor-app",
+  "name": "monai-capacitor-app",
   "version": "1.0.0",
-  "description": "",
+  "description": "monAI Budget Tracker - Android APK wrapper",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "python ../scripts/build_apks.py",
+    "build:local": "python ../scripts/build_apks.py --local",
+    "build:ngrok": "python ../scripts/build_apks.py --ngrok",
+    "sync": "npx cap sync android",
+    "open": "npx cap open android"
   },
-  "keywords": [],
+  "keywords": [
+    "budget",
+    "tracker",
+    "finance",
+    "android"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
