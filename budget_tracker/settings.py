@@ -40,6 +40,9 @@ email_config = get_email_config()
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = app_config.get("secret_key", "django-insecure-fallback-key")
 
+# Code version for script management
+CODE_VERSION = app_config.get("version", "1.0.0")
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = app_config.get("debug", True)
 
@@ -82,6 +85,7 @@ INSTALLED_APPS = [
     # Local apps
     "accounts",
     "budgetapp",
+    "script_runner",
 ]
 
 # Site ID for django-allauth

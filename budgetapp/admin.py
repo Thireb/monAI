@@ -7,7 +7,6 @@ from .models import (
     Expense,
     Goal,
     GoalContribution,
-    ScriptExecution,
     Tag,
 )
 
@@ -84,34 +83,3 @@ class DebtTransactionAdmin(admin.ModelAdmin):
     date_hierarchy = "date"
 
 
-@admin.register(ScriptExecution)
-class ScriptExecutionAdmin(admin.ModelAdmin):
-    list_display = (
-        "script_name",
-        "status",
-        "started_at",
-        "duration_seconds",
-        "executed_by",
-    )
-    list_filter = ("status", "script_name", "started_at")
-    search_fields = ("script_name", "output", "error_message")
-    date_hierarchy = "started_at"
-    readonly_fields = (
-        "script_name",
-        "status",
-        "started_at",
-        "completed_at",
-        "duration_seconds",
-        "output",
-        "error_message",
-        "arguments",
-        "executed_by",
-    )
-
-    def has_add_permission(self, request):
-        """Prevent manual creation - only created by run_script command."""
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        """Prevent editing execution records."""
-        return False
