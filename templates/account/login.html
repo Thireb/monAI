@@ -38,12 +38,17 @@
 
     <div class="form-group">
         <label for="id_password" class="form-label">Password</label>
-        <input type="password"
-               name="password"
-               id="id_password"
-               class="form-control {% if form.password.errors %}is-invalid{% endif %}"
-               placeholder="Enter your password"
-               required>
+        <div class="password-wrapper">
+            <input type="password"
+                   name="password"
+                   id="id_password"
+                   class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                   placeholder="Enter your password"
+                   required>
+            <button type="button" class="password-toggle" aria-label="Toggle password visibility">
+                <i class="bi bi-eye"></i>
+            </button>
+        </div>
         {% if form.password.errors %}
         <div class="invalid-feedback">
             {% for error in form.password.errors %}{{ error }}{% endfor %}
