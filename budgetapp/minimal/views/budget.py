@@ -2,8 +2,11 @@
 Budget CRUD views.
 """
 
+import logging
 from decimal import Decimal
+from io import BytesIO
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.http import JsonResponse
@@ -15,6 +18,8 @@ from django.utils import timezone
 from budgetapp.models import Budget, Category, Expense, IncomeHistory, Tag
 
 from .base import LoginRequiredTemplateView, LoginRequiredView
+
+logger = logging.getLogger(__name__)
 
 
 class BudgetDetailView(LoginRequiredTemplateView):
@@ -359,4 +364,246 @@ class SummaryCardsView(LoginRequiredView):
         )
 
         return JsonResponse({"html": html})
+
+
+class BudgetEmailPDFView(LoginRequiredView):
+    """
+    View to generate a PDF of the budget and email it to the user.
+    Uses WeasyPrint for PDF generation and Resend for email delivery.
+    """
+
+    def _format_currency(self, val: float) -> str:
+        """Format a float value with comma separator and two decimal places."""
+        return intcomma(f"{val:,.2f}")
+
+    def _get_budget_context(self, budget):
+        """
+        Get the budget context data for PDF rendering.
+        Reuses logic from BudgetDetailView.
+        """
+        expenses_qs = budget.expenses.all().order_by("created_at")
+        total_expenses = sum(e.amount for e in expenses_qs)
+
+        # Format numbers for display
+        budget_income_display = self._format_currency(budget.income)
+        total_expenses_display = self._format_currency(total_expenses)
+        remaining_budget_display = self._format_currency(budget.get_remaining_budget())
+
+        # Prepare expenses with formatted amounts and sub_expenses
+        expenses = []
+        for expense in expenses_qs:
+            sub_expenses = [
+                {
+                    "id": sub.id,
+                    "name": sub.name,
+                    "amount": sub.amount,
+                    "amount_display": self._format_currency(sub.amount),
+                    "is_return": sub.is_return,
+                }
+                for sub in expense.sub_expenses.all()
+            ]
+            subexpense_total = expense.subexpense_total
+            expenses.append(
+                {
+                    "id": expense.id,
+                    "name": expense.name,
+                    "amount": expense.amount,
+                    "amount_display": self._format_currency(expense.amount),
+                    "category": expense.category,
+                    "tag_foreign_key": expense.tag_foreign_key,
+                    "is_recurring": expense.is_recurring,
+                    "sub_expenses": sub_expenses,
+                    "subexpense_total": subexpense_total,
+                    "subexpense_total_display": self._format_currency(subexpense_total),
+                }
+            )
+
+        # Prepare category stats
+        expenses_by_category = {}
+        if expenses_qs.exists():
+            category_totals = {}
+            for expense in expenses_qs:
+                cat = expense.category.name if expense.category else "Uncategorized"
+                if cat not in category_totals:
+                    category_totals[cat] = {
+                        "amount": 0,
+                        "color": (
+                            expense.category.color if expense.category else "#e0e0e0"
+                        ),
+                    }
+                category_totals[cat]["amount"] += float(expense.amount)
+            for cat, data in category_totals.items():
+                percent = (
+                    (data["amount"] / float(total_expenses) * 100)
+                    if total_expenses
+                    else 0
+                )
+                expenses_by_category[cat] = {
+                    "amount": data["amount"],
+                    "amount_display": self._format_currency(data["amount"]),
+                    "color": data["color"],
+                    "percentage": percent,
+                    "percentage_display": f"{percent:.1f}",
+                }
+
+        return {
+            "budget": budget,
+            "expenses": expenses,
+            "total_expenses": total_expenses,
+            "budget_income_display": budget_income_display,
+            "total_expenses_display": total_expenses_display,
+            "remaining_budget_display": remaining_budget_display,
+            "expenses_by_category": expenses_by_category,
+            "generated_date": timezone.now(),
+        }
+
+    def _generate_pdf(self, context):
+        """Generate PDF from template using WeasyPrint."""
+        try:
+            from weasyprint import HTML
+        except ImportError:
+            logger.error("WeasyPrint is not installed")
+            raise ImportError(
+                "WeasyPrint is required for PDF generation. "
+                "Install it with: pip install weasyprint"
+            )
+
+        html_string = render_to_string("minimal/pdf/budget_report.html", context)
+        html = HTML(string=html_string)
+        pdf_buffer = BytesIO()
+        html.write_pdf(pdf_buffer)
+        pdf_buffer.seek(0)
+        return pdf_buffer.getvalue()
+
+    def _send_email_with_resend(self, user_email, pdf_bytes, budget_month):
+        """Send email with PDF attachment using Resend API."""
+        try:
+            import resend
+        except ImportError:
+            logger.error("Resend SDK is not installed")
+            raise ImportError(
+                "Resend SDK is required for email. "
+                "Install it with: pip install resend"
+            )
+
+        api_key = getattr(settings, "RESEND_API_KEY", "")
+        from_email = getattr(settings, "RESEND_FROM_EMAIL", "onboarding@resend.dev")
+
+        if not api_key:
+            raise ValueError(
+                "RESEND_API_KEY is not configured. "
+                "Please add your Resend API key to config.yaml"
+            )
+
+        resend.api_key = api_key
+
+        filename = f"budget_report_{budget_month.strftime('%Y_%m')}.pdf"
+
+        # Resend Python SDK expects content as list of bytes
+        params: resend.Emails.SendParams = {
+            "from": from_email,
+            "to": [user_email],
+            "subject": f"Budget Report - {budget_month.strftime('%B %Y')}",
+            "html": f"""
+                <h2>Your Budget Report is Ready!</h2>
+                <p>Hi there,</p>
+                <p>
+                    Please find attached your budget report for
+                    <strong>{budget_month.strftime('%B %Y')}</strong>.
+                </p>
+                <p>
+                    This report includes your income, expenses, category breakdown,
+                    and detailed expense list.
+                </p>
+                <p>Best regards,<br>monAI Budget Tracker</p>
+            """,
+            "attachments": [
+                {
+                    "filename": filename,
+                    "content": list(pdf_bytes),
+                    "content_type": "application/pdf",
+                }
+            ],
+        }
+
+        response = resend.Emails.send(params)
+        return response
+
+    def post(self, request, *args, **kwargs):
+        """Handle POST request to generate and email PDF."""
+        year = kwargs.get("year")
+        month = kwargs.get("month")
+        budget_date = timezone.datetime(year=year, month=month, day=1).date()
+
+        try:
+            budget = get_object_or_404(
+                Budget, month=budget_date, user=self.request.user
+            )
+        except Exception:
+            return JsonResponse(
+                {"status": "error", "message": "Budget not found."},
+                status=404,
+            )
+
+        try:
+            # Get context for PDF
+            context = self._get_budget_context(budget)
+
+            # Generate PDF
+            pdf_bytes = self._generate_pdf(context)
+
+            # Send email
+            user_email = request.user.email
+            if not user_email:
+                return JsonResponse(
+                    {
+                        "status": "error",
+                        "message": "No email address found for your account. "
+                        "Please update your profile with an email address.",
+                    },
+                    status=400,
+                )
+
+            self._send_email_with_resend(user_email, pdf_bytes, budget.month)
+
+            logger.info(
+                f"Budget PDF emailed successfully to {user_email} "
+                f"for {budget.month.strftime('%B %Y')}"
+            )
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": f"Budget report has been sent to {user_email}",
+                }
+            )
+
+        except ImportError as e:
+            logger.error(f"Import error in PDF email: {e}")
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": str(e),
+                },
+                status=500,
+            )
+        except ValueError as e:
+            logger.error(f"Configuration error in PDF email: {e}")
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": str(e),
+                },
+                status=500,
+            )
+        except Exception as e:
+            logger.error(f"Error generating/sending budget PDF: {e}")
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "Failed to generate or send the budget report. "
+                    "Please try again later.",
+                },
+                status=500,
+            )
 

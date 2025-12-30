@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/minimal-css/budget_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/minimal-css/budget_detail.css' %}?v=2">
 <link rel="stylesheet" href="{% static 'css/minimal-css/modal/modal.css' %}">
 <link rel="stylesheet" href="{% static 'css/minimal-css/tooltip/tooltip.css' %}">
 {% endblock extra_css %}
@@ -17,6 +17,11 @@
     <div class="budget-header colorful-bg mb-4">
         <div class="d-flex align-items-center">
             <h1 class="mb-0">Budget for {{ budget.month|date:"F Y" }}</h1>
+            <button class="budget-action-link email-pdf-tooltip-trigger" id="email-pdf-btn"
+                data-tooltip="📧 Email PDF report to yourself"
+                data-url="{% url 'minimal:budget_email_pdf' year=budget.month.year month=budget.month.month %}">
+                <span class="email-pdf-text">📧 Email PDF</span>
+            </button>
             <button class="budget-delete-link delete-tooltip-trigger" id="delete-budget-btn"
                 data-tooltip="⚠️ Delete this budget permanently">
                 <span class="delete-text">Delete</span>

@@ -339,5 +339,16 @@ elif email_backend_type == "smtp":
     EMAIL_HOST_USER = smtp_config.get("user", "")
     EMAIL_HOST_PASSWORD = smtp_config.get("password", "")
     DEFAULT_FROM_EMAIL = smtp_config.get("default_from", "noreply@monai.app")
+elif email_backend_type == "resend":
+    # Resend API configuration - used for PDF email feature
+    # Note: Resend uses its own SDK, not Django's email backend
+    resend_config = email_config.get("resend", {})
+    RESEND_API_KEY = resend_config.get("api_key", "")
+    RESEND_FROM_EMAIL = resend_config.get("from_email", "onboarding@resend.dev")
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# Always load Resend config for PDF email feature (can be used independently)
+resend_config = email_config.get("resend", {})
+RESEND_API_KEY = resend_config.get("api_key", "")
+RESEND_FROM_EMAIL = resend_config.get("from_email", "onboarding@resend.dev")

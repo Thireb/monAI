@@ -21,6 +21,7 @@ from .budget import (
     BudgetCreateView,
     BudgetDeleteView,
     BudgetDetailView,
+    BudgetEmailPDFView,
     IncomeUpdateView,
     SummaryCardsView,
 )
@@ -83,6 +84,7 @@ __all__ = [
     "BudgetDetailView",
     "BudgetCreateView",
     "BudgetDeleteView",
+    "BudgetEmailPDFView",
     "IncomeUpdateView",
     "SummaryCardsView",
     # Expense
