@@ -56,6 +56,24 @@ if not DEBUG and (not SECRET_KEY or len(SECRET_KEY) < 50):
 # Allowed hosts from config
 ALLOWED_HOSTS = server_config.get("allowed_hosts", ["localhost", "127.0.0.1"])
 
+# CSRF trusted origins for ngrok and local development
+urls_config = CONFIG.get("urls", {})
+ngrok_url = urls_config.get("ngrok", "")
+local_url = urls_config.get("local", "")
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+# Add ngrok URL if configured
+if ngrok_url:
+    CSRF_TRUSTED_ORIGINS.append(ngrok_url)
+
+# Add local URL if configured (for LAN access)
+if local_url:
+    CSRF_TRUSTED_ORIGINS.append(local_url)
+
 # =============================================================================
 # Security Settings for Capacitor/APK iframe embedding
 # =============================================================================
