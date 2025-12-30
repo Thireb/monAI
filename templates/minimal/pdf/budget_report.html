@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Report - {{ budget.month|date:"F Y" }}</title>
+    <style>
+        /* WeasyPrint-compatible styles - all inline for PDF generation */
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #333;
+            background: #fff;
+        }
+
+        .report-header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #2196f3;
+            margin-bottom: 25px;
+        }
+
+        .report-header h1 {
+            font-size: 24pt;
+            color: #1976d2;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .report-header .subtitle {
+            font-size: 12pt;
+            color: #666;
+        }
+
+        .report-header .generated-date {
+            font-size: 9pt;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        .summary-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            gap: 15px;
+        }
+
+        .summary-card {
+            flex: 1;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary-card.income {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border: 1px solid #81c784;
+        }
+
+        .summary-card.expenses {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border: 1px solid #e57373;
+        }
+
+        .summary-card.remaining {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 1px solid #64b5f6;
+        }
+
+        .summary-card .label {
+            font-size: 10pt;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .value {
+            font-size: 16pt;
+            font-weight: 700;
+        }
+
+        .summary-card.income .value {
+            color: #2e7d32;
+        }
+
+        .summary-card.expenses .value {
+            color: #c62828;
+        }
+
+        .summary-card.remaining .value {
+            color: #1565c0;
+        }
+
+        .section-title {
+            font-size: 14pt;
+            color: #1976d2;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .expenses-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+
+        .expenses-table th {
+            background: linear-gradient(135deg, #f5f5f5 0%, #eeeeee 100%);
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 10pt;
+            color: #555;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .expenses-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 10pt;
+        }
+
+        .expenses-table tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        .expenses-table .amount {
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .expenses-table .category-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 9pt;
+            font-weight: 500;
+        }
+
+        .expenses-table .tag-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 9pt;
+            font-weight: 500;
+        }
+
+        .expenses-table .recurring-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 8pt;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .recurring-yes {
+            background-color: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .recurring-no {
+            background-color: #f5f5f5;
+            color: #999;
+        }
+
+        .category-stats {
+            margin-bottom: 25px;
+        }
+
+        .category-stats-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .category-stat-item {
+            flex: 0 0 calc(50% - 5px);
+            padding: 10px;
+            border-radius: 6px;
+            background: #f9f9f9;
+            border-left: 4px solid;
+        }
+
+        .category-stat-item .cat-name {
+            font-weight: 600;
+            font-size: 10pt;
+            margin-bottom: 3px;
+        }
+
+        .category-stat-item .cat-amount {
+            font-size: 12pt;
+            font-weight: 700;
+        }
+
+        .category-stat-item .cat-percent {
+            font-size: 9pt;
+            color: #666;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            font-size: 9pt;
+            color: #999;
+        }
+
+        .footer .app-name {
+            font-weight: 600;
+            color: #1976d2;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-style: italic;
+        }
+
+        /* Sub-expenses styling */
+        .subexpense-row {
+            font-size: 9pt;
+            color: #666;
+        }
+
+        .subexpense-row td {
+            padding: 5px 8px 5px 25px;
+            background-color: #f8f9fa;
+        }
+
+        .subexpense-indicator {
+            color: #999;
+            margin-right: 5px;
+        }
+
+        .return-badge {
+            background-color: #c8e6c9;
+            color: #2e7d32;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 8pt;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <h1>Budget Report</h1>
+        <div class="subtitle">{{ budget.month|date:"F Y" }}</div>
+        <div class="generated-date">Generated on {{ generated_date|date:"F d, Y" }} at {{ generated_date|time:"H:i" }}</div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-section">
+        <div class="summary-card income">
+            <div class="label">Total Income</div>
+            <div class="value">{{ budget.currency }} {{ budget_income_display }}</div>
+        </div>
+        <div class="summary-card expenses">
+            <div class="label">Total Expenses</div>
+            <div class="value">{{ budget.currency }} {{ total_expenses_display }}</div>
+        </div>
+        <div class="summary-card remaining">
+            <div class="label">Remaining</div>
+            <div class="value">{{ budget.currency }} {{ remaining_budget_display }}</div>
+        </div>
+    </div>
+
+    <!-- Category Breakdown -->
+    {% if expenses_by_category %}
+    <div class="category-stats">
+        <h2 class="section-title">Spending by Category</h2>
+        <div class="category-stats-grid">
+            {% for cat_name, cat_data in expenses_by_category.items %}
+            <div class="category-stat-item" style="border-left-color: {{ cat_data.color }};">
+                <div class="cat-name">{{ cat_name }}</div>
+                <div class="cat-amount">{{ budget.currency }} {{ cat_data.amount_display }}</div>
+                <div class="cat-percent">{{ cat_data.percentage_display }}% of total</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Expenses Table -->
+    <h2 class="section-title">Expenses Detail</h2>
+    {% if expenses %}
+    <table class="expenses-table">
+        <thead>
+            <tr>
+                <th style="width: 30%;">Name</th>
+                <th style="width: 15%;">Amount</th>
+                <th style="width: 18%;">Category</th>
+                <th style="width: 15%;">Tag</th>
+                <th style="width: 10%;">Recurring</th>
+                <th style="width: 12%;">Sub-Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in expenses %}
+            <tr>
+                <td>{{ expense.name }}</td>
+                <td class="amount">{{ budget.currency }} {{ expense.amount_display }}</td>
+                <td>
+                    {% if expense.category %}
+                    <span class="category-badge" style="background-color: {{ expense.category.color }}20; color: {{ expense.category.color }};">
+                        {{ expense.category.name }}
+                    </span>
+                    {% else %}
+                    <span style="color: #999;">Uncategorized</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if expense.tag_foreign_key %}
+                    <span class="tag-badge" style="background-color: {{ expense.tag_foreign_key.color }}20; color: {{ expense.tag_foreign_key.color }};">
+                        {{ expense.tag_foreign_key.name|title }}
+                    </span>
+                    {% else %}
+                    <span style="color: #999;">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if expense.is_recurring %}
+                    <span class="recurring-badge recurring-yes">Yes</span>
+                    {% else %}
+                    <span class="recurring-badge recurring-no">No</span>
+                    {% endif %}
+                </td>
+                <td class="amount">{{ budget.currency }} {{ expense.subexpense_total_display }}</td>
+            </tr>
+            {% if expense.sub_expenses %}
+            {% for sub in expense.sub_expenses %}
+            <tr class="subexpense-row">
+                <td colspan="2">
+                    <span class="subexpense-indicator">└</span>
+                    {{ sub.name }}
+                    {% if sub.is_return %}<span class="return-badge">Return</span>{% endif %}
+                </td>
+                <td colspan="4" class="amount">
+                    {% if sub.is_return %}
+                    <span style="color: #2e7d32;">+{{ budget.currency }} {{ sub.amount_display }}</span>
+                    {% else %}
+                    {{ budget.currency }} {{ sub.amount_display }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="no-data">No expenses recorded for this budget period.</div>
+    {% endif %}
+
+    <div class="footer">
+        <p>This report was generated by <span class="app-name">monAI Budget Tracker</span></p>
+    </div>
+</body>
+</html>
+

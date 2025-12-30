@@ -1029,6 +1029,59 @@ $(function () {
     }
   }
 
+  // Email PDF Functionality
+  $('#email-pdf-btn').on('click', function () {
+    const $btn = $(this);
+    const url = $btn.data('url');
+
+    // Prevent double-clicks
+    if ($btn.hasClass('loading')) {
+      return;
+    }
+
+    // Show loading state
+    const originalText = $btn.find('.email-pdf-text').text();
+    $btn.addClass('loading').prop('disabled', true);
+    $btn.find('.email-pdf-text').text('⏳ Sending...');
+
+    $.ajax({
+      url: url,
+      type: 'POST',
+      data: {
+        csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+      },
+      success: function (response) {
+        showToast('Success', response.message, 'success');
+
+        // Animate success state
+        $btn.find('.email-pdf-text').text('✅ Sent!');
+        anime({
+          targets: $btn[0],
+          scale: [1, 1.1, 1],
+          duration: 400,
+          easing: 'easeOutElastic(1, .5)',
+        });
+
+        // Reset button after delay
+        setTimeout(function () {
+          $btn.removeClass('loading').prop('disabled', false);
+          $btn.find('.email-pdf-text').text(originalText);
+        }, 2000);
+      },
+      error: function (xhr) {
+        let errorMsg = 'Failed to send email. Please try again.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          errorMsg = xhr.responseJSON.message;
+        }
+        showToast('Error', errorMsg, 'error');
+
+        // Reset button
+        $btn.removeClass('loading').prop('disabled', false);
+        $btn.find('.email-pdf-text').text(originalText);
+      },
+    });
+  });
+
   // Budget Delete Functionality
   $('#delete-budget-btn').on('click', function () {
     openModalWithAnimation('#deleteBudgetModal');
