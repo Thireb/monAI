@@ -1,8 +1,8 @@
 {% extends "minimal/base.html" %}
-{% load static %}
+{% load static_version %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/minimal-css/tag_management.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/tag_management.css' %}">
 {% endblock extra_css %}
 
 {% block content %}
@@ -99,5 +99,5 @@
 {% endblock content %}
 
 {% block extra_js %}
-<script src="{% static 'js/minimal-js/tag_management.js' %}"></script>
+<script src="{% versioned_static 'js/minimal-js/tag_management.js' %}"></script>
 {% endblock extra_js %}
