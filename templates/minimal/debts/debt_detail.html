@@ -1,9 +1,9 @@
 {% extends "minimal/base.html" %}
-{% load static %}
+{% load static_version %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/minimal-css/debt/debt_detail.css' %}">
-<link rel="stylesheet" href="{% static 'css/minimal-css/modal/modal.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/debt/debt_detail.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/modal/modal.css' %}">
 {% endblock extra_css %}
 
 {% block content %}
@@ -372,6 +372,6 @@
 {% endblock content %}
 
 {% block extra_js %}
-<script src="{% static 'js/minimal-js/modal/modal.js' %}"></script>
-<script src="{% static 'js/minimal-js/debt/debt_detail.js' %}"></script>
+<script src="{% versioned_static 'js/minimal-js/modal/modal.js' %}"></script>
+<script src="{% versioned_static 'js/minimal-js/debt/debt_detail.js' %}"></script>
 {% endblock extra_js %}

@@ -1,8 +1,8 @@
 {% extends "minimal/base.html" %}
-{% load static %}
+{% load static_version %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/minimal-css/accounts/auth.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/accounts/auth.css' %}">
 {% endblock extra_css %}
 
 {% block content %}

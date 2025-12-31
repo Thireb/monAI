@@ -1,8 +1,8 @@
 {% extends "minimal/base.html" %}
-{% load static %}
+{% load static_version %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/minimal-css/calendar/calendar.css' %}?v=2">
-<link rel="stylesheet" href="{% static 'css/minimal-css/tooltip/tooltip.css' %}?v=2">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/calendar/calendar.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/tooltip/tooltip.css' %}">
 {% endblock extra_css %}
 {% block content %}
 {% csrf_token %}
@@ -53,7 +53,7 @@
     </div>
 </div>
 
-<script src="{% static 'js/minimal-js/tooltip/tooltip.js' %}"></script>
+<script src="{% versioned_static 'js/minimal-js/tooltip/tooltip.js' %}"></script>
 <script>
     // Prefetched calendar cache (5 years: current ± 2)
     const calendarCache = {{ cached_calendars_json|safe }};
