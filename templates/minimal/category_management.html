@@ -3,6 +3,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% versioned_static 'css/minimal-css/category_management.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/modal/modal.css' %}">
 {% endblock extra_css %}
 
 {% block content %}
@@ -63,8 +64,12 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Category Modal -->
+{% include "minimal/components/delete_modal.html" with modal_id="deleteCategoryModal" title="Delete Category" item_name_id="deleteCategoryName" confirm_btn_id="confirmDeleteCategoryBtn" %}
 {% endblock content %}
 
 {% block extra_js %}
+<script src="{% versioned_static 'js/minimal-js/modal/modal.js' %}"></script>
 <script src="{% versioned_static 'js/minimal-js/category_management.js' %}"></script>
 {% endblock extra_js %}

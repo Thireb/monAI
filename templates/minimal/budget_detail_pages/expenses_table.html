@@ -27,7 +27,7 @@
                 <tbody>
                     {% for expense in expenses %}
                     <tr class="expense-row" data-expense-id="{{ expense.id }}">
-                        <td class="minimal-tooltip-trigger" data-tooltip="{{ expense.name|escapejs }}">{{ expense.name }}</td>
+                        <td class="minimal-tooltip-trigger" data-tooltip="{{ expense.name }}">{{ expense.name }}</td>
                         <td>{{ budget.currency }} {{ expense.amount_display }}</td>
                         <td data-category-id="{{ expense.category.id|default:'' }}">
                             {% if expense.category %}{{ expense.category.name }}{% else %}<span

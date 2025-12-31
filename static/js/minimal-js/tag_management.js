@@ -64,9 +64,19 @@ $(document).ready(function () {
     const tagId = $(this).data('tag-id');
     const tagName = $(this).data('tag-name');
 
-    if (confirm(`Are you sure you want to delete the tag "${tagName}"?`)) {
-      deleteTag(tagId);
-    }
+    // Set the tag name in the modal
+    $('#deleteTagName').text(tagName);
+
+    // Bind the confirm button click handler
+    $('#confirmDeleteTagBtn')
+      .off('click')
+      .on('click', function () {
+        deleteTag(tagId);
+        closeModalWithAnimation('#deleteTagModal');
+      });
+
+    // Open the delete confirmation modal
+    openModalWithAnimation('#deleteTagModal');
   });
 
   // Create new tag

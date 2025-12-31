@@ -3,6 +3,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% versioned_static 'css/minimal-css/tag_management.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/modal/modal.css' %}">
 {% endblock extra_css %}
 
 {% block content %}
@@ -96,8 +97,12 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Tag Modal -->
+{% include "minimal/components/delete_modal.html" with modal_id="deleteTagModal" title="Delete Tag" item_name_id="deleteTagName" confirm_btn_id="confirmDeleteTagBtn" %}
 {% endblock content %}
 
 {% block extra_js %}
+<script src="{% versioned_static 'js/minimal-js/modal/modal.js' %}"></script>
 <script src="{% versioned_static 'js/minimal-js/tag_management.js' %}"></script>
 {% endblock extra_js %}

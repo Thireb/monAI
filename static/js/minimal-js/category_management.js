@@ -64,9 +64,19 @@ $(document).ready(function () {
     const categoryId = $(this).data('category-id');
     const categoryName = $(this).data('category-name');
 
-    if (confirm(`Are you sure you want to delete the category "${categoryName}"?`)) {
-      deleteCategory(categoryId);
-    }
+    // Set the category name in the modal
+    $('#deleteCategoryName').text(categoryName);
+
+    // Bind the confirm button click handler
+    $('#confirmDeleteCategoryBtn')
+      .off('click')
+      .on('click', function () {
+        deleteCategory(categoryId);
+        closeModalWithAnimation('#deleteCategoryModal');
+      });
+
+    // Open the delete confirmation modal
+    openModalWithAnimation('#deleteCategoryModal');
   });
 
   // Create new category
