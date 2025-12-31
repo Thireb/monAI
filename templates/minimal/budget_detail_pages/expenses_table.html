@@ -61,7 +61,7 @@
                         <td class="expense-actions-cell">
                             <button class="btn-icon edit-expense-btn minimal-tooltip-trigger" aria-label="Edit"
                                 data-tooltip="Edit" data-expense-id="{{ expense.id }}"
-                                data-expense-name="{{ expense.name|escapejs }}"
+                                data-expense-name="{{ expense.name }}"
                                 data-expense-amount="{{ expense.amount }}"
                                 data-expense-category="{% if expense.category %}{{ expense.category.id }}{% else %}{% endif %}"
                                 data-expense-tag="{% if expense.tag_foreign_key %}{{ expense.tag_foreign_key.id }}{% else %}{% endif %}"
