@@ -150,26 +150,21 @@ class CategoryDeleteView(LoginRequiredView):
             category = get_object_or_404(Category, id=category_id, user=request.user)
             category_name = category.name
 
-            # Check if category is being used by any expenses
-            if category.expenses.exists():
-                error_message = (
-                    f'Cannot delete category "{category_name}" because it is being used by '
-                    f"existing expenses."
-                )
-                return JsonResponse(
-                    {
-                        "success": False,
-                        "error": error_message,
-                    },
-                    status=400,
-                )
+            # Count affected expenses for informational message
+            affected_expenses = category.expenses.count()
 
+            # Delete the category - Django's on_delete=SET_NULL will automatically
+            # set category to null on any expenses using this category
             category.delete()
+
+            message = f'Category "{category_name}" deleted successfully!'
+            if affected_expenses > 0:
+                message += f" ({affected_expenses} expense(s) updated to uncategorized)"
 
             return JsonResponse(
                 {
                     "success": True,
-                    "message": f'Category "{category_name}" deleted successfully!',
+                    "message": message,
                     "category_id": category_id,
                 }
             )

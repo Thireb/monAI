@@ -107,12 +107,22 @@ class TagDeleteView(LoginRequiredView):
         try:
             tag = get_object_or_404(Tag, id=tag_id, user=request.user)
             tag_name = tag.name
+
+            # Count affected expenses for informational message
+            affected_expenses = tag.expenses.count()
+
+            # Delete the tag - Django's on_delete=SET_NULL will automatically
+            # set tag_foreign_key to null on any expenses using this tag
             tag.delete()
+
+            message = f'Tag "{tag_name}" deleted successfully!'
+            if affected_expenses > 0:
+                message += f" ({affected_expenses} expense(s) updated to no tag)"
 
             return JsonResponse(
                 {
                     "status": "success",
-                    "message": f'Tag "{tag_name}" deleted successfully!',
+                    "message": message,
                     "tag_id": tag_id,
                 }
             )
