@@ -81,7 +81,11 @@ if local_url:
 # (it embeds the web app in an iframe)
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 X_FRAME_OPTIONS = "ALLOWALL"
-
+# changes for csrf error in ngrok apk
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
 # =============================================================================
 # Application definition
 # =============================================================================
