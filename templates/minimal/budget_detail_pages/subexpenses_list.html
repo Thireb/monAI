@@ -15,11 +15,11 @@
         <tbody>
             {% for sub in subexpenses %}
             <tr tabindex="0" aria-label="Sub-Expense: {{ sub.name }}" class="subexpense-row">
-                <td>{{ sub.name }}</td>
-                <td>{{ budget.currency }} {{ sub.amount_display }}</td>
-                <td>{% if sub.is_return %}<span class="badge bg-success">Yes</span>{% else %}<span
+                <td data-label="Name">{{ sub.name }}</td>
+                <td data-label="Amount">{{ budget.currency }} {{ sub.amount_display }}</td>
+                <td data-label="Return?">{% if sub.is_return %}<span class="badge bg-success">Yes</span>{% else %}<span
                         class="badge bg-secondary">No</span>{% endif %}</td>
-                <td>
+                <td data-label="Actions" class="subexpense-actions-cell">
                     <button class="btn-minimal edit-subexpense-btn minimal-tooltip-trigger"
                         data-subexpense-id="{{ sub.id }}" data-subexpense-name="{{ sub.name }}"
                         data-subexpense-amount="{{ sub.amount }}" data-subexpense-is-return="{{ sub.is_return }}"
@@ -31,12 +31,12 @@
                 </td>
             </tr>
             {% empty %}
-            <tr>
+            <tr class="subexpense-placeholder-row">
                 <!-- djlint:off H021 -->
-                <td style="color:#b0b8c1; font-style:italic; padding:6px 8px;">John Doe</td>
-                <td style="color:#b0b8c1; font-style:italic; padding:6px 8px;">123</td>
-                <td style="color:#b0b8c1; font-style:italic; padding:6px 8px;">Yes</td>
-                <td style="color:#b0b8c1; font-style:italic; padding:6px 8px;">None</td>
+                <td data-label="Name" style="color:#b0b8c1; font-style:italic; padding:6px 8px;">John Doe</td>
+                <td data-label="Amount" style="color:#b0b8c1; font-style:italic; padding:6px 8px;">123</td>
+                <td data-label="Return?" style="color:#b0b8c1; font-style:italic; padding:6px 8px;">Yes</td>
+                <td data-label="Actions" style="color:#b0b8c1; font-style:italic; padding:6px 8px;">None</td>
                 <!-- djlint:on H021 -->
             </tr>
             <tr>
@@ -46,33 +46,27 @@
             {% endfor %}
         </tbody>
     </table>
-    <!-- djlint:off H021 -->
-    <div class="subexpense-summary" style="margin: 10px 0 16px 0; display: flex; gap: 24px; align-items: center;">
-        <span id="total-returns" class="text-green" style="color: #2a9155 !important; font-weight: 600;"
+    <div class="subexpense-summary">
+        <span id="total-returns" class="subexpense-returns-text"
             data-expense-id="{{ expense.id }}">
             Returns: {{ budget.currency }} {{ expense.total_returns }}
         </span>
-        <span id="remaining-amount" style="font-weight: 600;" data-expense-id="{{ expense.id }}">Remaining:
+        <span id="remaining-amount" class="subexpense-remaining-text" data-expense-id="{{ expense.id }}">Remaining:
             {{ budget.currency }} {{ expense.remaining_amount }}</span>
     </div>
-    <!-- djlint:on H021 -->
     <button class="btn-minimal add-subexpense-btn minimal-tooltip-trigger" data-expense-id="{{ expense.id }}"
         aria-label="Add sub-expense" data-tooltip="Add sub-expense">+ Add Sub-Expense</button>
-    <!-- djlint:off H021 -->
-    <form class="add-edit-subexpense-form" style="display:none; margin-top: 10px;" aria-label="Add or Edit Sub-Expense"
+    <form class="add-edit-subexpense-form" aria-label="Add or Edit Sub-Expense"
         role="form" autocomplete="off">
-        <!-- djlint:on H021 -->
         <input type="hidden" name="subexpense_id" value="">
         <input type="hidden" name="expense_id" value="{{ expense.id }}">
         <div class="form-row">
-            <!-- djlint:off H021 -->
-            <input type="text" name="name" class="form-control" placeholder="Sub-Expense Name" required
-                style="width: 160px; display: inline-block; margin-right: 8px;" aria-label="Sub-Expense Name">
-            <input type="number" name="amount" class="form-control" placeholder="Amount" step="0.01" min="0" required
-                style="width: 100px; display: inline-block; margin-right: 8px;" aria-label="Amount">
-            <label style="display: inline-block; margin-right: 8px;" class="minimal-tooltip-trigger"
+            <input type="text" name="name" class="form-control subexpense-name-input" placeholder="Sub-Expense Name" required
+                aria-label="Sub-Expense Name">
+            <input type="number" name="amount" class="form-control subexpense-amount-input" placeholder="Amount" step="0.01" min="0" required
+                aria-label="Amount">
+            <label class="subexpense-return-label minimal-tooltip-trigger"
                 data-tooltip="Mark as return/refund to add this amount back to the remaining budget">
-                <!-- djlint:on H021 -->
                 <input type="checkbox" name="is_return" aria-label="Return"> Return
             </label>
             <span class="form-actions">
@@ -80,8 +74,8 @@
                 <button type="button" class="btn-minimal cancel-subexpense-btn">Cancel</button>
             </span>
         </div>
+        <div class="form-error"></div>
         <!-- djlint:off H021 -->
-        <div class="form-error" style="display:none; color:#d32f2f; font-size:0.95em; margin-top:4px;"></div>
         <div id="subexpense-undo-snackbar" class="subexpense-undo-snackbar" style="display:none;"></div>
         <div id="deleteSubExpenseModal" class="modal minimal-modal" style="display:none;">
             <!-- djlint:on H021 -->
