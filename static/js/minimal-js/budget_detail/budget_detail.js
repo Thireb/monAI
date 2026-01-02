@@ -237,7 +237,14 @@ $(function () {
 
   // Helper function to add a new expense row to the table
   function addExpenseRow(expense) {
-    const newRow = $('<tr>').addClass('expense-row').attr('data-expense-id', expense.id);
+    // Get the next original index for the new expense
+    const existingRows = $('.wide-expense-table > tbody .expense-row');
+    const nextIndex = existingRows.length;
+
+    const newRow = $('<tr>')
+      .addClass('expense-row')
+      .attr('data-expense-id', expense.id)
+      .attr('data-original-index', nextIndex);
 
     // Add cells
     const nameCell = $('<td>')
@@ -1136,6 +1143,264 @@ $(function () {
       },
     });
   });
+
+  // ============================================
+  // EXPENSE TABLE SORTING FUNCTIONALITY
+  // ============================================
+
+  // Sorting state
+  let currentSortColumn = null;
+  let currentSortDirection = null; // 'asc', 'desc', or null
+
+  // Initialize original indices on page load for new rows without them
+  function initializeOriginalIndices() {
+    const $tbody = $('.wide-expense-table > tbody');
+    let index = 0;
+    $tbody.find('.expense-row').each(function () {
+      if (!$(this).attr('data-original-index')) {
+        $(this).attr('data-original-index', index);
+      }
+      const expenseId = $(this).data('expense-id');
+      const $subRow = $(`#subexpenses-${expenseId}`);
+      if ($subRow.length && !$subRow.attr('data-original-index')) {
+        $subRow.attr('data-original-index', index);
+      }
+      index++;
+    });
+  }
+
+  // Get sort value from a row based on column type
+  function getSortValue(row, column) {
+    const $row = $(row);
+    switch (column) {
+      case 'name':
+        return $row.find('td:nth-child(1)').text().trim().toLowerCase();
+      case 'amount':
+        // Parse numeric value from currency text
+        const amountText = $row.find('td:nth-child(2)').text();
+        return parseFloat(amountText.replace(/[^\d.-]/g, '')) || 0;
+      case 'category':
+        const categoryText = $row.find('td:nth-child(3)').text().trim().toLowerCase();
+        // Put "uncategorized" at the end when sorting
+        return categoryText === 'uncategorized' ? 'zzz_uncategorized' : categoryText;
+      case 'tag':
+        const tagText = $row.find('td:nth-child(4)').text().trim().toLowerCase();
+        // Put "no tag" at the end when sorting
+        return tagText === 'no tag' ? 'zzz_no_tag' : tagText;
+      case 'recurring':
+        // "Yes" comes before "No" in ascending order
+        const isRecurring = $row.find('td:nth-child(5)').text().trim().toLowerCase();
+        return isRecurring === 'yes' ? 0 : 1;
+      default:
+        return 0;
+    }
+  }
+
+  // Compare function for sorting
+  function compareRows(a, b, column, direction) {
+    const valA = getSortValue(a, column);
+    const valB = getSortValue(b, column);
+
+    let comparison = 0;
+    if (typeof valA === 'string' && typeof valB === 'string') {
+      comparison = valA.localeCompare(valB);
+    } else {
+      comparison = valA - valB;
+    }
+
+    return direction === 'desc' ? -comparison : comparison;
+  }
+
+  // Sort the expense table
+  function sortExpenseTable(column, direction) {
+    const $tbody = $('.wide-expense-table > tbody');
+
+    // Get all expense rows (not subexpense rows)
+    const $expenseRows = $tbody.find('.expense-row').toArray();
+
+    // Sort the rows
+    $expenseRows.sort((a, b) => compareRows(a, b, column, direction));
+
+    // Animate and reorder rows
+    const rowPairs = [];
+    $expenseRows.forEach(row => {
+      const $row = $(row);
+      const expenseId = $row.data('expense-id');
+      const $subRow = $(`#subexpenses-${expenseId}`);
+      rowPairs.push({ expense: $row, subexpense: $subRow });
+    });
+
+    // Fade out, reorder, fade in with Anime.js
+    anime({
+      targets: '.expense-row',
+      opacity: [1, 0.3],
+      duration: 150,
+      easing: 'easeOutQuad',
+      complete: function () {
+        // Detach and reappend in sorted order
+        rowPairs.forEach(pair => {
+          pair.expense.detach();
+          if (pair.subexpense.length) {
+            pair.subexpense.detach();
+          }
+        });
+
+        rowPairs.forEach(pair => {
+          $tbody.append(pair.expense);
+          if (pair.subexpense.length) {
+            $tbody.append(pair.subexpense);
+          }
+        });
+
+        // Fade back in
+        anime({
+          targets: '.expense-row',
+          opacity: [0.3, 1],
+          duration: 200,
+          easing: 'easeOutQuad',
+        });
+      },
+    });
+  }
+
+  // Clear sorting and restore original order
+  function clearSort() {
+    const $tbody = $('.wide-expense-table > tbody');
+
+    // Get all expense rows with their original indices
+    const $expenseRows = $tbody.find('.expense-row').toArray();
+
+    // Sort by original index
+    $expenseRows.sort((a, b) => {
+      const indexA = parseInt($(a).attr('data-original-index')) || 0;
+      const indexB = parseInt($(b).attr('data-original-index')) || 0;
+      return indexA - indexB;
+    });
+
+    // Collect row pairs
+    const rowPairs = [];
+    $expenseRows.forEach(row => {
+      const $row = $(row);
+      const expenseId = $row.data('expense-id');
+      const $subRow = $(`#subexpenses-${expenseId}`);
+      rowPairs.push({ expense: $row, subexpense: $subRow });
+    });
+
+    // Animate and reorder
+    anime({
+      targets: '.expense-row',
+      opacity: [1, 0.3],
+      duration: 150,
+      easing: 'easeOutQuad',
+      complete: function () {
+        rowPairs.forEach(pair => {
+          pair.expense.detach();
+          if (pair.subexpense.length) {
+            pair.subexpense.detach();
+          }
+        });
+
+        rowPairs.forEach(pair => {
+          $tbody.append(pair.expense);
+          if (pair.subexpense.length) {
+            $tbody.append(pair.subexpense);
+          }
+        });
+
+        anime({
+          targets: '.expense-row',
+          opacity: [0.3, 1],
+          duration: 200,
+          easing: 'easeOutQuad',
+        });
+      },
+    });
+
+    // Reset state
+    currentSortColumn = null;
+    currentSortDirection = null;
+
+    // Update UI
+    updateSortIndicators();
+    $('#clear-sort-btn').hide();
+  }
+
+  // Update sort indicators on headers
+  function updateSortIndicators() {
+    $('.sortable-header').each(function () {
+      const $header = $(this);
+      const column = $header.data('sort');
+      const $indicator = $header.find('.sort-indicator');
+
+      $header.removeClass('sorted-asc sorted-desc');
+
+      if (column === currentSortColumn) {
+        if (currentSortDirection === 'asc') {
+          $indicator.text(' ↑');
+          $header.addClass('sorted-asc');
+        } else if (currentSortDirection === 'desc') {
+          $indicator.text(' ↓');
+          $header.addClass('sorted-desc');
+        } else {
+          $indicator.text('');
+        }
+      } else {
+        $indicator.text('');
+      }
+    });
+  }
+
+  // Handle sortable header clicks
+  $(document).on('click keydown', '.sortable-header', function (e) {
+    // Handle keyboard navigation
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') {
+      return;
+    }
+    if (e.type === 'keydown') {
+      e.preventDefault();
+    }
+
+    const column = $(this).data('sort');
+
+    // Cycle through: asc -> desc -> none
+    if (currentSortColumn === column) {
+      if (currentSortDirection === 'asc') {
+        currentSortDirection = 'desc';
+      } else if (currentSortDirection === 'desc') {
+        // Clear sort
+        currentSortColumn = null;
+        currentSortDirection = null;
+        clearSort();
+        return;
+      } else {
+        currentSortDirection = 'asc';
+      }
+    } else {
+      currentSortColumn = column;
+      currentSortDirection = 'asc';
+    }
+
+    // Perform sort
+    sortExpenseTable(currentSortColumn, currentSortDirection);
+
+    // Update indicators
+    updateSortIndicators();
+
+    // Show/hide clear sort button
+    if (currentSortColumn) {
+      $('#clear-sort-btn').fadeIn(200);
+    } else {
+      $('#clear-sort-btn').fadeOut(200);
+    }
+  });
+
+  // Handle clear sort button click
+  $('#clear-sort-btn').on('click', function () {
+    clearSort();
+  });
+
+  // Initialize original indices on page load
+  initializeOriginalIndices();
 });
 
 // Add Select2 initialization
