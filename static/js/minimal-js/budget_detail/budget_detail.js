@@ -344,8 +344,8 @@ $(function () {
     actionsCell.append(editBtn, deleteBtn);
     newRow.append(actionsCell);
 
-    // Add the new row to the table
-    $('.wide-expense-table tbody').append(newRow);
+    // Add the new row to the table (use > to target only the main table's tbody, not nested ones)
+    $('.wide-expense-table > tbody').append(newRow);
 
     // Initialize tooltips on the new buttons
     if (window.initMinimalTooltips) {
