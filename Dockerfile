@@ -17,12 +17,18 @@ ENV VENV_PATH=${VENV_PATH}
 # -----------------------------------------------------------------------------
 # 1. Install system packages (one RUN = one layer; combine to keep image smaller)
 # -----------------------------------------------------------------------------
-# - python, pip: to run Django and install Python packages
-# - cairo, pango, gdk-pixbuf2: system libs required by WeasyPrint (PDF export)
-# - pacman -Syu: update Arch; --noconfirm skips interactive prompts (needed in Docker)
+# - pacman-key: init + populate so package signatures are trusted.
+# - Sy archlinux-keyring first: sync DB and install latest keyring so newer
+#   package signers (e.g. libseccomp) are trusted before full upgrade.
+# - Su: upgrade rest of system; then S: install app + WeasyPrint deps.
 # -----------------------------------------------------------------------------
-RUN pacman -Syu --noconfirm && \
+RUN rm -rf /var/cache/pacman/pkg/* 2>/dev/null || true && \
+    pacman-key --init && \
+    pacman-key --populate archlinux && \
+    pacman -Sy archlinux-keyring --noconfirm && \
+    pacman -Su --noconfirm && \
     pacman -S --noconfirm \
+        base-devel \
         python \
         python-pip \
         cairo \
