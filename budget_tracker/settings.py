@@ -64,6 +64,7 @@ local_url = urls_config.get("local", "")
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "https://monai.onrender.com",
 ]
 
 # Add ngrok URL if configured
@@ -217,7 +218,7 @@ USE_TZ = True
 # =============================================================================
 
 STATIC_URL = "static/"
-
+STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
