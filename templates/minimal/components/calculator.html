@@ -1,0 +1,46 @@
+<div class="modal-minimal minimal-calc-modal" id="calculatorModal" tabindex="-1" aria-labelledby="calculatorModalLabel"
+    aria-hidden="true">
+    <div class="modal-content minimal-calc-content">
+        <div class="modal-header minimal-calc-header">
+            <h5 class="modal-title" id="calculatorModalLabel">Calculator</h5>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <div class="modal-body minimal-calc-body">
+            <div class="calculator minimal-calc-root">
+                <input type="text" class="minimal-calc-display mb-3" id="calcDisplay" aria-label="Calculator input">
+                <div class="minimal-calc-buttons">
+                    <div class="minimal-calc-row">
+                        <button class="minimal-calc-btn minimal-calc-btn-func" onclick="clearCalc()">C</button>
+                        <button class="minimal-calc-btn" onclick="appendToCalc('(')">(</button>
+                        <button class="minimal-calc-btn" onclick="appendToCalc(')')">)</button>
+                        <button class="minimal-calc-btn minimal-calc-btn-op" onclick="appendToCalc('/')">/</button>
+                    </div>
+                    <div class="minimal-calc-row">
+                        <button class="minimal-calc-btn" onclick="appendToCalc('7')">7</button>
+                        <button class="minimal-calc-btn" onclick="appendToCalc('8')">8</button>
+                        <button class="minimal-calc-btn" onclick="appendToCalc('9')">9</button>
+                        <button class="minimal-calc-btn minimal-calc-btn-op" onclick="appendToCalc('*')">×</button>
+                    </div>
+                    <div class="minimal-calc-row">
+                        <button class="minimal-calc-btn" onclick="appendToCalc('4')">4</button>
+                        <button class="minimal-calc-btn" onclick="appendToCalc('5')">5</button>
+                        <button class="minimal-calc-btn" onclick="appendToCalc('6')">6</button>
+                        <button class="minimal-calc-btn minimal-calc-btn-op" onclick="appendToCalc('-')">-</button>
+                    </div>
+                    <div class="minimal-calc-row">
+                        <button class="minimal-calc-btn" onclick="appendToCalc('1')">1</button>
+                        <button class="minimal-calc-btn" onclick="appendToCalc('2')">2</button>
+                        <button class="minimal-calc-btn" onclick="appendToCalc('3')">3</button>
+                        <button class="minimal-calc-btn minimal-calc-btn-op" onclick="appendToCalc('+')">+</button>
+                    </div>
+                    <div class="minimal-calc-row">
+                        <button class="minimal-calc-btn minimal-calc-btn-zero"
+                            onclick="appendToCalc('0')">0</button>
+                        <button class="minimal-calc-btn" onclick="appendToCalc('.')">.</button>
+                        <button class="minimal-calc-btn minimal-calc-btn-eq" onclick="calculate()">=</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

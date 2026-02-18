@@ -1,0 +1,311 @@
+/* Debt Dashboard - Minimal Design */
+
+.debt-dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Header Section */
+.debt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 3rem;
+  gap: 2rem;
+}
+
+.debt-header-content {
+  flex: 1;
+}
+
+.debt-title {
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 2.5rem;
+  color: #222;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #2196f3 0%, #4caf50 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.debt-subtitle {
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.debt-header-actions {
+  flex-shrink: 0;
+}
+
+/* Section Styling */
+.debt-section {
+  margin-bottom: 3rem;
+}
+
+.debt-section-header {
+  margin-bottom: 1.5rem;
+}
+
+.debt-section-title {
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: #333;
+  margin: 0;
+}
+
+.debt-section-content {
+  /* Content will be styled by grid */
+}
+
+/* Grid Layout */
+.debt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Debt Cards */
+.debt-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Remove the top gradient bar entirely */
+.debt-card::before {
+  display: none;
+}
+
+/* Enhanced left border that extends to the top */
+.debt-card.border-left-primary {
+  border-left: 4px solid #2196f3 !important;
+  border-top-left-radius: 16px;
+  border-bottom-left-radius: 16px;
+}
+
+.debt-card.border-left-success {
+  border-left: 4px solid #4caf50 !important;
+  border-top-left-radius: 16px;
+  border-bottom-left-radius: 16px;
+}
+
+.debt-card.border-left-warning {
+  border-left: 4px solid #ff9800 !important;
+  border-top-left-radius: 16px;
+  border-bottom-left-radius: 16px;
+}
+
+.debt-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.debt-card-active {
+  border-left: 4px solid #2196f3;
+}
+
+.debt-card-completed {
+  border-left: 4px solid #4caf50;
+  opacity: 0.8;
+}
+
+.debt-card-completed::before {
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+}
+
+/* Card Header */
+.debt-card-header {
+  margin-bottom: 1.5rem;
+}
+
+.debt-card-title {
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-weight: 600;
+  font-size: 1.3rem;
+  color: #222;
+  margin: 0 0 0.5rem 0;
+}
+
+.debt-card-description {
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Card Stats */
+.debt-card-stats {
+  margin-bottom: 1.5rem;
+}
+
+.debt-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0.3rem 0;
+}
+
+.debt-stat:last-child {
+  margin-bottom: 0;
+}
+
+.debt-stat-label {
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.debt-stat-value {
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #222;
+}
+
+.debt-stat-remaining {
+  color: #e53935;
+}
+
+.debt-stat-completed .debt-stat-value {
+  color: #4caf50;
+}
+
+/* Progress Section */
+.debt-progress-section {
+  margin-bottom: 1.5rem;
+}
+
+.debt-progress-label {
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.debt-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(33, 150, 243, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.debt-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2196f3, #4caf50);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.debt-progress-text {
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-size: 0.8rem;
+  color: #666;
+  text-align: right;
+}
+
+/* Card Actions */
+.debt-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.debt-card-actions .btn {
+  flex: 1;
+  min-width: 80px;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.8rem;
+}
+
+/* Empty State */
+.debt-empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  border: 2px dashed rgba(33, 150, 243, 0.2);
+}
+
+.debt-empty-icon {
+  font-size: 4rem;
+  color: #ccc;
+  margin-bottom: 1rem;
+}
+
+.debt-empty-title {
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: #666;
+  margin: 0 0 0.5rem 0;
+}
+
+.debt-empty-description {
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-size: 1rem;
+  color: #888;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .debt-dashboard-container {
+    padding: 1rem;
+  }
+
+  .debt-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .debt-title {
+    font-size: 2rem;
+  }
+
+  .debt-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .debt-card {
+    padding: 1rem;
+  }
+
+  .debt-card-actions {
+    flex-direction: column;
+  }
+
+  .debt-card-actions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .debt-title {
+    font-size: 1.8rem;
+  }
+
+  .debt-subtitle {
+    font-size: 1rem;
+  }
+}
