@@ -1,0 +1,8 @@
+# Render Blueprint: use this for new deploys or Blueprint Apply.
+# For an existing service, set Start Command in Dashboard to: bash scripts/start_render.sh
+services:
+  - type: web
+    runtime: python
+    name: monAI
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+    startCommand: bash scripts/start_render.sh
