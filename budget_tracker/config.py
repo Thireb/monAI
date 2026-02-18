@@ -63,19 +63,24 @@ def get_config_value(config, *keys, default=None):
 try:
     CONFIG = load_config()
 except FileNotFoundError:
-    # Provide defaults for initial setup / migrations
+    # Provide defaults for initial setup / migrations (e.g. Render without config.yaml)
+    _allowed = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
+    _hosts = [h.strip() for h in _allowed.split(",") if h.strip()]
+    if not _hosts:
+        _hosts = ["localhost", "127.0.0.1"]
+    _debug = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
     CONFIG = {
         "app": {
             "name": "monAI",
-            "debug": True,
+            "debug": _debug,
             "secret_key": os.getenv(
                 "SECRET_KEY",
                 "django-insecure-fallback-key-for-development-only"
             ),
         },
         "server": {
-            "allowed_hosts": ["localhost", "127.0.0.1"],
-            "timezone": "Asia/Karachi",
+            "allowed_hosts": _hosts,
+            "timezone": os.getenv("TIMEZONE", "Asia/Karachi"),
         },
         "urls": {
             "local": "http://localhost:8000",
