@@ -11,6 +11,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 from django.contrib.messages import constants as messages
@@ -74,6 +75,14 @@ if ngrok_url:
 # Add local URL if configured (for LAN access)
 if local_url:
     CSRF_TRUSTED_ORIGINS.append(local_url)
+
+# Add origins from env (e.g. Render external URL)
+_csrf_env = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+if _csrf_env:
+    for origin in _csrf_env.split(","):
+        origin = origin.strip()
+        if origin and origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(origin)
 
 # =============================================================================
 # Security Settings for Capacitor/APK iframe embedding
