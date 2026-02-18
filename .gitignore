@@ -4,8 +4,9 @@ __pycache__/
 *$py.class
 
 # Custom
-config.yaml
+# config.yaml
 .cursor/commands/*
+.cursor/plans/*
 capacitor-app/output/*
 # C extensions
 *.so

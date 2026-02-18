@@ -91,6 +91,10 @@ except FileNotFoundError:
         },
         "email": {
             "backend": "console",
+            "resend": {
+                "api_key": "",
+                "from_email": "onboarding@resend.dev",
+            },
         },
         "superuser": {
             "email": "",

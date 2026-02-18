@@ -1,0 +1,75 @@
+{% extends "minimal/base.html" %}
+{% load static_version %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/category_management.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/modal/modal.css' %}">
+{% endblock extra_css %}
+
+{% block content %}
+<div class="category-management-container">
+    <div class="category-header colorful-bg mb-4">
+        <h1 class="mb-0">Category Management</h1>
+    </div>
+
+    <!-- Add Category Form -->
+    <div class="add-category-section glassy p-4 mb-4">
+        <h3 class="mb-3">Add New Category</h3>
+        <form id="category-form" class="category-form">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="category-name" class="form-label">Category Name</label>
+                        <input type="text" class="form-control" id="category-name" name="name"
+                            placeholder="Enter category name" required>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="category-description" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="category-description" name="description"
+                            placeholder="Optional description">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label for="category-color" class="form-label">Color</label>
+                        <input type="color" class="form-control form-control-color" id="category-color" name="color"
+                            value="#2196f3" title="Choose category color">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-minimal btn-action w-100" id="category-submit-btn">
+                            Add Category
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Categories List -->
+    <div class="categories-list-section glassy p-4">
+        <h3 class="mb-3">Existing Categories</h3>
+        <div id="categories-container">
+            <!-- Categories will be loaded here via AJAX -->
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Category Modal -->
+{% include "minimal/components/delete_modal.html" with modal_id="deleteCategoryModal" title="Delete Category" item_name_id="deleteCategoryName" confirm_btn_id="confirmDeleteCategoryBtn" %}
+{% endblock content %}
+
+{% block extra_js %}
+<script src="{% versioned_static 'js/minimal-js/modal/modal.js' %}"></script>
+<script src="{% versioned_static 'js/minimal-js/category_management.js' %}"></script>
+{% endblock extra_js %}

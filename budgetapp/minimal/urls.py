@@ -4,6 +4,7 @@ from .views import (
     BudgetCreateView,
     BudgetDeleteView,
     BudgetDetailView,
+    BudgetEmailPDFView,
     CalendarContentView,
     CategoryCreateView,
     CategoryDeleteView,
@@ -78,6 +79,11 @@ urlpatterns = [
         "budget/<int:year>/<int:month>/summary-cards/",
         SummaryCardsView.as_view(),
         name="summary_cards",
+    ),
+    path(
+        "budget/<int:year>/<int:month>/email-pdf/",
+        BudgetEmailPDFView.as_view(),
+        name="budget_email_pdf",
     ),
     path(
         "budget/<int:year>/<int:month>/subexpense/create/",

@@ -1,0 +1,273 @@
+{% extends "minimal/base.html" %}
+{% load static_version %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/calendar/calendar.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/tooltip/tooltip.css' %}">
+{% endblock extra_css %}
+{% block content %}
+{% csrf_token %}
+<div class="minimal-home-outer">
+    <div class="minimal-home-container">
+        <div id="calendarContent">
+            {% include "minimal/components/calendar_content.html" %}
+        </div>
+    </div>
+</div>
+
+<!-- Budget Creation Modal -->
+<!-- djlint:off H021 -->
+<div id="budgetCreateModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="budgetCreateModalLabel" style="display: none;">
+    <!-- djlint:on H021 -->
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="budgetCreateModalLabel">Create New Budget</h3>
+        </div>
+        <div class="modal-body">
+            <p id="budget-create-message">Would you like to create a blank budget or copy recurring expenses from the
+                previous budget?</p>
+            <div class="d-flex justify-content-center gap-3 mt-4">
+                <button id="create-blank-budget" class="btn btn-minimal">Blank Budget</button>
+                <button id="create-with-recurring" class="btn btn-minimal btn-success">Copy Recurring Expenses</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Modal -->
+<!-- djlint:off H021 -->
+<div id="notificationModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="notificationModalLabel" style="display: none;">
+    <!-- djlint:on H021 -->
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="notificationModalLabel">Notification</h3>
+            <button type="button" class="btn-close notification-close-btn" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <p id="notification-message"></p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-minimal notification-ok-btn">OK</button>
+        </div>
+    </div>
+</div>
+
+<script src="{% versioned_static 'js/minimal-js/tooltip/tooltip.js' %}"></script>
+<script>
+    // Prefetched calendar cache (5 years: current ± 2)
+    const calendarCache = {{ cached_calendars_json|safe }};
+    const CACHE_MIN_YEAR = {{ cache_min_year }};
+    const CACHE_MAX_YEAR = {{ cache_max_year }};
+    const HOME_URL = "{% url 'minimal:home' %}";
+    const CALENDAR_API_URL = "{% url 'minimal:calendar_content' year=9999 %}".replace('9999', '');
+    const CURRENT_SYS_YEAR = new Date().getFullYear();
+
+    // Track current displayed year
+    let displayedYear = {{ year }};
+
+    // Animation functions
+    function animateCalendarIn() {
+        anime({
+            targets: '#calendarGrid .months-row',
+            opacity: [0, 1],
+            translateY: [30, 0],
+            delay: anime.stagger(80, {start: 50}),
+            duration: 400,
+            easing: 'easeOutCubic',
+        });
+        anime({
+            targets: '#calendarGrid .month-abbr',
+            opacity: [0, 1],
+            scale: [0.9, 1],
+            delay: anime.stagger(40, {grid: [3, 4], from: 'center', start: 100}),
+            duration: 350,
+            easing: 'easeOutBack',
+        });
+    }
+
+    function updateCalendarContent(year, html, direction) {
+        const $content = $('#calendarContent');
+        const translateOut = direction === 'next' ? -40 : 40;
+        const translateIn = direction === 'next' ? 40 : -40;
+
+        // Animate out current content
+        anime({
+            targets: $content[0],
+            opacity: [1, 0],
+            translateX: [0, translateOut],
+            duration: 150,
+            easing: 'easeInQuad',
+            complete: function() {
+                // Update content
+                $content.html(html);
+                displayedYear = year;
+
+                // Update browser URL without reload
+                const newUrl = year === CURRENT_SYS_YEAR ? HOME_URL : HOME_URL + year + '/';
+                history.pushState({year: year}, '', newUrl);
+
+                // Reset position for animate in
+                $content.css({
+                    opacity: 0,
+                    transform: `translateX(${translateIn}px)`
+                });
+
+                // Animate in new content
+                anime({
+                    targets: $content[0],
+                    opacity: [0, 1],
+                    translateX: [translateIn, 0],
+                    duration: 200,
+                    easing: 'easeOutQuad',
+                    complete: function() {
+                        animateCalendarIn();
+                    }
+                });
+            }
+        });
+    }
+
+    function loadCalendarYear(year, direction) {
+        // Check if year is in cache
+        if (calendarCache[year]) {
+            updateCalendarContent(year, calendarCache[year], direction);
+        } else {
+            // Fetch from server and add to cache
+            $.ajax({
+                url: CALENDAR_API_URL + year + '/',
+                type: 'GET',
+                success: function(response) {
+                    // Add to cache
+                    calendarCache[year] = response.html;
+                    updateCalendarContent(year, response.html, direction);
+                },
+                error: function() {
+                    // On error, fallback to page navigation
+                    window.location.href = HOME_URL + year + '/';
+                }
+            });
+        }
+    }
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', function(event) {
+        if (event.state && event.state.year) {
+            const targetYear = event.state.year;
+            const direction = targetYear > displayedYear ? 'next' : 'prev';
+            // Use cache directly without animation for back/forward
+            if (calendarCache[targetYear]) {
+                $('#calendarContent').html(calendarCache[targetYear]);
+                displayedYear = targetYear;
+                animateCalendarIn();
+            } else {
+                loadCalendarYear(targetYear, direction);
+            }
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initial animation
+        animateCalendarIn();
+
+        // Set initial history state
+        history.replaceState({year: displayedYear}, '', window.location.pathname);
+
+        // Handle year navigation clicks (using event delegation for dynamic content)
+        $(document).on('click', '#prevYearBtn, #nextYearBtn', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const year = parseInt($(this).data('year'));
+            const direction = $(this).attr('id') === 'nextYearBtn' ? 'next' : 'prev';
+            loadCalendarYear(year, direction);
+        });
+
+        // Handle budget creation for specific months
+        $(document).on('click', '.create-budget-month', function () {
+            const year = $(this).data('year');
+            const month = $(this).data('month');
+            const monthName = $(this).data('month-name');
+
+            // Update modal message
+            $('#budget-create-message').text(
+                `Would you like to create a blank budget for ${monthName} ${year} or copy recurring expenses from the previous budget?`
+            );
+
+            // Store the target month data
+            $('#budgetCreateModal').data('target-year', year).data('target-month', month);
+
+            openModalWithAnimation('#budgetCreateModal');
+        });
+
+        // Handle blank budget creation
+        $('#create-blank-budget').on('click', function () {
+            createBudget(false);
+        });
+
+        // Handle budget creation with recurring expenses
+        $('#create-with-recurring').on('click', function () {
+            createBudget(true);
+        });
+
+        function createBudget(copyRecurring) {
+            const targetYear = $('#budgetCreateModal').data('target-year');
+            const targetMonth = $('#budgetCreateModal').data('target-month');
+
+            $.ajax({
+                url: "{% url 'minimal:budget_create' %}",
+                type: 'POST',
+                data: {
+                    'csrfmiddlewaretoken': $('input[name=csrfmiddlewaretoken]').val(),
+                    'copy_recurring': copyRecurring,
+                    'target_year': targetYear,
+                    'target_month': targetMonth
+                },
+                success: function (response) {
+                    // Close the budget creation modal
+                    closeModalWithAnimation('#budgetCreateModal');
+
+                    // Show success notification
+                    showNotification('Success', response.message, function () {
+                        // Redirect to the new budget after user clicks OK
+                        window.location.href = response.redirect;
+                    });
+                },
+                error: function (xhr) {
+                    // Close the budget creation modal
+                    closeModalWithAnimation('#budgetCreateModal');
+
+                    // Show error notification
+                    let errorMessage = 'An error occurred while creating the budget.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    showNotification('Error', errorMessage);
+                }
+            });
+        }
+
+        function showNotification(title, message, callback) {
+            $('#notificationModalLabel').text(title);
+            $('#notification-message').text(message);
+
+            // Handle OK button click
+            $('#notificationModal .notification-ok-btn').off('click').on('click', function () {
+                closeModalWithAnimation('#notificationModal');
+                if (callback) {
+                    callback();
+                }
+            });
+
+            // Handle close button click
+            $('#notificationModal .notification-close-btn').off('click').on('click', function () {
+                closeModalWithAnimation('#notificationModal');
+                if (callback) {
+                    callback();
+                }
+            });
+
+            openModalWithAnimation('#notificationModal');
+        }
+    });
+</script>
+{% endblock content %}
