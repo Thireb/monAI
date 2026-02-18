@@ -180,19 +180,7 @@ class Expense(models.Model):
         blank=True,
         related_name="expenses",
     )
-    TAG_CHOICES = [
-        ("nayapay", "Nayapay"),
-        ("meezan", "Meezan"),
-        ("cash", "Cash"),
-        ("none", "None"),
-        ("transferred", "Transferred"),
-        ("jazzcash", "Jazzcash"),
-        ("easypaisa", "Easypaisa"),
-        ("alfalah", "Alfalah"),
-        ("askari", "Askari"),
-        ("other", "Other"),
-    ]
-    tag = models.CharField(max_length=255, choices=TAG_CHOICES, default="meezan")
+    # Tag for this expense (replaces the old CharField-based tag)
     tag_foreign_key = models.ForeignKey(
         Tag,
         on_delete=models.SET_NULL,

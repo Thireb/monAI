@@ -13,7 +13,7 @@ def service_worker(request):
     # .parent = budgetapp/
     # .parent.parent = django_budget_tracker/ (project root)
     BASE_DIR = Path(__file__).resolve().parent.parent
-    sw_path = BASE_DIR / "budgetapp" / "static" / "js" / "service-worker.js"
+    sw_path = BASE_DIR / "static" / "js" / "service-worker.js"
 
     logger.info(f"Service worker requested. Path: {sw_path}, Exists: {sw_path.exists()}")
 

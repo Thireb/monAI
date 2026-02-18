@@ -1,0 +1,50 @@
+# -----------------------------------------------------------------------------
+# .dockerignore – files/folders NOT sent to the Docker build context
+# -----------------------------------------------------------------------------
+# This keeps builds faster and images smaller. Only what you need gets copied.
+# (Like .gitignore, but for "docker build". config.yaml is NOT here so it
+# gets copied if present on your machine.)
+# -----------------------------------------------------------------------------
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv/
+env/
+ENV/
+*.egg-info/
+.eggs/
+*.egg
+
+# Git and IDE
+.git/
+.gitignore
+.idea/
+.vscode/
+.cursor/
+
+# Local/dev files
+*.log
+db.sqlite3
+db.sqlite3-journal
+.env
+.cache
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Capacitor / Node (not needed to run Django)
+capacitor-app/node_modules/
+capacitor-app/android/.gradle/
+capacitor-app/android/app/build/
+capacitor-app/android/build/
+capacitor-app/output/
+
+# Docs and scripts (optional: remove these lines if you want them in the image)
+# docs/
+# scripts/

@@ -55,6 +55,23 @@ python manage.py runserver
 
 The application will be available at `http://127.0.0.1:8000/`
 
+## Docker (optional)
+
+You can run the project in a container with **Arch Linux**:
+
+1. Ensure you have `config.yaml` in the project root (the app reads settings from it).
+2. From the project root:
+   ```bash
+   docker compose up --build
+   ```
+3. Open **http://localhost:8000**. The container runs `migrate` then `runserver 0.0.0.0:8000`.
+
+- **Dockerfile**: base image Arch Linux, system deps (Python, Cairo/Pango for WeasyPrint), virtualenv, `pip install`, then run the server.
+- **docker-compose.yml**: builds the image and maps host port 8000 to container port 8000.
+- **.dockerignore**: keeps the build context small (excludes venv, `.git`, etc.).
+
+To run in the background: `docker compose up -d`. To stop: `docker compose down`.
+
 ## Code Formatting with Pre-commit
 
 This project uses [pre-commit](https://pre-commit.com/) hooks to automatically format and check code before committing. This ensures consistent code style and quality across the project.
