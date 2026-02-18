@@ -1,12 +1,14 @@
-# Render Blueprint: use this for new deploys or Blueprint Apply.
-# For an existing service, set Start Command in Dashboard to: bash scripts/start_render.sh
-# Secrets (SECRET_KEY, RESEND_API_KEY): set in Dashboard or use sync: false and provide when prompted.
+# Render Blueprint (simplified like DjPOS). Secrets: set in Dashboard.
 services:
   - type: web
     runtime: python
     name: monAI
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
-    startCommand: bash scripts/start_render.sh
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+    startCommand: |
+      python manage.py migrate --noinput && \
+      gunicorn budget_tracker.wsgi:application
     envVars:
       - key: ALLOWED_HOSTS
         value: monai-42qk.onrender.com
