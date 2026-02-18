@@ -54,8 +54,11 @@ if not DEBUG and (not SECRET_KEY or len(SECRET_KEY) < 50):
         "Update config.yaml with a secure key."
     )
 
-# Allowed hosts from config
+# Allowed hosts from config (env ALLOWED_HOSTS overrides for Render etc.)
 ALLOWED_HOSTS = server_config.get("allowed_hosts", ["localhost", "127.0.0.1"])
+_allowed_env = os.environ.get("ALLOWED_HOSTS", "").strip()
+if _allowed_env:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed_env.split(",") if h.strip()]
 
 # CSRF trusted origins for ngrok and local development
 urls_config = CONFIG.get("urls", {})
