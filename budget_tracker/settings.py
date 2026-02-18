@@ -65,7 +65,7 @@ local_url = urls_config.get("local", "")
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "https://monai.onrender.com",
+    "https://monai-42qk.onrender.com",
 ]
 
 # Add ngrok URL if configured
