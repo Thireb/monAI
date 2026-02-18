@@ -1,8 +1,20 @@
 # Render Blueprint: use this for new deploys or Blueprint Apply.
 # For an existing service, set Start Command in Dashboard to: bash scripts/start_render.sh
+# Secrets (SECRET_KEY, RESEND_API_KEY): set in Dashboard or use sync: false and provide when prompted.
 services:
   - type: web
     runtime: python
     name: monAI
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
     startCommand: bash scripts/start_render.sh
+    envVars:
+      - key: ALLOWED_HOSTS
+        value: monai-42qk.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://monai-42qk.onrender.com
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
