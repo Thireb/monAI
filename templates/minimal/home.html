@@ -1,12 +1,11 @@
 {% extends "minimal/base.html" %}
-{% load static %}
+{% load static_version %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/calendar/calendar.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/tooltip/tooltip.css' %}">
+{% endblock extra_css %}
 {% block content %}
 {% csrf_token %}
-<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/minimal-css/theme/theme.css' %}">
-<link rel="stylesheet" href="{% static 'css/minimal-css/calendar/calendar.css' %}">
-<link rel="stylesheet" href="{% static 'css/minimal-css/tooltip/tooltip.css' %}">
-<link rel="stylesheet" href="{% static 'css/minimal-css/modal/modal.css' %}">
 <div class="minimal-home-outer">
     <div class="minimal-home-container">
         <div id="calendarContent">
@@ -54,7 +53,7 @@
     </div>
 </div>
 
-<script src="{% static 'js/minimal-js/tooltip/tooltip.js' %}"></script>
+<script src="{% versioned_static 'js/minimal-js/tooltip/tooltip.js' %}"></script>
 <script>
     // Prefetched calendar cache (5 years: current ± 2)
     const calendarCache = {{ cached_calendars_json|safe }};
@@ -272,4 +271,3 @@
     });
 </script>
 {% endblock content %}
-{% block extra_css %}{% endblock extra_css %}

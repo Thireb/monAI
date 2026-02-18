@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import Budget, Debt, DebtTransaction, Expense, Goal, GoalContribution, Tag
+from .models import (
+    Budget,
+    Debt,
+    DebtTransaction,
+    Expense,
+    Goal,
+    GoalContribution,
+    Tag,
+)
 
 
 @admin.register(Budget)
@@ -73,3 +81,5 @@ class DebtTransactionAdmin(admin.ModelAdmin):
     list_filter = ("date", "created_at")
     search_fields = ("debt__name", "notes")
     date_hierarchy = "date"
+
+

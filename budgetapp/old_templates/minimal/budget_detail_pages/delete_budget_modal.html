@@ -1,0 +1,41 @@
+<!-- Delete Budget Modal -->
+<!-- djlint:off H021 -->
+<div id="deleteBudgetModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="deleteBudgetModalLabel" style="display: none;">
+    <!-- djlint:on H021 -->
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title text-danger" id="deleteBudgetModalLabel">
+                <span class="delete-icon">🗑️</span>
+                Delete Budget
+            </h3>
+            <button type="button" class="btn-close budget-delete-close-btn" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="delete-warning">
+                <p class="text-danger mb-3">
+                    <strong>Warning:</strong> This action cannot be undone.
+                </p>
+                <p>
+                    Are you sure you want to delete the budget for
+                    <strong>{{ budget.month|date:"F Y" }}</strong>?
+                </p>
+                <div class="delete-details mt-3">
+                    <p class="text-muted mb-2">This will permanently delete:</p>
+                    <ul class="text-muted">
+                        <li>All expenses and sub-expenses</li>
+                        <li>Category and tag statistics</li>
+                        <li>All budget data for this month</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-minimal budget-delete-cancel-btn">Cancel</button>
+            <button type="button" class="btn btn-minimal btn-danger" id="confirm-delete-budget">
+                <span class="delete-icon">🗑️</span>
+                Delete Budget
+            </button>
+        </div>
+    </div>
+</div>

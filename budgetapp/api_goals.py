@@ -3,6 +3,7 @@ from django.utils import timezone
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Goal, GoalContribution
@@ -12,20 +13,24 @@ from .serializers import GoalContributionSerializer, GoalDetailSerializer, GoalS
 class GoalViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing financial goals.
+    Only returns goals belonging to the authenticated user.
     """
 
     serializer_class = GoalSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """
-        Return all goals without filtering by user.
-        """
-        return Goal.objects.all()
+        """Return goals for the authenticated user only."""
+        return Goal.objects.filter(user=self.request.user)
 
     def get_serializer_class(self):
         if self.action in ["retrieve", "detail"]:
             return GoalDetailSerializer
         return GoalSerializer
+
+    def perform_create(self, serializer):
+        """Set the user when creating a new goal."""
+        serializer.save(user=self.request.user)
 
     @action(detail=True, methods=["get"])
     def statistics(self, request, pk=None):
@@ -149,23 +154,33 @@ class GoalViewSet(viewsets.ModelViewSet):
 class GoalContributionViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing goal contributions.
+    Only returns contributions for goals belonging to the authenticated user.
     """
 
     serializer_class = GoalContributionSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """
-        Return all goal contributions or filter by goal if specified.
+        Return contributions for the authenticated user's goals.
+        Optionally filter by goal if specified.
         """
         goal_id = self.request.query_params.get("goal", None)
+        queryset = GoalContribution.objects.filter(goal__user=self.request.user)
         if goal_id:
-            return GoalContribution.objects.filter(goal_id=goal_id)
-        return GoalContribution.objects.all()
+            queryset = queryset.filter(goal_id=goal_id)
+        return queryset
 
     def perform_create(self, serializer):
         """
         Save the contribution and update the goal's current amount.
+        Validates that the goal belongs to the current user.
         """
+        goal = serializer.validated_data.get("goal")
+        if goal.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("You can only add contributions to your own goals.")
+
         contribution = serializer.save()
 
         # Update the goal's current amount

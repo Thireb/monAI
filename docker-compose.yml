@@ -1,0 +1,25 @@
+# =============================================================================
+# docker-compose.yml – run the Django app (and later: DB, Redis, etc.) in containers
+# =============================================================================
+# Usage:
+#   docker compose up --build    # build image and start; app at http://localhost:8000
+#   docker compose up -d          # same, in background
+#   docker compose down           # stop and remove containers
+# =============================================================================
+name: monai
+services:
+  # One service = one container (you can add more later: db, redis, celery…)
+  budget_tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      # "host:container" – host 8000 maps to container 8000
+      - "8000:8000"
+    # Optional: run as your app directory so paths match (handy for learning)
+    working_dir: /app
+    volumes:
+      # Live code: host project dir → /app (changes reflect without rebuild)
+      - .:/app
+      # Reuse host DB (optional; comment out if you want a fresh DB in the container)
+      - ./db.sqlite3:/app/db.sqlite3
