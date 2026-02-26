@@ -1,0 +1,11 @@
+{% load account %}{% load i18n %}{% blocktrans with site_name=current_site.name %}Hello from {{ site_name }}!{% endblocktrans %}
+
+{% blocktrans %}You're receiving this email because you requested email verification.{% endblocktrans %}
+
+{% blocktrans %}To confirm your email address, please click the link below:{% endblocktrans %}
+
+{{ activate_url }}
+
+{% blocktrans with site_name=current_site.name %}Thank you for using {{ site_name }}!{% endblocktrans %}
+
+{% blocktrans %}If you did not request this verification, you can safely ignore this email.{% endblocktrans %}

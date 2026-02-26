@@ -115,6 +115,7 @@ INSTALLED_APPS = [
     # Third party apps
     "allauth",
     "allauth.account",
+    "anymail",
     "rest_framework",
     "django_celery_beat.apps.BeatConfig",
     # Local apps
@@ -376,9 +377,14 @@ elif email_backend_type == "smtp":
     EMAIL_HOST_PASSWORD = smtp_config.get("password", "")
     DEFAULT_FROM_EMAIL = smtp_config.get("default_from", "noreply@monai.app")
 elif email_backend_type == "resend":
-    # Resend API configuration - used for PDF email feature
-    # Note: Resend uses its own SDK, not Django's email backend
+    # Resend API via django-anymail backend for Django email system
+    # This integrates with django-allauth for verification/password reset emails
     resend_config = email_config.get("resend", {})
+    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+    ANYMAIL = {
+        "RESEND_API_KEY": resend_config.get("api_key", ""),
+    }
+    DEFAULT_FROM_EMAIL = resend_config.get("from_email", "onboarding@resend.dev")
     RESEND_API_KEY = resend_config.get("api_key", "")
     RESEND_FROM_EMAIL = resend_config.get("from_email", "onboarding@resend.dev")
 else:

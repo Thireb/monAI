@@ -1,0 +1,72 @@
+{% load account %}{% load i18n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% blocktrans %}Confirm Your Email{% endblocktrans %}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Quicksand', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f6fa;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f3f6fa;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 40px 40px 20px 40px; text-align: center;">
+                            <h1 style="margin: 0; font-size: 32px; font-weight: 700; background: linear-gradient(135deg, #2196f3 0%, #4caf50 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                                monAI
+                            </h1>
+                            <p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;">
+                                {% blocktrans %}Budget Tracker{% endblocktrans %}
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 20px 40px;">
+                            <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: #1f2937; text-align: center;">
+                                {% blocktrans %}Confirm Your Email{% endblocktrans %}
+                            </h2>
+                            <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #4b5563; text-align: center;">
+                                {% blocktrans %}You requested to verify this email address. Click the button below to confirm.{% endblocktrans %}
+                            </p>
+                            
+                            <!-- CTA Button -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td style="text-align: center; padding: 16px 0;">
+                                        <a href="{{ activate_url }}" style="display: inline-block; padding: 16px 48px; background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 12px; box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);">
+                                            {% blocktrans %}Verify Email{% endblocktrans %}
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="margin: 24px 0 0 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+                                {% blocktrans %}Or copy and paste this link into your browser:{% endblocktrans %}
+                            </p>
+                            <p style="margin: 8px 0 0 0; font-size: 12px; line-height: 1.6; color: #2196f3; text-align: center; word-break: break-all;">
+                                {{ activate_url }}
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px 40px; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #9ca3af; text-align: center;">
+                                {% blocktrans %}If you didn't request this verification, you can safely ignore this email.{% endblocktrans %}
+                            </p>
+                            <p style="margin: 16px 0 0 0; font-size: 12px; color: #9ca3af; text-align: center;">
+                                &copy; {% now "Y" %} monAI. {% blocktrans %}All rights reserved.{% endblocktrans %}
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

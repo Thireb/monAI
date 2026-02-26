@@ -61,8 +61,11 @@ celery:
 email:
   # Use "console" for development (prints to terminal)
   # Use "smtp" for production SMTP
-  # Use "resend" for Resend API (recommended for PDF emails)
-  backend: "console"
+  # Use "resend" for Resend API (recommended for production)
+  #   - Sends styled HTML emails for verification and password reset
+  #   - Also used for PDF budget report emails
+  #   - Uses django-anymail backend for Django email integration
+  backend: "resend"
   
   # SMTP settings (only used when backend is "smtp")
   smtp:
@@ -73,9 +76,11 @@ email:
     password: ""
     default_from: "noreply@monai.app"
   
-  # Resend settings (only used when backend is "resend")
+  # Resend settings (used when backend is "resend")
   # Get API key from https://resend.com/api-keys
   # Free tier: 3,000 emails/month
+  # When enabled, all Django emails (verification, password reset) go through Resend
+  # PDF email feature also uses Resend directly via SDK
   resend:
     api_key: "re_GEwxWm8P_JzwnLFsqWj145P6AHxuUSqub"
     from_email: "onboarding@resend.dev"  # Use verified domain in production

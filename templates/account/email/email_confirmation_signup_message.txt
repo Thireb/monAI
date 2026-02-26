@@ -1,0 +1,17 @@
+{% load account %}{% load i18n %}{% blocktrans with site_name=current_site.name %}Welcome to {{ site_name }}!{% endblocktrans %}
+
+{% blocktrans with username=user.username %}Hi {{ username }},{% endblocktrans %}
+
+{% blocktrans %}Thank you for signing up! To complete your registration, please confirm your email address by clicking the link below:{% endblocktrans %}
+
+{{ activate_url }}
+
+{% blocktrans %}Once confirmed, you'll have full access to all features:{% endblocktrans %}
+- {% blocktrans %}Track your income and expenses{% endblocktrans %}
+- {% blocktrans %}Set and monitor budgets{% endblocktrans %}
+- {% blocktrans %}View detailed financial reports{% endblocktrans %}
+- {% blocktrans %}Export budget reports as PDF{% endblocktrans %}
+
+{% blocktrans with site_name=current_site.name %}Thank you for choosing {{ site_name }}!{% endblocktrans %}
+
+{% blocktrans %}If you did not create an account, you can safely ignore this email.{% endblocktrans %}
