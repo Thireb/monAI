@@ -232,20 +232,24 @@
             {% csrf_token %}
             <input type="hidden" name="debt_id" value="{{ debt.id }}">
             <div class="modal-body">
+                <div class="alert alert-danger form-errors" style="display: none;"></div>
                 <div class="mb-3">
                     <label for="borrowingAmount" class="form-label">Amount <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="borrowingAmount" name="amount" step="0.01" min="0.01"
                         required>
+                    <div class="invalid-feedback"></div>
                     <div class="form-text">Amount to borrow</div>
                 </div>
                 <div class="mb-3">
                     <label for="borrowingDate" class="form-label">Date <span class="text-danger">*</span></label>
                     <input type="date" class="form-control" id="borrowingDate" name="date" required>
+                    <div class="invalid-feedback"></div>
                     <div class="form-text">Date of borrowing</div>
                 </div>
                 <div class="mb-3">
                     <label for="borrowingNotes" class="form-label">Notes (Optional)</label>
                     <textarea class="form-control" id="borrowingNotes" name="notes" rows="2"></textarea>
+                    <div class="invalid-feedback"></div>
                     <div class="form-text">Optional notes about this borrowing</div>
                 </div>
             </div>
@@ -267,19 +271,23 @@
             {% csrf_token %}
             <input type="hidden" id="editDebtId" name="debt_id">
             <div class="modal-body">
+                <div class="alert alert-danger form-errors" style="display: none;"></div>
                 <div class="mb-3">
                     <label for="editDebtName" class="form-label">Debt Name <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="editDebtName" name="name" required>
+                    <div class="invalid-feedback"></div>
                 </div>
                 <div class="mb-3">
                     <label for="editDebtDescription" class="form-label">Description</label>
                     <textarea class="form-control" id="editDebtDescription" name="description" rows="3"></textarea>
+                    <div class="invalid-feedback"></div>
                 </div>
                 <div class="mb-3">
                     <label for="editDebtTotalAmount" class="form-label">Total Amount <span
                             class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="editDebtTotalAmount" name="total_amount" step="0.01"
                         min="0.01" required>
+                    <div class="invalid-feedback"></div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -320,21 +328,25 @@
             <input type="hidden" id="editTransactionId" name="transaction_id">
             <input type="hidden" name="debt_id" value="{{ debt.id }}">
             <div class="modal-body">
+                <div class="alert alert-danger form-errors" style="display: none;"></div>
                 <div class="mb-3">
                     <label for="editTransactionAmount" class="form-label">Amount <span
                             class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="editTransactionAmount" name="amount" step="0.01"
                         min="0.01" required>
+                    <div class="invalid-feedback"></div>
                     <div class="form-text">Amount borrowed</div>
                 </div>
                 <div class="mb-3">
                     <label for="editTransactionDate" class="form-label">Date <span class="text-danger">*</span></label>
                     <input type="date" class="form-control" id="editTransactionDate" name="date" required>
+                    <div class="invalid-feedback"></div>
                     <div class="form-text">Date of borrowing</div>
                 </div>
                 <div class="mb-3">
                     <label for="editTransactionNotes" class="form-label">Notes (Optional)</label>
                     <textarea class="form-control" id="editTransactionNotes" name="notes" rows="2"></textarea>
+                    <div class="invalid-feedback"></div>
                     <div class="form-text">Optional notes about this borrowing</div>
                 </div>
             </div>

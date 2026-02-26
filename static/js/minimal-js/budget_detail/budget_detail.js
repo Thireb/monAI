@@ -53,6 +53,7 @@ $(function () {
     e.preventDefault();
     const form = $(this);
     const url = form.attr('action');
+    clearFormErrors(form);
 
     $.ajax({
       url: url,
@@ -72,11 +73,12 @@ $(function () {
         closeModalWithAnimation('#incomeModal');
       },
       error: function (xhr) {
-        let errorMsg = 'An error occurred while updating income.';
-        if (xhr.responseJSON && xhr.responseJSON.message) {
-          errorMsg = xhr.responseJSON.message;
+        var response = xhr.responseJSON;
+        if (response && response.errors) {
+          displayFormErrors(form, response.errors);
+        } else {
+          showToast('Error', response?.message || 'An error occurred while updating income.', 'error');
         }
-        showToast('Error', errorMsg, 'error');
       },
     });
   });
@@ -84,31 +86,30 @@ $(function () {
   // Handle expense form submission with AJAX
   $('#expense-form').on('submit', function (e) {
     e.preventDefault();
+    const form = $(this);
+    clearFormErrors(form);
 
     // Validate form
     let valid = true;
-    const name = $(this).find('[name=name]');
-    const amount = $(this).find('[name=amount]');
+    const name = form.find('[name=name]');
+    const amount = form.find('[name=amount]');
 
     if (!name.val().trim()) {
       name.addClass('is-invalid');
+      name.siblings('.invalid-feedback').text('Name is required.').show();
       valid = false;
-    } else {
-      name.removeClass('is-invalid');
     }
 
     if (!amount.val().trim() || isNaN(amount.val()) || Number(amount.val()) <= 0) {
       amount.addClass('is-invalid');
+      amount.siblings('.invalid-feedback').text('Amount must be a positive number.').show();
       valid = false;
-    } else {
-      amount.removeClass('is-invalid');
     }
 
     if (!valid) {
       return;
     }
 
-    const form = $(this);
     const url = form.attr('action');
 
     $.ajax({
@@ -137,11 +138,12 @@ $(function () {
         resetExpenseForm();
       },
       error: function (xhr) {
-        let errorMsg = 'An error occurred while saving the expense.';
-        if (xhr.responseJSON && xhr.responseJSON.message) {
-          errorMsg = xhr.responseJSON.message;
+        var response = xhr.responseJSON;
+        if (response && response.errors) {
+          displayFormErrors(form, response.errors);
+        } else {
+          showToast('Error', response?.message || 'An error occurred while saving the expense.', 'error');
         }
-        showToast('Error', errorMsg, 'error');
       },
     });
   });
@@ -231,8 +233,10 @@ $(function () {
 
   // Reset expense form helper
   function resetExpenseForm() {
-    $('#expense-form')[0].reset();
+    var $form = $('#expense-form');
+    $form[0].reset();
     $('#expense_id').val('');
+    clearFormErrors($form);
   }
 
   // Helper function to add a new expense row to the table

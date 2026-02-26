@@ -94,9 +94,52 @@ function escapeHtml(str) {
   return $('<div>').text(str).html();
 }
 
+/**
+ * Display form validation errors from server response
+ * @param {jQuery} $form - The form jQuery element
+ * @param {Object} errors - Error object { field: [errors], __all__: [errors] }
+ */
+function displayFormErrors($form, errors) {
+  clearFormErrors($form);
+  if (!errors) return;
+
+  for (var field in errors) {
+    if (errors.hasOwnProperty(field)) {
+      var fieldErrors = errors[field];
+      if (field === '__all__' || field === 'non_field_errors') {
+        var $errorContainer = $form.find('.form-errors');
+        if ($errorContainer.length) {
+          $errorContainer.html(fieldErrors.join('<br>')).show();
+        }
+      } else {
+        var $input = $form.find('[name="' + field + '"]');
+        if ($input.length) {
+          $input.addClass('is-invalid');
+          var $feedback = $input.siblings('.invalid-feedback');
+          if ($feedback.length) {
+            $feedback.html(fieldErrors.join(' ')).show();
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Clear all form validation errors
+ * @param {jQuery} $form - The form jQuery element
+ */
+function clearFormErrors($form) {
+  $form.find('.is-invalid').removeClass('is-invalid');
+  $form.find('.invalid-feedback').text('').hide();
+  $form.find('.form-errors').text('').hide();
+}
+
 // Make functions globally available
 window.showToast = showToast;
 window.formatCurrency = formatCurrency;
 window.escapeForAttr = escapeForAttr;
 window.escapeHtml = escapeHtml;
+window.displayFormErrors = displayFormErrors;
+window.clearFormErrors = clearFormErrors;
 

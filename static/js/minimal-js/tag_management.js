@@ -81,6 +81,9 @@ $(document).ready(function () {
 
   // Create new tag
   function createTag() {
+    var $form = $('#tag-form');
+    clearFormErrors($form);
+
     const formData = {
       name: $('#tag-name').val(),
       description: $('#tag-description').val(),
@@ -113,8 +116,12 @@ $(document).ready(function () {
         }
       },
       error: function (xhr) {
-        const response = xhr.responseJSON;
-        showAlert('danger', response.message || 'Error creating tag');
+        var response = xhr.responseJSON;
+        if (response && response.errors) {
+          displayFormErrors($form, response.errors);
+        } else {
+          showAlert('danger', response?.message || 'Error creating tag');
+        }
       },
       complete: function () {
         $('#tag-submit-btn').removeClass('loading').text('Add Tag');
@@ -124,6 +131,9 @@ $(document).ready(function () {
 
   // Update existing tag
   function updateTag() {
+    var $form = $('#tag-form');
+    clearFormErrors($form);
+
     const formData = {
       tag_id: currentEditTagId,
       name: $('#tag-name').val(),
@@ -172,8 +182,12 @@ $(document).ready(function () {
         }
       },
       error: function (xhr) {
-        const response = xhr.responseJSON;
-        showAlert('danger', response.message || 'Error updating tag');
+        var response = xhr.responseJSON;
+        if (response && response.errors) {
+          displayFormErrors($form, response.errors);
+        } else {
+          showAlert('danger', response?.message || 'Error updating tag');
+        }
       },
       complete: function () {
         // Ensure loading class is removed even if resetForm() wasn't called
@@ -318,12 +332,14 @@ $(document).ready(function () {
 
   // Reset form
   function resetForm() {
-    $('#tag-form')[0].reset();
+    var $form = $('#tag-form');
+    $form[0].reset();
     $('#tag-color').val('#2196f3');
     isEditMode = false;
     currentEditTagId = null;
     $('#tag-submit-btn').removeClass('loading').text('Add Tag');
     $('#tag-id').remove();
+    clearFormErrors($form);
 
     // Remove cancel hint with animation
     const cancelHint = $('.cancel-hint');

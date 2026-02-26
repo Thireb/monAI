@@ -223,6 +223,8 @@ $(document).ready(function () {
 
   // Edit Debt - Dynamic Update
   window.editDebt = function (debtId, name, description, totalAmount) {
+    var $form = $('#editDebtForm');
+    clearFormErrors($form);
     $('#editDebtId').val(debtId);
     $('#editDebtName').val(name);
     $('#editDebtDescription').val(description);
@@ -233,8 +235,9 @@ $(document).ready(function () {
   $('#editDebtForm').on('submit', function (e) {
     e.preventDefault();
 
-    const form = $(this);
-    const submitBtn = form.find('button[type="submit"]');
+    var $form = $(this);
+    const submitBtn = $form.find('button[type="submit"]');
+    clearFormErrors($form);
 
     // Prevent double submission
     if (submitBtn.hasClass('loading')) {
@@ -249,7 +252,7 @@ $(document).ready(function () {
     $.ajax({
       url: '/minimal/debts/update/',
       method: 'POST',
-      data: form.serialize(),
+      data: $form.serialize(),
       success: function (response) {
         if (response.success) {
           showToast('Success', response.message, 'success');
@@ -267,8 +270,12 @@ $(document).ready(function () {
         }
       },
       error: function (xhr) {
-        const response = xhr.responseJSON;
-        showToast('Error', response ? response.error : 'An error occurred', 'error');
+        var response = xhr.responseJSON;
+        if (response && response.errors) {
+          displayFormErrors($form, response.errors);
+        } else {
+          showToast('Error', response ? response.error : 'An error occurred', 'error');
+        }
       },
       complete: function () {
         hideLoading(submitBtn);
@@ -326,8 +333,9 @@ $(document).ready(function () {
   $('#borrowingForm').on('submit', function (e) {
     e.preventDefault();
 
-    const form = $(this);
-    const submitBtn = form.find('button[type="submit"]');
+    var $form = $(this);
+    const submitBtn = $form.find('button[type="submit"]');
+    clearFormErrors($form);
 
     // Prevent double submission
     if (submitBtn.hasClass('loading')) {
@@ -364,7 +372,7 @@ $(document).ready(function () {
     $.ajax({
       url: '/minimal/debts/borrow/',
       method: 'POST',
-      data: form.serialize(),
+      data: $form.serialize(),
       success: function (response) {
         if (response.success) {
           showToast('Success', response.message, 'success');
@@ -383,8 +391,12 @@ $(document).ready(function () {
         }
       },
       error: function (xhr) {
-        const response = xhr.responseJSON;
-        showToast('Error', response ? response.error : 'An error occurred', 'error');
+        var response = xhr.responseJSON;
+        if (response && response.errors) {
+          displayFormErrors($form, response.errors);
+        } else {
+          showToast('Error', response ? response.error : 'An error occurred', 'error');
+        }
       },
       complete: function () {
         hideLoading(submitBtn);
@@ -427,6 +439,8 @@ $(document).ready(function () {
 
   // Edit Transaction - Dynamic Update
   window.editTransaction = function (transactionId, date, amount, notes) {
+    var $form = $('#editTransactionForm');
+    clearFormErrors($form);
     $('#editTransactionId').val(transactionId);
     $('#editTransactionAmount').val(amount);
     $('#editTransactionDate').val(date);
@@ -437,8 +451,9 @@ $(document).ready(function () {
   $('#editTransactionForm').on('submit', function (e) {
     e.preventDefault();
 
-    const form = $(this);
-    const submitBtn = form.find('button[type="submit"]');
+    var $form = $(this);
+    const submitBtn = $form.find('button[type="submit"]');
+    clearFormErrors($form);
 
     // Prevent double submission
     if (submitBtn.hasClass('loading')) {
@@ -453,7 +468,7 @@ $(document).ready(function () {
     $.ajax({
       url: '/minimal/debts/transaction/update/',
       method: 'POST',
-      data: form.serialize(),
+      data: $form.serialize(),
       success: function (response) {
         if (response.success) {
           showToast('Success', response.message, 'success');
@@ -475,8 +490,12 @@ $(document).ready(function () {
         }
       },
       error: function (xhr) {
-        const response = xhr.responseJSON;
-        showToast('Error', response ? response.error : 'An error occurred', 'error');
+        var response = xhr.responseJSON;
+        if (response && response.errors) {
+          displayFormErrors($form, response.errors);
+        } else {
+          showToast('Error', response ? response.error : 'An error occurred', 'error');
+        }
       },
       complete: function () {
         hideLoading(submitBtn);
