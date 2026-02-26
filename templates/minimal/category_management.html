@@ -17,12 +17,16 @@
         <h3 class="mb-3">Add New Category</h3>
         <form id="category-form" class="category-form">
             {% csrf_token %}
+            <!-- djlint:off H021 -->
+            <div class="alert alert-danger form-errors" style="display: none;"></div>
+            <!-- djlint:on H021 -->
             <div class="row">
                 <div class="col-md-3">
                     <div class="mb-3">
                         <label for="category-name" class="form-label">Category Name</label>
                         <input type="text" class="form-control" id="category-name" name="name"
                             placeholder="Enter category name" required>
+                        <div class="invalid-feedback"></div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -30,6 +34,7 @@
                         <label for="category-description" class="form-label">Description</label>
                         <input type="text" class="form-control" id="category-description" name="description"
                             placeholder="Optional description">
+                        <div class="invalid-feedback"></div>
                     </div>
                 </div>
                 <div class="col-md-2">
@@ -37,6 +42,7 @@
                         <label for="category-color" class="form-label">Color</label>
                         <input type="color" class="form-control form-control-color" id="category-color" name="color"
                             value="#2196f3" title="Choose category color">
+                        <div class="invalid-feedback"></div>
                     </div>
                 </div>
                 <div class="col-md-2">

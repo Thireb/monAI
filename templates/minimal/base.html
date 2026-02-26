@@ -37,6 +37,9 @@
 
     <body>
         {% include "minimal/components/nav.html" %}
+        <div class="container mt-3">
+            {% include "minimal/components/messages.html" %}
+        </div>
         <div class="container mt-4 page-content-wrapper">
             {% block content %}{% endblock content %}
         </div>

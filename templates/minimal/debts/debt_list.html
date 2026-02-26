@@ -156,15 +156,18 @@
         <form id="createDebtForm" action="javascript:void(0);">
             {% csrf_token %}
             <div class="modal-body">
+                <div class="alert alert-danger form-errors" style="display: none;"></div>
                 <div class="mb-3">
                     <label for="debtName" class="form-label">Debt Name <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="debtName" name="name" required>
+                    <div class="invalid-feedback"></div>
                     <div class="form-text">Give your debt a clear, descriptive name (e.g., "Motherboard Purchase")
                     </div>
                 </div>
                 <div class="mb-3">
                     <label for="debtDescription" class="form-label">Description</label>
                     <textarea class="form-control" id="debtDescription" name="description" rows="3"></textarea>
+                    <div class="invalid-feedback"></div>
                     <div class="form-text">Describe the debt (e.g., "Borrowed from friend for new motherboard")
                     </div>
                 </div>
@@ -173,6 +176,7 @@
                             class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="debtTotalAmount" name="total_amount" step="0.01"
                         min="0.01" required>
+                    <div class="invalid-feedback"></div>
                     <div class="form-text">The total amount you plan to borrow for this debt</div>
                 </div>
             </div>
@@ -196,20 +200,24 @@
             {% csrf_token %}
             <input type="hidden" id="editDebtId" name="debt_id">
             <div class="modal-body">
+                <div class="alert alert-danger form-errors" style="display: none;"></div>
                 <div class="mb-3">
                     <label for="editDebtName" class="form-label">Debt Name <span
                             class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="editDebtName" name="name" required>
+                    <div class="invalid-feedback"></div>
                 </div>
                 <div class="mb-3">
                     <label for="editDebtDescription" class="form-label">Description</label>
                     <textarea class="form-control" id="editDebtDescription" name="description" rows="3"></textarea>
+                    <div class="invalid-feedback"></div>
                 </div>
                 <div class="mb-3">
                     <label for="editDebtTotalAmount" class="form-label">Total Amount <span
                             class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="editDebtTotalAmount" name="total_amount"
                         step="0.01" min="0.01" required>
+                    <div class="invalid-feedback"></div>
                 </div>
             </div>
             <div class="modal-footer">

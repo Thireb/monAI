@@ -111,10 +111,22 @@
 /* Password Toggle */
 .password-wrapper {
     position: relative;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .password-wrapper .form-control {
     padding-right: 3rem;
+    flex: 1 1 100%;
+}
+
+.password-wrapper .invalid-feedback {
+    width: 100%;
+    order: 3;
+}
+
+.password-wrapper .form-control.is-invalid ~ .invalid-feedback {
+    display: block;
 }
 
 .password-toggle {

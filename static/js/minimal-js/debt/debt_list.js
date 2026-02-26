@@ -149,11 +149,13 @@ $(document).ready(function () {
   // Create Debt - Dynamic Update
   $('#createDebtForm').on('submit', function (e) {
     e.preventDefault();
+    var $form = $(this);
+    clearFormErrors($form);
 
     $.ajax({
       url: '/minimal/debts/create/',
       method: 'POST',
-      data: $(this).serialize(),
+      data: $form.serialize(),
       success: function (response) {
         if (response.success) {
           showToast('Success', response.message, 'success');
@@ -166,14 +168,19 @@ $(document).ready(function () {
           addDebtCard(response.debt);
 
           // Reset form
-          $('#createDebtForm')[0].reset();
+          $form[0].reset();
+          clearFormErrors($form);
         } else {
           showToast('Error', response.error, 'error');
         }
       },
       error: function (xhr) {
-        const response = xhr.responseJSON;
-        showToast('Error', response ? response.error : 'An error occurred', 'error');
+        var response = xhr.responseJSON;
+        if (response && response.errors) {
+          displayFormErrors($form, response.errors);
+        } else {
+          showToast('Error', response ? response.error : 'An error occurred', 'error');
+        }
       },
     });
   });
@@ -186,6 +193,9 @@ $(document).ready(function () {
     const description = $btn.data('debt-description');
     const totalAmount = $btn.data('debt-total');
 
+    var $form = $('#editDebtForm');
+    clearFormErrors($form);
+
     $('#editDebtId').val(debtId);
     $('#editDebtName').val(name);
     $('#editDebtDescription').val(description);
@@ -196,11 +206,13 @@ $(document).ready(function () {
   // Edit Debt - Dynamic Update
   $('#editDebtForm').on('submit', function (e) {
     e.preventDefault();
+    var $form = $(this);
+    clearFormErrors($form);
 
     $.ajax({
       url: '/minimal/debts/update/',
       method: 'POST',
-      data: $(this).serialize(),
+      data: $form.serialize(),
       success: function (response) {
         if (response.success) {
           showToast('Success', response.message, 'success');
@@ -213,8 +225,12 @@ $(document).ready(function () {
         }
       },
       error: function (xhr) {
-        const response = xhr.responseJSON;
-        showToast('Error', response ? response.error : 'An error occurred', 'error');
+        var response = xhr.responseJSON;
+        if (response && response.errors) {
+          displayFormErrors($form, response.errors);
+        } else {
+          showToast('Error', response ? response.error : 'An error occurred', 'error');
+        }
       },
     });
   });

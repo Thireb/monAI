@@ -31,17 +31,28 @@
                     <form method="post">
                         {% csrf_token %}
 
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                            <p class="mb-0">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
                         <!-- Name Field -->
                         <div class="mb-3">
                             <label for="{{ form.name.id_for_label }}" class="form-label">
                                 Debt Name <span class="text-danger">*</span>
                             </label>
-                            {{ form.name }}
+                            <input type="text"
+                                   name="name"
+                                   id="{{ form.name.id_for_label }}"
+                                   class="form-control {% if form.name.errors %}is-invalid{% endif %}"
+                                   value="{{ form.name.value|default:'' }}"
+                                   required>
                             {% if form.name.errors %}
-                            <div class="text-danger mt-1">
-                                {% for error in form.name.errors %}
-                                <small>{{ error }}</small>
-                                {% endfor %}
+                            <div class="invalid-feedback">
+                                {% for error in form.name.errors %}{{ error }}{% endfor %}
                             </div>
                             {% endif %}
                             <div class="form-text">Give your debt a clear, descriptive name (e.g., "Motherboard
@@ -53,12 +64,13 @@
                             <label for="{{ form.description.id_for_label }}" class="form-label">
                                 Description
                             </label>
-                            {{ form.description }}
+                            <textarea name="description"
+                                      id="{{ form.description.id_for_label }}"
+                                      class="form-control {% if form.description.errors %}is-invalid{% endif %}"
+                                      rows="3">{{ form.description.value|default:'' }}</textarea>
                             {% if form.description.errors %}
-                            <div class="text-danger mt-1">
-                                {% for error in form.description.errors %}
-                                <small>{{ error }}</small>
-                                {% endfor %}
+                            <div class="invalid-feedback">
+                                {% for error in form.description.errors %}{{ error }}{% endfor %}
                             </div>
                             {% endif %}
                             <div class="form-text">Describe the debt (e.g., "Borrowed from friend for new motherboard")
@@ -70,12 +82,17 @@
                             <label for="{{ form.total_amount.id_for_label }}" class="form-label">
                                 Total Amount <span class="text-danger">*</span>
                             </label>
-                            {{ form.total_amount }}
+                            <input type="number"
+                                   name="total_amount"
+                                   id="{{ form.total_amount.id_for_label }}"
+                                   class="form-control {% if form.total_amount.errors %}is-invalid{% endif %}"
+                                   value="{{ form.total_amount.value|default:'' }}"
+                                   step="0.01"
+                                   min="0.01"
+                                   required>
                             {% if form.total_amount.errors %}
-                            <div class="text-danger mt-1">
-                                {% for error in form.total_amount.errors %}
-                                <small>{{ error }}</small>
-                                {% endfor %}
+                            <div class="invalid-feedback">
+                                {% for error in form.total_amount.errors %}{{ error }}{% endfor %}
                             </div>
                             {% endif %}
                             <div class="form-text">The total amount you plan to borrow for this debt</div>
