@@ -212,6 +212,41 @@
             color: #666;
         }
 
+        /* Account Breakdown (Tag Stats) styling */
+        .tag-stats {
+            margin-bottom: 25px;
+        }
+
+        .tag-stats-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tag-stat-item {
+            flex: 0 0 calc(50% - 5px);
+            padding: 10px;
+            border-radius: 6px;
+            background: #f9f9f9;
+            border-left: 4px solid;
+        }
+
+        .tag-stat-item .tag-name {
+            font-weight: 600;
+            font-size: 10pt;
+            margin-bottom: 3px;
+        }
+
+        .tag-stat-item .tag-amount {
+            font-size: 12pt;
+            font-weight: 700;
+        }
+
+        .tag-stat-item .tag-percent {
+            font-size: 9pt;
+            color: #666;
+        }
+
         .footer {
             margin-top: 30px;
             padding-top: 15px;
@@ -292,6 +327,22 @@
                 <div class="cat-name">{{ cat_name }}</div>
                 <div class="cat-amount">{{ budget.currency }} {{ cat_data.amount_display }}</div>
                 <div class="cat-percent">{{ cat_data.percentage_display }}% of total</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Account Breakdown (Tag Stats) -->
+    {% if tag_breakdown %}
+    <div class="tag-stats">
+        <h2 class="section-title">Account Breakdown</h2>
+        <div class="tag-stats-grid">
+            {% for tag_name, tag_data in tag_breakdown.items %}
+            <div class="tag-stat-item" style="border-left-color: {{ tag_data.color }};">
+                <div class="tag-name">{{ tag_name|title }}</div>
+                <div class="tag-amount">{{ budget.currency }} {{ tag_data.amount_display }}</div>
+                <div class="tag-percent">{{ tag_data.percentage_display }}% of total</div>
             </div>
             {% endfor %}
         </div>
