@@ -65,7 +65,7 @@ email:
   #   - Sends styled HTML emails for verification and password reset
   #   - Also used for PDF budget report emails
   #   - Uses django-anymail backend for Django email integration
-  backend: "resend"
+  backend: "console"
   
   # SMTP settings (only used when backend is "smtp")
   smtp:

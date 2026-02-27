@@ -516,7 +516,7 @@ class Debt(models.Model):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)  # e.g., 27,000
     borrowed_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # e.g., 4,000
     debt_tag = models.ForeignKey(
-        Tag, on_delete=models.PROTECT, related_name="debts", null=True, blank=True
+        Tag, on_delete=models.SET_NULL, related_name="debts", null=True, blank=True
     )  # Auto-generated tag
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
