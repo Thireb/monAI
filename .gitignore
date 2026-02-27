@@ -6,6 +6,8 @@ __pycache__/
 # Custom
 .cursor/commands/*
 .cursor/plans/*
+config.yaml
+new_config.yaml
 capacitor-app/output/*
 # C extensions
 *.so
