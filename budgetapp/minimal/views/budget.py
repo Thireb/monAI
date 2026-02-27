@@ -446,6 +446,31 @@ class BudgetEmailPDFView(LoginRequiredView):
                     "percentage_display": f"{percent:.1f}",
                 }
 
+        # Prepare tag breakdown (Account Breakdown) for PDF
+        tag_totals = {}
+        tag_colors = {}
+        for expense in expenses_qs:
+            if expense.tag_foreign_key:
+                tag_name = expense.tag_foreign_key.name
+                if tag_name not in tag_totals:
+                    tag_totals[tag_name] = 0
+                    tag_colors[tag_name] = expense.tag_foreign_key.color
+                tag_totals[tag_name] += float(expense.amount)
+
+        # Format tag breakdown similar to expenses_by_category
+        tag_breakdown = {}
+        for tag_name, amount in tag_totals.items():
+            percent = (
+                (amount / float(total_expenses) * 100) if total_expenses else 0
+            )
+            tag_breakdown[tag_name] = {
+                "amount": amount,
+                "amount_display": self._format_currency(amount),
+                "color": tag_colors.get(tag_name, "#2196f3"),
+                "percentage": percent,
+                "percentage_display": f"{percent:.1f}",
+            }
+
         return {
             "budget": budget,
             "expenses": expenses,
@@ -454,6 +479,7 @@ class BudgetEmailPDFView(LoginRequiredView):
             "total_expenses_display": total_expenses_display,
             "remaining_budget_display": remaining_budget_display,
             "expenses_by_category": expenses_by_category,
+            "tag_breakdown": tag_breakdown,
             "generated_date": timezone.now(),
         }
 
