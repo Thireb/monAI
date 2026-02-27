@@ -111,12 +111,27 @@ class TagDeleteView(LoginRequiredView):
             # Count affected expenses for informational message
             affected_expenses = tag.expenses.count()
 
+            # Check if this is a debt tag (has associated debts)
+            associated_debts = tag.debts.all()
+            deleted_debts_count = 0
+            deleted_transactions_count = 0
+            if associated_debts.exists():
+                for debt in associated_debts:
+                    deleted_transactions_count += debt.transactions.count()
+                deleted_debts_count = associated_debts.count()
+                associated_debts.delete()
+
             # Delete the tag - Django's on_delete=SET_NULL will automatically
             # set tag_foreign_key to null on any expenses using this tag
             tag.delete()
 
             message = f'Tag "{tag_name}" deleted successfully!'
-            if affected_expenses > 0:
+            if deleted_debts_count > 0:
+                message += f" ({deleted_debts_count} debt(s)"
+                if deleted_transactions_count > 0:
+                    message += f" and {deleted_transactions_count} transaction(s)"
+                message += " removed)"
+            elif affected_expenses > 0:
                 message += f" ({affected_expenses} expense(s) updated to no tag)"
 
             return JsonResponse(

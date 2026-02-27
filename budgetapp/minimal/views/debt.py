@@ -179,26 +179,28 @@ class DebtDeleteView(LoginRequiredView):
         try:
             debt = get_object_or_404(Debt, id=debt_id, user=request.user)
             debt_name = debt.name
+            debt_tag = debt.debt_tag  # Store reference before deletion
+            transaction_count = debt.transactions.count()
 
-            # Check if debt has any transactions
-            if debt.transactions.exists():
-                return JsonResponse(
-                    {
-                        "success": False,
-                        "error": (
-                            f'Cannot delete debt "{debt_name}" because it has borrowing '
-                            "transactions. Delete the transactions first."
-                        ),
-                    },
-                    status=400,
-                )
-
+            # Delete debt (transactions cascade automatically via on_delete=CASCADE)
             debt.delete()
+
+            # Delete the auto-generated debt tag if it exists and has no other debts
+            tag_deleted = False
+            if debt_tag and not debt_tag.debts.exists():
+                debt_tag.delete()
+                tag_deleted = True
+
+            message = f'Debt "{debt_name}" deleted successfully!'
+            if transaction_count > 0:
+                message += f" ({transaction_count} transaction(s) removed)"
+            if tag_deleted:
+                message += " (associated tag removed)"
 
             return JsonResponse(
                 {
                     "success": True,
-                    "message": f'Debt "{debt_name}" deleted successfully!',
+                    "message": message,
                     "debt_id": debt_id,
                 }
             )
