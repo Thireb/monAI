@@ -24,7 +24,7 @@ def load_config():
         FileNotFoundError: If config.yaml doesn't exist
         yaml.YAMLError: If config.yaml has invalid syntax
     """
-    config_path = BASE_DIR / "new_config.yaml"
+    config_path = BASE_DIR / "config.yaml"
 
     if not config_path.exists():
         raise FileNotFoundError(
