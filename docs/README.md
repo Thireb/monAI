@@ -3,7 +3,7 @@
 > **Single Source of Truth** for the monAI Budget Tracker application.
 
 **Version:** 1.0.0  
-**Last Updated:** December 2024
+**Last Updated:** April 2026
 
 ---
 
@@ -14,12 +14,13 @@
 3. [Configuration](#configuration)
 4. [Project Structure](#project-structure)
 5. [Core Features](#core-features)
-6. [Script Runner](#script-runner)
-7. [API Reference](#api-reference)
-8. [Android APK Building](#android-apk-building)
-9. [Development Guidelines](#development-guidelines)
-10. [Database Schema](#database-schema)
-11. [Deployment](#deployment)
+6. [Budget PDF Email](#budget-pdf-email)
+7. [Script Runner](#script-runner)
+8. [API Reference](#api-reference)
+9. [Android APK Building](#android-apk-building)
+10. [Development Guidelines](#development-guidelines)
+11. [Database Schema](#database-schema)
+12. [Deployment](#deployment)
 
 ---
 
@@ -87,7 +88,21 @@ python manage.py runserver
 
 ## Configuration
 
-All configuration is centralized in `config.yaml`:
+Primary configuration lives in **`config.yaml`** at the project root (gitignored). Use the tracked template:
+
+```bash
+cp config.yaml.example config.yaml
+```
+
+`budget_tracker/config.py` loads `config.yaml` at import time and exposes `CONFIG` plus helpers (`get_app_config`, `get_server_config`, etc.). If **`config.yaml` is missing**, Django still starts using **environment-variable defaults** (used on hosts like Render where secrets are injected without committing a file):
+
+| Purpose | Environment variables | Notes |
+|---------|----------------------|--------|
+| Missing file fallback | `ALLOWED_HOSTS`, `DEBUG`, `SECRET_KEY`, `TIMEZONE` | Comma-separated `ALLOWED_HOSTS`; see `budget_tracker/config.py` |
+| Overrides when YAML exists | `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` | Parsed in `budget_tracker/settings.py`; replace or extend YAML lists |
+| Resend (PDF + optional mail backend) | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Always read into `RESEND_*` settings from `email.resend` in YAML or env fallback |
+
+### `config.yaml` structure
 
 ```yaml
 # Application Settings
@@ -105,7 +120,7 @@ server:
     - "*.ngrok-free.app"
   timezone: "Asia/Karachi"
 
-# URLs for APK Building
+# URLs for APK Building + CSRF (ngrok/local LAN)
 urls:
   local: "http://192.168.1.100:8000"
   ngrok: "https://your-subdomain.ngrok-free.app"
@@ -120,9 +135,19 @@ celery:
   broker_url: "redis://localhost:6379/0"
   result_backend: "redis://localhost:6379/0"
 
-# Email Settings
+# Email: backend is console | smtp | resend
 email:
-  backend: "console"  # "console" or "smtp"
+  backend: "console"
+  smtp:
+    host: "smtp.gmail.com"
+    port: 587
+    use_tls: true
+    user: ""
+    password: ""
+    default_from: "noreply@example.com"
+  resend:
+    api_key: ""
+    from_email: "onboarding@resend.dev"
 
 # Initial Superuser (for setup_superuser command)
 superuser:
@@ -131,13 +156,23 @@ superuser:
   password: ""
 ```
 
+### Email backends
+
+| `email.backend` | Behavior |
+|-----------------|----------|
+| `console` | Prints mail to the console (development). |
+| `smtp` | Uses `email.smtp` for Django’s mail API (e.g. django-allauth). |
+| `resend` | Uses **django-anymail** Resend backend for Django mail; set `email.resend.api_key` and `from_email`. |
+
+**Resend** is also used for the **budget PDF attachment** feature (`BudgetEmailPDFView`), which reads `RESEND_API_KEY` and `RESEND_FROM_EMAIL` from settings regardless of `email.backend`, so you can keep `backend: console` for development and still email PDFs once keys are set.
+
 ### Environment-Specific Settings
 
 | Setting | Development | Production |
 |---------|-------------|------------|
 | `app.debug` | `true` | `false` |
-| `app.secret_key` | Any string | 50+ char random string |
-| `email.backend` | `console` | `smtp` |
+| `app.secret_key` | Any string | 50+ chars (validated when `debug` is false) |
+| `email.backend` | `console` | `smtp` or `resend` as needed |
 | `database.engine` | `sqlite3` | `postgresql` |
 
 ---
@@ -194,7 +229,8 @@ django_budget_tracker/
 ├── scripts/                 # Build scripts
 │   └── build_apks.py        # APK builder
 │
-├── config.yaml              # Main configuration file
+├── config.yaml              # Local configuration (gitignored)
+├── config.yaml.example      # Template — copy to config.yaml
 └── requirements.txt
 ```
 
@@ -272,6 +308,34 @@ GoalContribution.objects.create(
 # Check if on track
 print(f"On track: {goal.is_on_track()}")
 ```
+
+---
+
+## Budget PDF Email
+
+Logged-in users can email a **WeasyPrint** PDF of a monthly budget from the UI. The handler is `BudgetEmailPDFView` in `budgetapp/minimal/views/budget.py`.
+
+**HTTP**
+
+| Item | Value |
+|------|--------|
+| Method | `POST` |
+| URL name | `minimal:budget_email_pdf` |
+| Path pattern | `/minimal/budget/<year>/<month>/email-pdf/` |
+
+**PDF contents**
+
+The PDF template `minimal/pdf/budget_report.html` receives context built in `_get_budget_context`, including:
+
+- Income, totals, and per-expense rows with sub-expenses
+- **Category breakdown** (`expenses_by_category`)
+- **Tag breakdown** (`tag_breakdown`) — totals per expense tag (same basis as tag stats on the web UI)
+
+**Delivery**
+
+- PDF generation requires **WeasyPrint** (`pip install weasyprint` if missing).
+- Email uses the **Resend Python SDK** directly (`resend` package). Configure `email.resend.api_key` and `email.resend.from_email` in `config.yaml`, or set **`RESEND_API_KEY`** and **`RESEND_FROM_EMAIL`** in the environment (including platforms without `config.yaml`).
+- The user must have an **email address** on their account; otherwise the view returns HTTP 400.
 
 ---
 
@@ -495,28 +559,40 @@ Debt
 
 ## Deployment
 
+### Render (blueprint)
+
+The repo includes `render.yaml` for a **Python web service** that runs:
+
+1. `pip install -r requirements.txt`
+2. `python manage.py collectstatic --noinput`
+3. Start: `python manage.py migrate --noinput && gunicorn budget_tracker.wsgi:application`
+
+Set **`SECRET_KEY`** in the Render dashboard (`sync: false` in the blueprint). Typical env vars also include **`ALLOWED_HOSTS`**, **`CSRF_TRUSTED_ORIGINS`**, **`DEBUG=False`**, and **`RESEND_API_KEY`** if you use Resend.
+
+Without `config.yaml` on the host, **`budget_tracker/config.py`** falls back to environment defaults so migrations and the app can boot.
+
 ### Production Checklist
 
 1. **Configuration**
-   - [ ] Set `app.debug: false`
-   - [ ] Set strong `app.secret_key` (50+ chars)
-   - [ ] Configure `email.backend: smtp`
-   - [ ] Set proper `allowed_hosts`
+   - [ ] Set `app.debug: false` (or `DEBUG=false` in env)
+   - [ ] Set strong `app.secret_key` (50+ chars) or `SECRET_KEY` in env
+   - [ ] Configure email (`smtp` or `resend`) or env vars for Resend if needed
+   - [ ] Set proper `server.allowed_hosts` and/or `ALLOWED_HOSTS`
+   - [ ] Set `CSRF_TRUSTED_ORIGINS` for your HTTPS origin when not using only defaults
 
 2. **Database**
-   - [ ] Use PostgreSQL
+   - [ ] Use PostgreSQL in production (`database.engine` / `database.name` in YAML)
    - [ ] Run `python manage.py migrate`
 
 3. **Static Files**
-   - [ ] Run `python manage.py collectstatic`
+   - [ ] Run `python manage.py collectstatic` (included in Render build)
 
 4. **Scripts**
    - [ ] Run `python manage.py run_scripts`
 
 5. **Security**
    - [ ] Enable HTTPS
-   - [ ] Set secure cookies
-   - [ ] Configure CORS properly
+   - [ ] Review cookie and CSRF settings in `budget_tracker/settings.py` for your domain
 
 ### Running Deploy Scripts
 

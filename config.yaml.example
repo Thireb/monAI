@@ -1,0 +1,45 @@
+# Copy to config.yaml and customize. config.yaml is gitignored.
+# See docs/README.md for full configuration documentation.
+
+app:
+  name: "monAI"
+  version: "1.0.0"
+  debug: true
+  secret_key: "change-me-use-a-long-random-string-in-production"
+
+server:
+  allowed_hosts:
+    - "localhost"
+    - "127.0.0.1"
+  timezone: "Asia/Karachi"
+
+urls:
+  local: "http://127.0.0.1:8000"
+  ngrok: ""
+
+database:
+  engine: "sqlite3"
+  name: "db.sqlite3"
+
+celery:
+  broker_url: "redis://localhost:6379/0"
+  result_backend: "redis://localhost:6379/0"
+
+# backend: console | smtp | resend
+email:
+  backend: "console"
+  smtp:
+    host: "smtp.gmail.com"
+    port: 587
+    use_tls: true
+    user: ""
+    password: ""
+    default_from: "noreply@example.com"
+  resend:
+    api_key: ""
+    from_email: "onboarding@resend.dev"
+
+superuser:
+  email: ""
+  username: ""
+  password: ""
