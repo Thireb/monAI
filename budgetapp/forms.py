@@ -120,11 +120,13 @@ class GoalForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        # Remove user parameter if it exists
-        if "user" in kwargs:
-            kwargs.pop("user")
+        user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         self.fields["start_date"].initial = timezone.now().date()
+        if user is not None:
+            self.fields["category"].queryset = Category.objects.filter(user=user)
+        else:
+            self.fields["category"].queryset = Category.objects.none()
 
     def clean(self):
         cleaned_data = super().clean()
