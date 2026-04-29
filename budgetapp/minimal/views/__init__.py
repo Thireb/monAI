@@ -71,6 +71,18 @@ from .debt import (
     DebtUpdateView,
 )
 
+# Goal views
+from .goal import (
+    GoalContributionCreateView,
+    GoalContributionDeleteView,
+    GoalContributionUpdateView,
+    GoalCreateView,
+    GoalDeleteView,
+    GoalDetailView,
+    GoalListView,
+    GoalUpdateView,
+)
+
 __all__ = [
     # Base
     "LoginRequiredView",
@@ -117,5 +129,14 @@ __all__ = [
     "DebtBorrowingView",
     "DebtTransactionUpdateView",
     "DebtTransactionDeleteView",
+    # Goals
+    "GoalListView",
+    "GoalDetailView",
+    "GoalCreateView",
+    "GoalUpdateView",
+    "GoalDeleteView",
+    "GoalContributionCreateView",
+    "GoalContributionUpdateView",
+    "GoalContributionDeleteView",
 ]
 

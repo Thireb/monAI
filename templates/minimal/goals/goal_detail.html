@@ -1,0 +1,300 @@
+{% extends "minimal/base.html" %}
+{% load static_version %}
+{# djlint:off #}
+
+{% block title %}{{ goal.name }} — Goal{% endblock title %}
+
+{% block extra_css %}
+{% endblock extra_css %}
+
+{% block content %}
+<div class="goal-detail-container" id="goal-detail-root"
+    data-goal-id="{{ goal.id }}"
+    data-url-contrib-create="{% url 'minimal:goal_contribution_create' %}"
+    data-url-contrib-update="{% url 'minimal:goal_contribution_update' %}"
+    data-url-contrib-delete="{% url 'minimal:goal_contribution_delete' %}"
+    data-url-goal-update="{% url 'minimal:goal_update' %}"
+    data-url-goal-delete="{% url 'minimal:goal_delete' %}"
+    data-url-goal-list="{% url 'minimal:goal_list' %}">
+    <div class="goal-detail-header">
+        <nav aria-label="breadcrumb" class="mb-2">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'minimal:goal_list' %}">Goals</a></li>
+                <li class="breadcrumb-item active">{{ goal.name }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+            <h1 class="mb-0 goal-title">{{ goal.name }}</h1>
+            <div>
+                <button type="button" class="btn btn-minimal btn-sm" id="openEditGoalBtn">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button type="button" class="btn btn-minimal btn-danger btn-sm" id="openDeleteGoalBtn">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+        {% if goal.description %}
+        <p class="text-muted mb-0 mt-2">{{ goal.description }}</p>
+        {% endif %}
+    </div>
+
+    <div class="goal-summary-cards mb-4">
+        <div class="goal-summary-card" data-field="current">
+            <div class="goal-summary-label">Saved</div>
+            <div class="goal-summary-value" id="summary-current">{{ goal.current_amount }}</div>
+        </div>
+        <div class="goal-summary-card" data-field="target">
+            <div class="goal-summary-label">Target</div>
+            <div class="goal-summary-value" id="summary-target">{{ goal.target_amount }}</div>
+        </div>
+        <div class="goal-summary-card" data-field="remaining">
+            <div class="goal-summary-label">Remaining</div>
+            <div class="goal-summary-value" id="summary-remaining">{{ remaining_to_save }}</div>
+        </div>
+        <div class="goal-summary-card" data-field="progress">
+            <div class="goal-summary-label">Progress</div>
+            <div class="goal-summary-value" id="summary-progress">{{ goal.progress_percentage }}%</div>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <div class="goal-progress-label mb-1">Toward target</div>
+        <div class="goal-progress-bar" style="max-width: 520px;">
+            <div class="goal-progress-fill" id="goal-progress-fill" style="width: {{ goal.progress_percentage }}%">
+            </div>
+        </div>
+    </div>
+
+    {% if goal.target_date %}
+    <div class="mb-3">
+        {% if on_track == True %}
+        <div class="alert alert-success goal-track-alert py-2 mb-0">
+            <i class="fas fa-check-circle"></i> On track for {{ goal.target_date }}
+        </div>
+        {% elif on_track == False %}
+        <div class="alert alert-warning goal-track-alert py-2 mb-0">
+            <i class="fas fa-exclamation-circle"></i> Behind schedule for {{ goal.target_date }}
+        </div>
+        {% endif %}
+        {% if monthly_needed %}
+        <p class="small text-muted mt-2 mb-0">
+            About {{ monthly_needed }} per month needed to hit the target date.
+        </p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2 class="h6 text-muted text-uppercase">Details</h2>
+            <ul class="goal-meta-list">
+                <li><strong>Start:</strong> {{ goal.start_date }}</li>
+                <li><strong>Target date:</strong> {% if goal.target_date %}{{ goal.target_date }}{% else %}—{% endif %}
+                </li>
+                <li><strong>Category:</strong> {% if goal.category %}{{ goal.category.name }}{% else %}—{% endif %}
+                </li>
+                <li><strong>Status:</strong> {% if goal.is_active %}Active{% else %}Inactive{% endif %}</li>
+            </ul>
+        </div>
+        <div class="col-md-6 text-md-end">
+            <button type="button" class="btn btn-minimal btn-success" data-modal-target="#addContributionModal">
+                <i class="fas fa-plus"></i> Add contribution
+            </button>
+        </div>
+    </div>
+
+    <h2 class="h5 mb-3">Contributions</h2>
+    {% if contributions %}
+    <div class="table-responsive rounded border bg-white">
+        <table class="table goal-contrib-table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Source</th>
+                    <th>Notes</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="contrib-table-body">
+                {% for c in contributions %}
+                <tr data-contrib-id="{{ c.id }}">
+                    <td>{{ c.date }}</td>
+                    <td class="contrib-amount">{{ c.amount }}</td>
+                    <td class="contrib-source">{{ c.source }}</td>
+                    <td class="contrib-notes">{{ c.notes|truncatechars:40 }}</td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-link btn-sm p-0 edit-contrib-btn"
+                            data-contrib-id="{{ c.id }}">
+                            Edit
+                        </button>
+                        <button type="button" class="btn btn-link btn-sm text-danger p-0 delete-contrib-btn"
+                            data-contrib-id="{{ c.id }}">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted" id="no-contribs-msg">No contributions yet. Add one to build progress.</p>
+    {% endif %}
+</div>
+
+<div id="addContributionModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="addContributionModalLabel" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="addContributionModalLabel">Add contribution</h3>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <form id="addContributionForm" action="javascript:void(0);">
+            {% csrf_token %}
+            <input type="hidden" name="goal_id" value="{{ goal.id }}">
+            <div class="modal-body">
+                <div class="alert alert-danger form-errors" style="display: none;"></div>
+                <div class="mb-3">
+                    <label class="form-label" for="contrib_amount">Amount <span class="text-danger">*</span></label>
+                    {{ contribution_form.amount }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="contrib_date">Date</label>
+                    {{ contribution_form.date }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="contrib_source">Source</label>
+                    {{ contribution_form.source }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="contrib_notes">Notes</label>
+                    {{ contribution_form.notes }}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-minimal" aria-label="Cancel">Cancel</button>
+                <button type="submit" class="btn btn-minimal btn-success">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="editContributionModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true"
+    style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Edit contribution</h3>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <form id="editContributionForm" action="javascript:void(0);">
+            {% csrf_token %}
+            <input type="hidden" name="goal_id" value="{{ goal.id }}">
+            <input type="hidden" name="contribution_id" id="editContribId">
+            <div class="modal-body">
+                <div class="alert alert-danger form-errors" style="display: none;"></div>
+                <div class="mb-3">
+                    <label class="form-label" for="edit_contrib_amount">Amount</label>
+                    <input type="number" class="form-control" name="amount" id="edit_contrib_amount" step="0.01"
+                        min="0.01" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="edit_contrib_date">Date</label>
+                    <input type="date" class="form-control" name="date" id="edit_contrib_date" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="edit_contrib_source">Source</label>
+                    <input type="text" class="form-control" name="source" id="edit_contrib_source">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="edit_contrib_notes">Notes</label>
+                    <textarea class="form-control" name="notes" id="edit_contrib_notes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-minimal" aria-label="Cancel">Cancel</button>
+                <button type="submit" class="btn btn-minimal btn-success">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="editGoalModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Edit goal</h3>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <form id="editGoalDetailForm" action="javascript:void(0);">
+            {% csrf_token %}
+            <input type="hidden" name="goal_id" value="{{ goal.id }}">
+            <div class="modal-body">
+                <div class="alert alert-danger form-errors" style="display: none;"></div>
+                <div class="mb-3">
+                    <label class="form-label" for="dg_name">Name</label>
+                    {{ goal_edit_form.name }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="dg_description">Description</label>
+                    {{ goal_edit_form.description }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="dg_target_amount">Target amount</label>
+                    {{ goal_edit_form.target_amount }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="dg_current_amount">Current saved</label>
+                    {{ goal_edit_form.current_amount }}
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="dg_start_date">Start date</label>
+                        {{ goal_edit_form.start_date }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="dg_target_date">Target date</label>
+                        {{ goal_edit_form.target_date }}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="dg_category">Category</label>
+                    <select name="category" id="dg_category" class="form-select">
+                        <option value="">—</option>
+                        {% for cat in category_options %}
+                        <option value="{{ cat.pk }}" {% if goal.category_id == cat.pk %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-check">
+                    {{ goal_edit_form.is_active }}
+                    <label class="form-check-label" for="{{ goal_edit_form.is_active.id_for_label }}">Active</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-minimal" aria-label="Cancel">Cancel</button>
+                <button type="submit" class="btn btn-minimal btn-success">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="deleteGoalModal" class="modal-minimal" tabindex="-1" role="dialog" aria-modal="true" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Delete goal</h3>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <p>Delete this goal and all contributions?</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-minimal" aria-label="Cancel">Cancel</button>
+            <button type="button" class="btn btn-minimal btn-danger" id="confirmDeleteGoalBtn">Delete</button>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+{% endblock extra_js %}
