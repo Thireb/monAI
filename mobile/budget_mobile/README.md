@@ -76,6 +76,10 @@ The workflow signs **release** APKs with your **upload keystore** from repositor
    base64 -w0 monai-upload.jks
    ```
 
+   Paste the **entire single line** into the secret. If you already have a multi-line file, remove line breaks or run  
+   `cat monai-upload.jks | base64 -w0` so the value has **no spaces or newlines** inside the base64 alphabet.  
+   Do not paste PEM text or `data:` URLs — only raw base64 of the `.jks` bytes.
+
 3. In the GitHub repo: **Settings → Secrets and variables → Actions → New repository secret**
 
    | Name | Value |

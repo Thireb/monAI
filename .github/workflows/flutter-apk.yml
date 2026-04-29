@@ -77,7 +77,28 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          printf '%s' "$ANDROID_UPLOAD_KEYSTORE_BASE64" | base64 -d > app/upload-keystore.jks
+          python3 << 'PY'
+          import base64
+          import os
+          import sys
+          from pathlib import Path
+
+          raw = os.environ["ANDROID_UPLOAD_KEYSTORE_BASE64"].strip()
+          raw = "".join(raw.split())
+          if not raw:
+              sys.exit("ANDROID_UPLOAD_KEYSTORE_BASE64 is empty after trim.")
+          try:
+              decoded = base64.b64decode(raw, validate=False)
+          except Exception as exc:
+              sys.exit(
+                  "Could not base64-decode keystore (check pasting, no PEM headers, "
+                  "use: base64 -w0 monai-upload.jks). "
+                  + str(exc)
+              )
+          if len(decoded) < 100:
+              sys.exit("Decoded keystore is tiny; wrong input?")
+          Path("app/upload-keystore.jks").write_bytes(decoded)
+          PY
           {
             echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
             echo "keyPassword=$ANDROID_KEY_PASSWORD"
