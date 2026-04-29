@@ -2,6 +2,9 @@
 #
 # Download: GitHub → Actions → select latest run → Artifacts → monai-budget-release-apk
 # Artifacts are kept per repository retention (default ~90 days).
+#
+# Signed updates on your phone: add repository secrets (Settings → Secrets and variables
+# → Actions). See mobile/budget_mobile/README.md → "Release signing (GitHub Actions only)".
 
 name: Build Android APK
 
@@ -51,7 +54,20 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      - name: Configure release keystore (optional)
+      # Push / manual runs must use the upload keystore so every artifact updates in-place
+      # on the phone. Pull requests may omit secrets and still get a debug-signed APK for CI.
+      - name: Require upload keystore secrets (push and workflow_dispatch only)
+        if: >
+          github.event_name != 'pull_request' &&
+          secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 == ''
+        run: |
+          echo "::error::Add these repository secrets to build a signed release APK:" \
+            "ANDROID_UPLOAD_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD," \
+            "ANDROID_KEY_PASSWORD, ANDROID_KEY_ALIAS." \
+            "See mobile/budget_mobile/README.md (Release signing — GitHub Actions only)."
+          exit 1
+
+      - name: Configure release keystore from secrets
         if: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
         working-directory: mobile/budget_mobile/android
         env:
@@ -61,10 +77,12 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           printf '%s' "$ANDROID_UPLOAD_KEYSTORE_BASE64" | base64 -d > app/upload-keystore.jks
-          printf '%s\n' "storePassword=$ANDROID_KEYSTORE_PASSWORD" > key.properties
-          printf '%s\n' "keyPassword=$ANDROID_KEY_PASSWORD" >> key.properties
-          printf '%s\n' "keyAlias=$ANDROID_KEY_ALIAS" >> key.properties
-          printf '%s\n' "storeFile=upload-keystore.jks" >> key.properties
+          {
+            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+            echo "keyPassword=$ANDROID_KEY_PASSWORD"
+            echo "keyAlias=$ANDROID_KEY_ALIAS"
+            echo "storeFile=upload-keystore.jks"
+          } > key.properties
 
       - name: Build release APK
         run: flutter build apk --release

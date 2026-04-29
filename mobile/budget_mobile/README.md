@@ -56,28 +56,50 @@ When this workflow is on your default branch, each qualifying push builds an APK
 
 Retention follows your org/repo artifact settings (often ~90 days).
 
+### Release signing (GitHub Actions only — no local Flutter)
+
+The workflow signs **release** APKs with your **upload keystore** from repository secrets so **every new artifact can update the previous install** on your phone (same certificate).
+
+**One-time setup**
+
+1. Create a keystore once (any machine with Java `keytool` — for example Garuda: `jdk17-openjdk` includes it):
+
+   ```bash
+   keytool -genkey -v -keystore monai-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias monai_budget_upload
+   ```
+
+   Remember the **keystore password**, **key password**, and **alias**. Back up **`monai-upload.jks`** in a safe place; losing it means you cannot ship updates under the same signing key.
+
+2. Produce Base64 for GitHub (single line, no wraps):
+
+   ```bash
+   base64 -w0 monai-upload.jks
+   ```
+
+3. In the GitHub repo: **Settings → Secrets and variables → Actions → New repository secret**
+
+   | Name | Value |
+   |------|--------|
+   | `ANDROID_UPLOAD_KEYSTORE_BASE64` | entire output from the `base64` command |
+   | `ANDROID_KEYSTORE_PASSWORD` | keystore password |
+   | `ANDROID_KEY_PASSWORD` | key password (often same as keystore) |
+   | `ANDROID_KEY_ALIAS` | e.g. `monai_budget_upload` (must match `-alias` above) |
+
+4. Push to `main` (or run **Actions → Build Android APK → Run workflow**). The job **fails fast** if these secrets are missing on `push` / `workflow_dispatch` so you never publish another mismatched APK by accident.
+
+**First install after this change:** if the phone still has an old app signed with a **different** key, **uninstall** once, then install the new artifact. After that, future Action artifacts update in place.
+
+**Pull requests:** forks may omit these secrets; CI still builds using **debug** signing so checks can pass without your keystore.
+
 ### "App not installed" / conflicting package (signature)
 
 Android only **updates over an existing install** if the **new APK is signed with the same certificate** as the one already on the phone.
 
-Until you set **one release keystore** for both local builds and CI, this often happens:
-
-| **`flutter build apk`** / **`flutter run`** on your PC | APK from **GitHub Actions** | **Fails** — different keys |
-| Older **GitHub Actions** APK | New **Actions** APK **without** upload keystore in CI | **Often fails** — runner debug keystores usually **differ per job** |
-| APK signed with **your** upload keystore | Next APK with the **same** keystore (local or CI with secrets) | **Works** |
-
-**Quick fix:** uninstall **monAI Budget**, then install the new APK (you **lose local unsynced data** unless it was synced to the server first).
-
-**Quick fix:** uninstall **monAI Budget**, then install the new APK (you **lose local unsynced data** unless it was synced to the server first).
-
-**Proper fix (recommended):** create an **upload keystore**, use it for every release build:
-
-1. Copy `android/key.properties.example` to `android/key.properties` and set passwords and alias.
-2. Put your `.jks` under `android/app/` (path in `storeFile` is relative to `android/app/`).
-3. Run `flutter build apk --release` locally — installs from this APK can be updated by **the next** APK signed with the **same** keystore.
-4. Optional **Git add** `ANDROID_UPLOAD_KEYSTORE_BASE64` and related secrets in GitHub so Actions builds with the same key (workflow file documents the secret names).
-
-Without `key.properties`, `release` still uses **debug** signing so **local PC** and **GitHub runner** produce **different** signatures — updates across those sources will keep failing.
+| Situation | Result |
+|-----------|--------|
+| APK from **same** upload keystore (Actions secrets) | **Updates** in place |
+| Mixed: old local debug / old CI vs new signed Actions | **Blocked** — use one uninstall, then only signed artifacts |
+| **`flutter build`** on PC with different key | **Blocked** vs Actions (you said you will not use local builds; good) |
 
 ## Garuda Linux: install Flutter and build APK
 
