@@ -2,6 +2,7 @@ import "database/app_database.dart";
 import "repositories/budget_repository.dart";
 import "repositories/category_repository.dart";
 import "repositories/expense_repository.dart";
+import "repositories/sub_expense_repository.dart";
 import "repositories/tag_repository.dart";
 import "services/budget_sync_service.dart";
 import "services/mobile_budget_api_client.dart";
@@ -20,6 +21,7 @@ class AppScope {
   static late CategoryRepository categoryRepo;
   static late TagRepository tagRepo;
   static late ExpenseRepository expenseRepo;
+  static late SubExpenseRepository subExpenseRepo;
   static late BudgetSyncService budgetSync;
   static late SyncService syncService;
 
@@ -31,12 +33,14 @@ class AppScope {
     categoryRepo = CategoryRepository(db);
     tagRepo = TagRepository(db);
     expenseRepo = ExpenseRepository(db);
+    subExpenseRepo = SubExpenseRepository(db);
     budgetSync = BudgetSyncService(
       mobileApi,
       budgetRepo,
       categoryRepo,
       tagRepo,
       expenseRepo,
+      subExpenseRepo,
     );
     syncService = SyncService(settings, mobileApi);
   }

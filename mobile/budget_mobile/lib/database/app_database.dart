@@ -2,7 +2,7 @@ import "package:path/path.dart" as p;
 import "package:path_provider/path_provider.dart";
 import "package:sqflite/sqflite.dart";
 
-const int _dbVersion = 3;
+const int _dbVersion = 4;
 
 /// Local SQLite for offline budgeting and server sync.
 class AppDatabase {
@@ -62,8 +62,28 @@ class AppDatabase {
         if (oldVersion < 3) {
           await _createCatalogTables(db);
         }
+        if (oldVersion < 4) {
+          await _createSubExpenseTable(db);
+        }
       },
     );
+  }
+
+  Future<void> _createSubExpenseTable(Database db) async {
+    await db.execute("""
+CREATE TABLE sub_expense (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  server_id INTEGER,
+  expense_local_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  amount REAL NOT NULL,
+  is_return INTEGER NOT NULL DEFAULT 0,
+  server_updated_at TEXT,
+  dirty INTEGER NOT NULL DEFAULT 0,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (expense_local_id) REFERENCES expense (id)
+);
+""");
   }
 
   Future<void> _createCatalogTables(Database db) async {
@@ -111,6 +131,7 @@ CREATE TABLE expense (
   FOREIGN KEY (budget_local_id) REFERENCES budget (id)
 );
 """);
+    await _createSubExpenseTable(db);
   }
 
   Future<void> _createSchema(Database db) async {

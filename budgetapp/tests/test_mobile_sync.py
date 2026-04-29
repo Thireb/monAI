@@ -9,7 +9,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from budgetapp.models import Budget, Category, Expense, Tag
+from budgetapp.models import Budget, Category, Expense, SubExpense, Tag
 
 User = get_user_model()
 
@@ -221,3 +221,34 @@ class MobileCatalogSyncApiTests(TestCase):
         r2 = self.client.get(url_pull)
         self.assertEqual(r2.status_code, status.HTTP_200_OK)
         self.assertEqual(len(r2.data["expenses"]), 1)
+
+    def test_sub_expense_push_and_pull(self):
+        exp = Expense.objects.create(
+            budget=self.budget,
+            name="Rent",
+            amount=Decimal("500.00"),
+        )
+        url_push = reverse("api-mobile-subexpense-push")
+        r = self.client.post(
+            url_push,
+            {
+                "sub_expenses": [
+                    {
+                        "expense_id": exp.id,
+                        "name": "Week 1",
+                        "amount": "100.00",
+                        "is_return": False,
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        sid = r.data["created_ids"][0]
+        sub = SubExpense.objects.get(pk=sid)
+        self.assertEqual(sub.name, "Week 1")
+        url_pull = reverse("api-mobile-subexpense-pull")
+        r2 = self.client.get(url_pull)
+        self.assertEqual(r2.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(r2.data["sub_expenses"]), 1)
+        self.assertEqual(r2.data["sub_expenses"][0]["expense_id"], exp.id)

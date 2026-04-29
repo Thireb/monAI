@@ -5,6 +5,7 @@ import "../repositories/budget_repository.dart";
 import "../services/budget_sync_service.dart";
 import "../services/sync_service.dart";
 import "../theme/minimal_theme.dart";
+import "../utils/budget_format.dart";
 import "budget_detail_screen.dart";
 import "budget_form_screen.dart";
 import "catalog_categories_screen.dart";
@@ -35,6 +36,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _budgetCount = 0;
   List<BudgetRow> _rows = [];
+  List<int> _years = [];
+  Map<int, List<BudgetRow>> _byYear = {};
   bool _loading = true;
   late Future<SyncService> _syncFuture;
 
@@ -52,12 +55,21 @@ class _HomeScreenState extends State<HomeScreen> {
         ? await widget.budgetCountLoader!()
         : await (repo?.countNonDeleted() ?? Future.value(0));
     final rows = repo != null ? await repo.listNonDeleted() : <BudgetRow>[];
+    final byYear = <int, List<BudgetRow>>{};
+    for (final r in rows) {
+      final d = parseBudgetMonth(r.month);
+      final y = d?.year ?? 0;
+      byYear.putIfAbsent(y, () => []).add(r);
+    }
+    final years = byYear.keys.toList()..sort((a, b) => b.compareTo(a));
     if (!mounted) {
       return;
     }
     setState(() {
       _budgetCount = count;
       _rows = rows;
+      _years = years;
+      _byYear = byYear;
       _loading = false;
     });
   }
@@ -130,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 children: [
                   Text(
-                    "Budget (offline)",
+                    "Dashboard",
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: MinimalColors.textPrimary,
@@ -138,36 +150,50 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "Local budgets: $_budgetCount",
+                    "$_budgetCount budget month(s) stored on this device",
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: MinimalColors.textSecondary,
                         ),
                   ),
                   if (widget.budgetRepository != null && _rows.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    ..._rows.map((r) {
-                      return minimalCard(
-                        child: ListTile(
-                          title: Text(r.month),
-                          subtitle: Text(
-                            "${r.income.toStringAsFixed(2)} ${r.currency}",
-                          ),
-                          trailing: r.dirty == 1
-                              ? const Icon(Icons.cloud_upload_outlined, size: 20)
-                              : null,
-                          onTap: () async {
-                            await Navigator.of(context).push<bool>(
-                              MaterialPageRoute<bool>(
-                                builder: (_) => BudgetDetailScreen(budget: r),
+                    const SizedBox(height: 20),
+                    for (final year in _years) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8, left: 2),
+                        child: Text(
+                          year > 0 ? "$year" : "Other",
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: MinimalColors.textPrimary,
                               ),
-                            );
-                            if (mounted) {
-                              await _load();
-                            }
-                          },
                         ),
-                      );
-                    }),
+                      ),
+                      ...(_byYear[year] ?? []).map((r) {
+                        final label = formatBudgetMonthLabel(r.month);
+                        return minimalCard(
+                          child: ListTile(
+                            title: Text(label),
+                            subtitle: Text(
+                              "${r.income.toStringAsFixed(2)} ${r.currency}"
+                              "${r.isArchived ? " · archived" : ""}",
+                            ),
+                            trailing: r.dirty == 1
+                                ? const Icon(Icons.cloud_upload_outlined, size: 20)
+                                : const Icon(Icons.chevron_right),
+                            onTap: () async {
+                              await Navigator.of(context).push<bool>(
+                                MaterialPageRoute<bool>(
+                                  builder: (_) => BudgetDetailScreen(budget: r),
+                                ),
+                              );
+                              if (mounted) {
+                                await _load();
+                              }
+                            },
+                          ),
+                        );
+                      }),
+                    ],
                   ],
                   const SizedBox(height: 24),
                   minimalCard(

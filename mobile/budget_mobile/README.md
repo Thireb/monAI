@@ -36,10 +36,12 @@ Token from: `POST /api/mobile/auth/token/` with JSON `{"email","password"}`.
 | POST | `/api/mobile/budgets/push/` | `{ "budgets": [ … ] }` |
 | GET | `/api/mobile/expenses/pull/` | optional `updated_after` |
 | POST | `/api/mobile/expenses/push/` | `{ "expenses": [ … ] }` |
+| GET | `/api/mobile/sub-expenses/pull/` | optional `updated_after` |
+| POST | `/api/mobile/sub-expenses/push/` | `{ "sub_expenses": [ … ] }` |
 
 Push responses include `server_ids` in the **same order** as the request list.
 
-**Sync order (app):** push categories → tags → budgets → expenses, then pull the same (expenses need server `budget_id`).
+**Sync order (app):** push categories → tags → budgets → expenses → sub-expenses, then pull the same.
 
 ## Download APK (GitHub Actions — no local Flutter)
 

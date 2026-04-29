@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from budgetapp.models import Budget, Category, Expense, Tag
+from budgetapp.models import Budget, Category, Expense, SubExpense, Tag
 
 
 class MobileBudgetSyncSerializer(serializers.ModelSerializer):
@@ -131,6 +131,42 @@ class MobileExpensePushItemSerializer(serializers.Serializer):
     is_recurring = serializers.BooleanField(required=False, default=False)
     category_id = serializers.IntegerField(required=False, allow_null=True)
     tag_id = serializers.IntegerField(required=False, allow_null=True)
+
+    def validate_amount(self, value):
+        if value <= Decimal("0"):
+            raise serializers.ValidationError("Amount must be greater than zero")
+        return value
+
+    def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Name is required")
+        return value
+
+
+class MobileSubExpenseSyncSerializer(serializers.ModelSerializer):
+    expense_id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = SubExpense
+        fields = [
+            "id",
+            "expense_id",
+            "name",
+            "amount",
+            "is_return",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class MobileSubExpensePushItemSerializer(serializers.Serializer):
+    id = serializers.IntegerField(required=False, allow_null=True)
+    expense_id = serializers.IntegerField()
+    name = serializers.CharField(max_length=200)
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    is_return = serializers.BooleanField(required=False, default=False)
 
     def validate_amount(self, value):
         if value <= Decimal("0"):

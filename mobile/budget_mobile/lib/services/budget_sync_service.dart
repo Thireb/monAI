@@ -1,6 +1,7 @@
 import "../repositories/budget_repository.dart";
 import "../repositories/category_repository.dart";
 import "../repositories/expense_repository.dart";
+import "../repositories/sub_expense_repository.dart";
 import "../repositories/tag_repository.dart";
 import "mobile_budget_api_client.dart";
 
@@ -8,6 +9,7 @@ const String _kBudgetCursor = "budget_sync_last_updated_after";
 const String _kCategoryCursor = "category_sync_last_updated_after";
 const String _kTagCursor = "tag_sync_last_updated_after";
 const String _kExpenseCursor = "expense_sync_last_updated_after";
+const String _kSubExpenseCursor = "sub_expense_sync_last_updated_after";
 
 /// Push dirty categories → tags → budgets → expenses, then pull each table.
 class BudgetSyncService {
@@ -17,6 +19,7 @@ class BudgetSyncService {
     this._categoryRepo,
     this._tagRepo,
     this._expenseRepo,
+    this._subExpenseRepo,
   );
 
   final MobileBudgetApiClient _api;
@@ -24,6 +27,7 @@ class BudgetSyncService {
   final CategoryRepository _categoryRepo;
   final TagRepository _tagRepo;
   final ExpenseRepository _expenseRepo;
+  final SubExpenseRepository _subExpenseRepo;
 
   Future<bool> syncAll() async {
     try {
@@ -39,6 +43,9 @@ class BudgetSyncService {
       if (!await _pushExpenses()) {
         return false;
       }
+      if (!await _pushSubExpenses()) {
+        return false;
+      }
       if (!await _pullCategories()) {
         return false;
       }
@@ -48,7 +55,10 @@ class BudgetSyncService {
       if (!await _pullBudgets()) {
         return false;
       }
-      return _pullExpenses();
+      if (!await _pullExpenses()) {
+        return false;
+      }
+      return _pullSubExpenses();
     } on Object {
       return false;
     }
@@ -174,6 +184,37 @@ class BudgetSyncService {
       return false;
     }
     await _expenseRepo.applyPushServerIds(ready, ids);
+    return true;
+  }
+
+  Future<bool> _pushSubExpenses() async {
+    final dirty = await _subExpenseRepo.dirtyRowsReadyToPush();
+    final ready = dirty.where((r) => r.expenseServerId != null).toList();
+    if (ready.isEmpty) {
+      return true;
+    }
+    final payloads = <Map<String, dynamic>>[];
+    for (final r in ready) {
+      final m = <String, dynamic>{
+        "expense_id": r.expenseServerId!,
+        "name": r.name,
+        "amount": r.amount.toStringAsFixed(2),
+        "is_return": r.isReturn,
+      };
+      if (r.serverId != null) {
+        m["id"] = r.serverId;
+      }
+      payloads.add(m);
+    }
+    final response = await _api.pushSubExpenses(payloads);
+    if (response == null) {
+      return false;
+    }
+    final ids = response["server_ids"];
+    if (ids is! List || ready.length != ids.length) {
+      return false;
+    }
+    await _subExpenseRepo.applyPushServerIds(ready, ids);
     return true;
   }
 
@@ -389,6 +430,61 @@ class BudgetSyncService {
     }
     if (maxIso != null) {
       await _expenseRepo.setMeta(_kExpenseCursor, maxIso);
+    }
+    return true;
+  }
+
+  Future<bool> _pullSubExpenses() async {
+    final cursor = await _subExpenseRepo.getMeta(_kSubExpenseCursor);
+    final data = await _api.pullSubExpenses(cursor);
+    if (data == null) {
+      return false;
+    }
+    final list = data["sub_expenses"];
+    if (list is! List) {
+      return false;
+    }
+    String? maxIso;
+    for (final raw in list) {
+      if (raw is! Map) {
+        continue;
+      }
+      final item = Map<String, dynamic>.from(raw);
+      final sid = _asInt(item["id"]);
+      if (sid == null) {
+        continue;
+      }
+      final expenseSid = _asInt(item["expense_id"]);
+      if (expenseSid == null) {
+        continue;
+      }
+      final name = item["name"] as String?;
+      if (name == null) {
+        continue;
+      }
+      final amountVal = _asDouble(item["amount"]);
+      if (amountVal == null) {
+        continue;
+      }
+      final isRet = item["is_return"] == true;
+      final updatedIso = item["updated_at"] as String?;
+      if (updatedIso == null || updatedIso.isEmpty) {
+        continue;
+      }
+      await _subExpenseRepo.upsertFromServer(
+        serverId: sid,
+        expenseServerId: expenseSid,
+        name: name,
+        amount: amountVal,
+        isReturn: isRet,
+        serverUpdatedAtIso: updatedIso,
+      );
+      if (maxIso == null || updatedIso.compareTo(maxIso) > 0) {
+        maxIso = updatedIso;
+      }
+    }
+    if (maxIso != null) {
+      await _subExpenseRepo.setMeta(_kSubExpenseCursor, maxIso);
     }
     return true;
   }

@@ -39,8 +39,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
 
       expect(find.text("monAI"), findsOneWidget);
-      expect(find.textContaining("Budget (offline)"), findsOneWidget);
-      expect(find.textContaining("Local budgets: 0"), findsOneWidget);
+      expect(find.textContaining("Dashboard"), findsOneWidget);
+      expect(
+        find.textContaining("budget month(s) stored on this device"),
+        findsOneWidget,
+      );
     },
     timeout: const Timeout(Duration(seconds: 15)),
   );

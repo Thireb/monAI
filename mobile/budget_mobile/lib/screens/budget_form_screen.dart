@@ -3,6 +3,7 @@ import "package:flutter/services.dart";
 
 import "../repositories/budget_repository.dart";
 import "../theme/minimal_theme.dart";
+import "../utils/budget_format.dart";
 
 class BudgetFormScreen extends StatefulWidget {
   const BudgetFormScreen({
@@ -19,7 +20,7 @@ class BudgetFormScreen extends StatefulWidget {
 }
 
 class _BudgetFormScreenState extends State<BudgetFormScreen> {
-  final _monthController = TextEditingController();
+  late DateTime _monthFirst;
   final _incomeController = TextEditingController();
   final _currencyController = TextEditingController();
   bool _archived = false;
@@ -29,14 +30,15 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
     super.initState();
     final e = widget.existing;
     if (e != null) {
-      _monthController.text = e.month.length >= 10 ? e.month.substring(0, 10) : e.month;
+      final parsed = parseBudgetMonth(e.month);
+      final now = DateTime.now();
+      _monthFirst = parsed ?? DateTime(now.year, now.month, 1);
       _incomeController.text = e.income.toStringAsFixed(2);
       _currencyController.text = e.currency;
       _archived = e.isArchived;
     } else {
       final now = DateTime.now();
-      _monthController.text =
-          "${now.year.toString().padLeft(4, "0")}-${now.month.toString().padLeft(2, "0")}-01";
+      _monthFirst = DateTime(now.year, now.month, 1);
       _incomeController.text = "0";
       _currencyController.text = "PKR";
     }
@@ -44,14 +46,31 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
 
   @override
   void dispose() {
-    _monthController.dispose();
     _incomeController.dispose();
     _currencyController.dispose();
     super.dispose();
   }
 
+  Future<void> _pickMonth() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _monthFirst,
+      firstDate: DateTime(2000, 1, 1),
+      lastDate: DateTime(2100, 12, 1),
+      helpText: "Select budget month",
+    );
+    if (picked == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _monthFirst = DateTime(picked.year, picked.month, 1);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final monthLabel = formatBudgetMonthLabel(monthFirstDayIso(_monthFirst));
+    final monthStored = monthFirstDayIso(_monthFirst);
     return MinimalPageBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -61,14 +80,28 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            TextField(
-              controller: _monthController,
-              decoration: const InputDecoration(
-                labelText: "Month (YYYY-MM-DD)",
-              ),
-              keyboardType: TextInputType.datetime,
+            Text(
+              "Budget month",
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: MinimalColors.textSecondary,
+                  ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _pickMonth,
+              icon: const Icon(Icons.calendar_month_outlined),
+              label: Text(monthLabel),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                "Stored as $monthStored",
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: MinimalColors.textSecondary,
+                    ),
+              ),
+            ),
+            const SizedBox(height: 20),
             TextField(
               controller: _incomeController,
               decoration: const InputDecoration(
@@ -80,29 +113,33 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
                 FilteringTextInputFormatter.allow(RegExp(r"[0-9.]")),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextField(
               controller: _currencyController,
               decoration: const InputDecoration(
-                labelText: "Currency (3 letter)",
+                labelText: "Currency",
+                hintText: "PKR",
+                counterText: "",
               ),
+              textCapitalization: TextCapitalization.characters,
               maxLength: 3,
             ),
+            const SizedBox(height: 8),
             SwitchListTile(
+              contentPadding: EdgeInsets.zero,
               title: const Text("Archived"),
               value: _archived,
               onChanged: (v) => setState(() => _archived = v),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             FilledButton(
               onPressed: () async {
-                final month = _monthController.text.trim();
                 final income = double.tryParse(_incomeController.text.trim());
-                final cur =
-                    _currencyController.text.trim().toUpperCase();
-                if (month.isEmpty || income == null || cur.length != 3) {
+                final cur = _currencyController.text.trim().toUpperCase();
+                if (income == null || cur.length != 3) {
                   return;
                 }
+                final month = monthFirstDayIso(_monthFirst);
                 final e = widget.existing;
                 if (e == null) {
                   await widget.repository.insertLocal(

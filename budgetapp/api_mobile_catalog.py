@@ -6,13 +6,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from budgetapp.models import Budget, Category, Expense, Tag
+from budgetapp.models import Budget, Category, Expense, SubExpense, Tag
 
 from .serializers_mobile import (
     MobileCategoryPushItemSerializer,
     MobileCategorySyncSerializer,
     MobileExpensePushItemSerializer,
     MobileExpenseSyncSerializer,
+    MobileSubExpensePushItemSerializer,
+    MobileSubExpenseSyncSerializer,
     MobileTagPushItemSerializer,
     MobileTagSyncSerializer,
     save_category_for_user,
@@ -61,6 +63,17 @@ def _collect_unknown_expense_ids(user, validated_items):
             continue
         if not Expense.objects.filter(pk=eid, budget__user=user).exists():
             unknown.append(eid)
+    return unknown
+
+
+def _collect_unknown_subexpense_ids(user, validated_items):
+    unknown = []
+    for item in validated_items:
+        sid = item.get("id")
+        if sid is None:
+            continue
+        if not SubExpense.objects.filter(pk=sid, expense__budget__user=user).exists():
+            unknown.append(sid)
     return unknown
 
 
@@ -248,6 +261,88 @@ class MobileExpensePushView(APIView):
                     e.tag_foreign_key_id = tag
                     e.save()
                     server_ids.append(e.id)
+        return Response(
+            {
+                "created_ids": created_ids,
+                "server_ids": server_ids,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class MobileSubExpensePullView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        qs = SubExpense.objects.filter(expense__budget__user=user).order_by(
+            "updated_at", "id"
+        )
+        updated_after = _parse_updated_after(request.query_params.get("updated_after"))
+        if updated_after is not None:
+            qs = qs.filter(updated_at__gt=updated_after)
+        data = MobileSubExpenseSyncSerializer(qs, many=True).data
+        return Response({"sub_expenses": data})
+
+
+class MobileSubExpensePushView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        raw_list = request.data.get("sub_expenses")
+        if not isinstance(raw_list, list):
+            return Response(
+                {"detail": "Expected key 'sub_expenses' with a list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ser = MobileSubExpensePushItemSerializer(data=raw_list, many=True)
+        ser.is_valid(raise_exception=True)
+
+        for item in ser.validated_data:
+            exp_id = item["expense_id"]
+            if not Expense.objects.filter(pk=exp_id, budget__user=user).exists():
+                return Response(
+                    {
+                        "detail": "Unknown expense_id for this user.",
+                        "expense_id": exp_id,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        unknown = _collect_unknown_subexpense_ids(user, ser.validated_data)
+        if unknown:
+            return Response(
+                {"detail": "Unknown sub-expense id(s).", "unknown_ids": unknown},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        created_ids = []
+        server_ids = []
+        with transaction.atomic():
+            for item in ser.validated_data:
+                sid = item.get("id")
+                expense = Expense.objects.get(pk=item["expense_id"], budget__user=user)
+                name = item["name"]
+                amount = item["amount"]
+                is_ret = item.get("is_return", False)
+                if sid is None:
+                    sub = SubExpense.objects.create(
+                        expense=expense,
+                        name=name,
+                        amount=amount,
+                        is_return=is_ret,
+                    )
+                    created_ids.append(sub.id)
+                    server_ids.append(sub.id)
+                else:
+                    sub = SubExpense.objects.get(pk=sid, expense__budget__user=user)
+                    sub.expense = expense
+                    sub.name = name
+                    sub.amount = amount
+                    sub.is_return = is_ret
+                    sub.save()
+                    server_ids.append(sub.id)
         return Response(
             {
                 "created_ids": created_ids,

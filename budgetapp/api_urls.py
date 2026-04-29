@@ -10,6 +10,8 @@ from .api_mobile_catalog import (
     MobileCategoryPushView,
     MobileExpensePullView,
     MobileExpensePushView,
+    MobileSubExpensePullView,
+    MobileSubExpensePushView,
     MobileTagPullView,
     MobileTagPushView,
 )
@@ -49,6 +51,16 @@ urlpatterns = [
         "mobile/expenses/push/",
         MobileExpensePushView.as_view(),
         name="api-mobile-expense-push",
+    ),
+    path(
+        "mobile/sub-expenses/pull/",
+        MobileSubExpensePullView.as_view(),
+        name="api-mobile-subexpense-pull",
+    ),
+    path(
+        "mobile/sub-expenses/push/",
+        MobileSubExpensePushView.as_view(),
+        name="api-mobile-subexpense-push",
     ),
     path("", include(router.urls)),
 ]
