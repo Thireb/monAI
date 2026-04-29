@@ -23,7 +23,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# Repo-root only; do not ignore Flutter app code (e.g. mobile/budget_mobile/lib/)
+/lib/
 lib64/
 parts/
 sdist/
@@ -184,3 +185,13 @@ capacitor-app/android/build/
 capacitor-app/android/capacitor-cordova-android-plugins/build/
 capacitor-app/android/capacitor-android/build/
 capacitor-app/node_modules/
+
+artifacts/
+
+# Local Android SDK (CI/agent tooling; use Android Studio path on your machine)
+android-sdk/
+
+# Flutter mobile build outputs
+mobile/budget_mobile/build/
+mobile/budget_mobile/android/.gradle/
+mobile/budget_mobile/android/local.properties
