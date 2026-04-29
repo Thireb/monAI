@@ -42,6 +42,16 @@ class MobileBudgetSyncApiTests(TestCase):
         self.assertIn("token", response.data)
         self.assertEqual(response.data["token"], self.token.key)
 
+    def test_mobile_token_rejects_invalid_credentials(self):
+        anon = APIClient()
+        url = reverse("api-mobile-token")
+        response = anon.post(
+            url,
+            {"email": "sync@example.com", "password": "wrong-password"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_pull_returns_only_own_budgets(self):
         b1 = Budget.objects.create(
             user=self.user,
@@ -140,6 +150,11 @@ class MobileCatalogSyncApiTests(TestCase):
             username="catuser",
             email="cat@example.com",
             password="cat-pass-secure",
+        )
+        self.other = User.objects.create_user(
+            username="catother",
+            email="catother@example.com",
+            password="other-cat-pass",
         )
         self.token = Token.objects.create(user=self.user)
         self.client = APIClient()
@@ -252,3 +267,114 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.status_code, status.HTTP_200_OK)
         self.assertEqual(len(r2.data["sub_expenses"]), 1)
         self.assertEqual(r2.data["sub_expenses"][0]["expense_id"], exp.id)
+
+    def test_tag_push_create_update_and_pull_cursor(self):
+        url_push = reverse("api-mobile-tag-push")
+        resp = self.client.post(
+            url_push,
+            {"tags": [{"name": "Travel", "color": "#111111"}]},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(resp.data["created_ids"]), 1)
+        tid = resp.data["created_ids"][0]
+        tag = Tag.objects.get(pk=tid)
+        self.assertEqual(tag.name, "Travel")
+        resp2 = self.client.post(
+            url_push,
+            {
+                "tags": [
+                    {
+                        "id": tid,
+                        "name": "Travel & transit",
+                        "description": "d",
+                        "color": "#222222",
+                        "is_active": False,
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(resp2.status_code, status.HTTP_200_OK)
+        tag.refresh_from_db()
+        self.assertEqual(tag.name, "Travel & transit")
+        self.assertFalse(tag.is_active)
+        ts = timezone.now()
+        Tag.objects.create(user=self.user, name="Later tag", slug="later-tag")
+        url_pull = reverse("api-mobile-tag-pull")
+        resp_pull = self.client.get(url_pull, {"updated_after": ts.isoformat()})
+        self.assertEqual(resp_pull.status_code, status.HTTP_200_OK)
+        names = [x["name"] for x in resp_pull.data["tags"]]
+        self.assertIn("Later tag", names)
+        self.assertNotIn("Travel & transit", names)
+
+    def test_tag_push_rejects_unknown_id(self):
+        url = reverse("api-mobile-tag-push")
+        response = self.client.post(
+            url,
+            {"tags": [{"id": 999999, "name": "Ghost", "color": "#000000"}]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("unknown_ids", response.data)
+
+    def test_expense_push_rejects_other_users_budget(self):
+        other_budget = Budget.objects.create(
+            user=self.other,
+            month=date(2025, 9, 1),
+            income=Decimal("1.00"),
+            currency="PKR",
+        )
+        url = reverse("api-mobile-expense-push")
+        r = self.client.post(
+            url,
+            {
+                "expenses": [
+                    {
+                        "budget_id": other_budget.id,
+                        "name": "Leak",
+                        "amount": "10.00",
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(r.data.get("budget_id"), other_budget.id)
+
+    def test_expense_push_rejects_unknown_tag_id(self):
+        url = reverse("api-mobile-expense-push")
+        r = self.client.post(
+            url,
+            {
+                "expenses": [
+                    {
+                        "budget_id": self.budget.id,
+                        "name": "Tagged",
+                        "amount": "10.00",
+                        "tag_id": 999999,
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(r.data.get("tag_id"), 999999)
+
+    def test_sub_expense_push_rejects_unknown_expense_id(self):
+        url = reverse("api-mobile-subexpense-push")
+        r = self.client.post(
+            url,
+            {
+                "sub_expenses": [
+                    {
+                        "expense_id": 999999,
+                        "name": "Orphan",
+                        "amount": "1.00",
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(r.data.get("expense_id"), 999999)
