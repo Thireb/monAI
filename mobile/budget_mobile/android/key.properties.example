@@ -1,0 +1,8 @@
+# Copy to key.properties next to this file (android/key.properties) for local builds.
+# For CI-only signing, use GitHub Actions secrets (see mobile/budget_mobile/README.md).
+# Never commit key.properties or *.jks. Paths are relative to android/app/.
+
+storePassword=your-keystore-password
+keyPassword=your-key-password
+keyAlias=budget_upload
+storeFile=upload-keystore.jks
