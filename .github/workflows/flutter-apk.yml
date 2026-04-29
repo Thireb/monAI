@@ -51,6 +51,21 @@ jobs:
       - name: Run tests
         run: flutter test
 
+      - name: Configure release keystore (optional)
+        if: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+        working-directory: mobile/budget_mobile/android
+        env:
+          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          printf '%s' "$ANDROID_UPLOAD_KEYSTORE_BASE64" | base64 -d > app/upload-keystore.jks
+          printf '%s\n' "storePassword=$ANDROID_KEYSTORE_PASSWORD" > key.properties
+          printf '%s\n' "keyPassword=$ANDROID_KEY_PASSWORD" >> key.properties
+          printf '%s\n' "keyAlias=$ANDROID_KEY_ALIAS" >> key.properties
+          printf '%s\n' "storeFile=upload-keystore.jks" >> key.properties
+
       - name: Build release APK
         run: flutter build apk --release
 

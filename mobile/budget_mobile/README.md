@@ -56,6 +56,29 @@ When this workflow is on your default branch, each qualifying push builds an APK
 
 Retention follows your org/repo artifact settings (often ~90 days).
 
+### "App not installed" / conflicting package (signature)
+
+Android only **updates over an existing install** if the **new APK is signed with the same certificate** as the one already on the phone.
+
+Until you set **one release keystore** for both local builds and CI, this often happens:
+
+| **`flutter build apk`** / **`flutter run`** on your PC | APK from **GitHub Actions** | **Fails** — different keys |
+| Older **GitHub Actions** APK | New **Actions** APK **without** upload keystore in CI | **Often fails** — runner debug keystores usually **differ per job** |
+| APK signed with **your** upload keystore | Next APK with the **same** keystore (local or CI with secrets) | **Works** |
+
+**Quick fix:** uninstall **monAI Budget**, then install the new APK (you **lose local unsynced data** unless it was synced to the server first).
+
+**Quick fix:** uninstall **monAI Budget**, then install the new APK (you **lose local unsynced data** unless it was synced to the server first).
+
+**Proper fix (recommended):** create an **upload keystore**, use it for every release build:
+
+1. Copy `android/key.properties.example` to `android/key.properties` and set passwords and alias.
+2. Put your `.jks` under `android/app/` (path in `storeFile` is relative to `android/app/`).
+3. Run `flutter build apk --release` locally — installs from this APK can be updated by **the next** APK signed with the **same** keystore.
+4. Optional **Git add** `ANDROID_UPLOAD_KEYSTORE_BASE64` and related secrets in GitHub so Actions builds with the same key (workflow file documents the secret names).
+
+Without `key.properties`, `release` still uses **debug** signing so **local PC** and **GitHub runner** produce **different** signatures — updates across those sources will keep failing.
+
 ## Garuda Linux: install Flutter and build APK
 
 Garuda is Arch-based. Use either **AUR** or the **official Flutter tarball** (below uses the tarball so versions match easily).
@@ -107,8 +130,8 @@ Garuda is Arch-based. Use either **AUR** or the **official Flutter tarball** (be
 
    Output: `build/app/outputs/flutter-apk/app-release.apk`
 
-   For a **signed** store build, create a keystore and set `signingConfigs.release` in  
-   `android/app/build.gradle` (replace debug signing).
+   Release signing uses `android/key.properties` when present; see **Conflicting package** above  
+   and `android/key.properties.example`.
 
 ## Tests
 
