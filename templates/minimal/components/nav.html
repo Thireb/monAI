@@ -24,7 +24,9 @@
                         href="{% url 'minimal:tag_management' %}">Tags</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Goals</a>
+                    <a class="nav-link {% if request.resolver_match.url_name == 'goal_list' or request.resolver_match.url_name == 'goal_detail' %}active{% endif %}"
+                        aria-current="{% if request.resolver_match.url_name == 'goal_list' or request.resolver_match.url_name == 'goal_detail' %}page{% endif %}"
+                        href="{% url 'minimal:goal_list' %}">Goals</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if 'debt' in request.resolver_match.url_name %}active{% endif %}"
