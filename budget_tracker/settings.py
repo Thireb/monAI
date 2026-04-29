@@ -117,6 +117,7 @@ INSTALLED_APPS = [
     "allauth.account",
     "anymail",
     "rest_framework",
+    "rest_framework.authtoken",
     "django_celery_beat.apps.BeatConfig",
     # Local apps
     "accounts",
@@ -394,3 +395,17 @@ else:
 resend_config = email_config.get("resend", {})
 RESEND_API_KEY = resend_config.get("api_key", "")
 RESEND_FROM_EMAIL = resend_config.get("from_email", "onboarding@resend.dev")
+
+# =============================================================================
+# Django REST framework (API + mobile sync)
+# =============================================================================
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+}
