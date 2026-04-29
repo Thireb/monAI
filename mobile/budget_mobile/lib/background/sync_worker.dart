@@ -1,4 +1,3 @@
-import "package:flutter/foundation.dart";
 import "package:flutter/widgets.dart";
 import "package:workmanager/workmanager.dart";
 
@@ -28,7 +27,7 @@ class BackgroundSync {
   BackgroundSync._();
 
   static Future<void> register() async {
-    await Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
+    await Workmanager().initialize(callbackDispatcher);
     await Workmanager().registerPeriodicTask(
       kUniquePeriodicName,
       kPeriodicSyncTaskName,
