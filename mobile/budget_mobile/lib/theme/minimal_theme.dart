@@ -14,6 +14,23 @@ class MinimalColors {
   static const Color surfaceGlass = Color(0xE6FFFFFF);
   static const Color textPrimary = Color(0xFF1A1A2E);
   static const Color textSecondary = Color(0xFF5C5C6E);
+  /// ~85% opaque white for input fields (avoids withOpacity/withValues SDK drift).
+  static const Color inputFieldFill = Color(0xD9FFFFFF);
+}
+
+const BorderRadius _minimalCardRadius = BorderRadius.all(Radius.circular(16));
+const EdgeInsets _minimalCardMargin =
+    EdgeInsets.symmetric(horizontal: 16, vertical: 8);
+
+/// Styling for budget list / sync [Card]s (avoids ThemeData.cardTheme SDK drift).
+Widget minimalCard({required Widget child}) {
+  return Card(
+    elevation: 0,
+    color: MinimalColors.surfaceGlass,
+    margin: _minimalCardMargin,
+    shape: const RoundedRectangleBorder(borderRadius: _minimalCardRadius),
+    child: child,
+  );
 }
 
 ThemeData buildMinimalTheme() {
@@ -47,15 +64,9 @@ ThemeData buildMinimalTheme() {
         color: MinimalColors.primaryBlue,
       ),
     ),
-    cardTheme: CardTheme(
-      elevation: 0,
-      color: MinimalColors.surfaceGlass,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white.withOpacity(0.85),
+      fillColor: MinimalColors.inputFieldFill,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     ),
     filledButtonTheme: FilledButtonThemeData(

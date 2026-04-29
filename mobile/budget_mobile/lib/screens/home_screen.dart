@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (widget.budgetRepository != null && _rows.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     ..._rows.map((r) {
-                      return Card(
+                      return minimalCard(
                         child: ListTile(
                           title: Text(r.month),
                           subtitle: Text(
@@ -170,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     }),
                   ],
                   const SizedBox(height: 24),
-                  Card(
+                  minimalCard(
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Column(

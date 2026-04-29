@@ -109,31 +109,41 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                   value: _recurring,
                   onChanged: (v) => setState(() => _recurring = v),
                 ),
-                DropdownButtonFormField<int?>(
+                InputDecorator(
                   decoration: const InputDecoration(labelText: "Category"),
-                  value: _validSelection(_categoryServerId, withCats),
-                  items: withCats
-                      .map(
-                        (t) => DropdownMenuItem<int?>(
-                          value: t.$1,
-                          child: Text(t.$2),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) => setState(() => _categoryServerId = v),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int?>(
+                      isExpanded: true,
+                      value: _validSelection(_categoryServerId, withCats),
+                      items: withCats
+                          .map(
+                            (t) => DropdownMenuItem<int?>(
+                              value: t.$1,
+                              child: Text(t.$2),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _categoryServerId = v),
+                    ),
+                  ),
                 ),
-                DropdownButtonFormField<int?>(
+                InputDecorator(
                   decoration: const InputDecoration(labelText: "Tag"),
-                  value: _validSelection(_tagServerId, withTags),
-                  items: withTags
-                      .map(
-                        (t) => DropdownMenuItem<int?>(
-                          value: t.$1,
-                          child: Text(t.$2),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) => setState(() => _tagServerId = v),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int?>(
+                      isExpanded: true,
+                      value: _validSelection(_tagServerId, withTags),
+                      items: withTags
+                          .map(
+                            (t) => DropdownMenuItem<int?>(
+                              value: t.$1,
+                              child: Text(t.$2),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _tagServerId = v),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 FilledButton(
