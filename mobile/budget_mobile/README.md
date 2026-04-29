@@ -41,6 +41,19 @@ Push responses include `server_ids` in the **same order** as the request list.
 
 **Sync order (app):** push categories → tags → budgets → expenses, then pull the same (expenses need server `budget_id`).
 
+## Download APK (GitHub Actions — no local Flutter)
+
+When this workflow is on your default branch, each qualifying push builds an APK. You can also run it manually.
+
+1. Open the repo on GitHub → **Actions**.
+2. Select **Build Android APK**.
+3. Open the latest successful run.
+4. Scroll to **Artifacts** → download **`monai-budget-release-apk`** (zip contains `app-release.apk`).
+
+**Manual run:** Actions → **Build Android APK** → **Run workflow**.
+
+Retention follows your org/repo artifact settings (often ~90 days).
+
 ## Garuda Linux: install Flutter and build APK
 
 Garuda is Arch-based. Use either **AUR** or the **official Flutter tarball** (below uses the tarball so versions match easily).
