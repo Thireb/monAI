@@ -1,30 +1,121 @@
 import "../repositories/budget_repository.dart";
+import "../repositories/category_repository.dart";
+import "../repositories/expense_repository.dart";
+import "../repositories/tag_repository.dart";
 import "mobile_budget_api_client.dart";
 
-const String _pullCursorKey = "budget_sync_last_updated_after";
+const String _kBudgetCursor = "budget_sync_last_updated_after";
+const String _kCategoryCursor = "category_sync_last_updated_after";
+const String _kTagCursor = "tag_sync_last_updated_after";
+const String _kExpenseCursor = "expense_sync_last_updated_after";
 
-/// Push dirty local rows then pull server changes (v1: budgets only).
+/// Push dirty categories → tags → budgets → expenses, then pull each table.
 class BudgetSyncService {
-  BudgetSyncService(this._api, this._repo);
+  BudgetSyncService(
+    this._api,
+    this._budgetRepo,
+    this._categoryRepo,
+    this._tagRepo,
+    this._expenseRepo,
+  );
 
   final MobileBudgetApiClient _api;
-  final BudgetRepository _repo;
+  final BudgetRepository _budgetRepo;
+  final CategoryRepository _categoryRepo;
+  final TagRepository _tagRepo;
+  final ExpenseRepository _expenseRepo;
 
-  Future<bool> syncBudgets() async {
+  Future<bool> syncAll() async {
     try {
-      final okPush = await _pushDirty();
-      if (!okPush) {
+      if (!await _pushCategories()) {
         return false;
       }
-      return _pull();
+      if (!await _pushTags()) {
+        return false;
+      }
+      if (!await _pushBudgets()) {
+        return false;
+      }
+      if (!await _pushExpenses()) {
+        return false;
+      }
+      if (!await _pullCategories()) {
+        return false;
+      }
+      if (!await _pullTags()) {
+        return false;
+      }
+      if (!await _pullBudgets()) {
+        return false;
+      }
+      return _pullExpenses();
     } on Object {
       return false;
     }
   }
 
-  /// Returns false if there were dirty rows and the server rejected or failed.
-  Future<bool> _pushDirty() async {
-    final dirty = await _repo.dirtyRows();
+  Future<bool> _pushCategories() async {
+    final dirty = await _categoryRepo.dirtyRows();
+    if (dirty.isEmpty) {
+      return true;
+    }
+    final payloads = <Map<String, dynamic>>[];
+    for (final r in dirty) {
+      final m = <String, dynamic>{
+        "name": r.name,
+        "description": r.description,
+        "icon": r.icon,
+        "color": r.color,
+      };
+      if (r.serverId != null) {
+        m["id"] = r.serverId;
+      }
+      payloads.add(m);
+    }
+    final response = await _api.pushCategories(payloads);
+    if (response == null) {
+      return false;
+    }
+    final ids = response["server_ids"];
+    if (ids is! List) {
+      return false;
+    }
+    await _categoryRepo.applyPushServerIds(dirty, ids);
+    return true;
+  }
+
+  Future<bool> _pushTags() async {
+    final dirty = await _tagRepo.dirtyRows();
+    if (dirty.isEmpty) {
+      return true;
+    }
+    final payloads = <Map<String, dynamic>>[];
+    for (final r in dirty) {
+      final m = <String, dynamic>{
+        "name": r.name,
+        "description": r.description,
+        "color": r.color,
+        "is_active": r.isActive,
+      };
+      if (r.serverId != null) {
+        m["id"] = r.serverId;
+      }
+      payloads.add(m);
+    }
+    final response = await _api.pushTags(payloads);
+    if (response == null) {
+      return false;
+    }
+    final ids = response["server_ids"];
+    if (ids is! List) {
+      return false;
+    }
+    await _tagRepo.applyPushServerIds(dirty, ids);
+    return true;
+  }
+
+  Future<bool> _pushBudgets() async {
+    final dirty = await _budgetRepo.dirtyRows();
     if (dirty.isEmpty) {
       return true;
     }
@@ -49,12 +140,147 @@ class BudgetSyncService {
     if (ids is! List) {
       return false;
     }
-    await _repo.applyPushServerIds(dirty, ids);
+    await _budgetRepo.applyPushServerIds(dirty, ids);
     return true;
   }
 
-  Future<bool> _pull() async {
-    final cursor = await _repo.getMeta(_pullCursorKey);
+  Future<bool> _pushExpenses() async {
+    final dirty = await _expenseRepo.dirtyRowsReadyToPush();
+    final ready = dirty.where((r) => r.budgetServerId != null).toList();
+    if (ready.isEmpty) {
+      return true;
+    }
+    final payloads = <Map<String, dynamic>>[];
+    for (final r in ready) {
+      final m = <String, dynamic>{
+        "budget_id": r.budgetServerId!,
+        "name": r.name,
+        "amount": r.amount.toStringAsFixed(2),
+        "is_recurring": r.isRecurring,
+        "category_id": r.categoryServerId,
+        "tag_id": r.tagServerId,
+      };
+      if (r.serverId != null) {
+        m["id"] = r.serverId;
+      }
+      payloads.add(m);
+    }
+    final response = await _api.pushExpenses(payloads);
+    if (response == null) {
+      return false;
+    }
+    final ids = response["server_ids"];
+    if (ids is! List) {
+      return false;
+    }
+    await _expenseRepo.applyPushServerIds(ready, ids);
+    return true;
+  }
+
+  Future<bool> _pullCategories() async {
+    final cursor = await _categoryRepo.getMeta(_kCategoryCursor);
+    final data = await _api.pullCategories(cursor);
+    if (data == null) {
+      return false;
+    }
+    final list = data["categories"];
+    if (list is! List) {
+      return false;
+    }
+    String? maxIso;
+    for (final raw in list) {
+      if (raw is! Map) {
+        continue;
+      }
+      final item = Map<String, dynamic>.from(raw);
+      final sid = _asInt(item["id"]);
+      if (sid == null) {
+        continue;
+      }
+      final name = item["name"] as String?;
+      if (name == null) {
+        continue;
+      }
+      final slug = (item["slug"] as String?) ?? "";
+      final desc = (item["description"] as String?) ?? "";
+      final icon = (item["icon"] as String?) ?? "";
+      final color = (item["color"] as String?) ?? "#000000";
+      final upd = item["updated_at"] as String?;
+      if (upd == null || upd.isEmpty) {
+        continue;
+      }
+      await _categoryRepo.upsertFromServer(
+        serverId: sid,
+        name: name,
+        slug: slug,
+        description: desc,
+        icon: icon,
+        color: color,
+        serverUpdatedAtIso: upd,
+      );
+      if (maxIso == null || upd.compareTo(maxIso) > 0) {
+        maxIso = upd;
+      }
+    }
+    if (maxIso != null) {
+      await _categoryRepo.setMeta(_kCategoryCursor, maxIso);
+    }
+    return true;
+  }
+
+  Future<bool> _pullTags() async {
+    final cursor = await _tagRepo.getMeta(_kTagCursor);
+    final data = await _api.pullTags(cursor);
+    if (data == null) {
+      return false;
+    }
+    final list = data["tags"];
+    if (list is! List) {
+      return false;
+    }
+    String? maxIso;
+    for (final raw in list) {
+      if (raw is! Map) {
+        continue;
+      }
+      final item = Map<String, dynamic>.from(raw);
+      final sid = _asInt(item["id"]);
+      if (sid == null) {
+        continue;
+      }
+      final name = item["name"] as String?;
+      if (name == null) {
+        continue;
+      }
+      final slug = (item["slug"] as String?) ?? "";
+      final desc = (item["description"] as String?) ?? "";
+      final color = (item["color"] as String?) ?? "#2196f3";
+      final active = item["is_active"] == true;
+      final upd = item["updated_at"] as String?;
+      if (upd == null || upd.isEmpty) {
+        continue;
+      }
+      await _tagRepo.upsertFromServer(
+        serverId: sid,
+        name: name,
+        slug: slug,
+        description: desc,
+        color: color,
+        isActive: active,
+        serverUpdatedAtIso: upd,
+      );
+      if (maxIso == null || upd.compareTo(maxIso) > 0) {
+        maxIso = upd;
+      }
+    }
+    if (maxIso != null) {
+      await _tagRepo.setMeta(_kTagCursor, maxIso);
+    }
+    return true;
+  }
+
+  Future<bool> _pullBudgets() async {
+    final cursor = await _budgetRepo.getMeta(_kBudgetCursor);
     final data = await _api.pullBudgets(cursor);
     if (data == null) {
       return false;
@@ -69,36 +295,28 @@ class BudgetSyncService {
         continue;
       }
       final item = Map<String, dynamic>.from(raw);
-      final sid = item["id"];
-      if (sid is! int) {
+      final sid = _asInt(item["id"]);
+      if (sid == null) {
         continue;
       }
-      final month = item["month"];
-      if (month is! String) {
+      final month = item["month"] as String?;
+      if (month == null) {
         continue;
       }
-      final income = item["income"];
-      double? incomeVal;
-      if (income is num) {
-        incomeVal = income.toDouble();
-      } else if (income is String) {
-        incomeVal = double.tryParse(income);
-      }
+      final incomeVal = _asDouble(item["income"]);
       if (incomeVal == null) {
         continue;
       }
-      final currency = item["currency"];
-      if (currency is! String) {
+      final currency = item["currency"] as String?;
+      if (currency == null) {
         continue;
       }
-      final archived = item["is_archived"];
-      final isArchived = archived == true;
-      final updated = item["updated_at"];
-      final updatedIso = updated is String ? updated : "";
-      if (updatedIso.isEmpty) {
+      final isArchived = item["is_archived"] == true;
+      final updatedIso = item["updated_at"] as String?;
+      if (updatedIso == null || updatedIso.isEmpty) {
         continue;
       }
-      await _repo.upsertFromServer(
+      await _budgetRepo.upsertFromServer(
         serverId: sid,
         month: month,
         income: incomeVal,
@@ -111,8 +329,87 @@ class BudgetSyncService {
       }
     }
     if (maxIso != null) {
-      await _repo.setMeta(_pullCursorKey, maxIso);
+      await _budgetRepo.setMeta(_kBudgetCursor, maxIso);
     }
     return true;
+  }
+
+  Future<bool> _pullExpenses() async {
+    final cursor = await _expenseRepo.getMeta(_kExpenseCursor);
+    final data = await _api.pullExpenses(cursor);
+    if (data == null) {
+      return false;
+    }
+    final list = data["expenses"];
+    if (list is! List) {
+      return false;
+    }
+    String? maxIso;
+    for (final raw in list) {
+      if (raw is! Map) {
+        continue;
+      }
+      final item = Map<String, dynamic>.from(raw);
+      final sid = _asInt(item["id"]);
+      if (sid == null) {
+        continue;
+      }
+      final budgetSid = _asInt(item["budget_id"]);
+      if (budgetSid == null) {
+        continue;
+      }
+      final name = item["name"] as String?;
+      if (name == null) {
+        continue;
+      }
+      final amountVal = _asDouble(item["amount"]);
+      if (amountVal == null) {
+        continue;
+      }
+      final rec = item["is_recurring"] == true;
+      final cat = _asInt(item["category_id"]);
+      final tag = _asInt(item["tag_id"]);
+      final updatedIso = item["updated_at"] as String?;
+      if (updatedIso == null || updatedIso.isEmpty) {
+        continue;
+      }
+      await _expenseRepo.upsertFromServer(
+        serverId: sid,
+        budgetServerId: budgetSid,
+        name: name,
+        amount: amountVal,
+        isRecurring: rec,
+        categoryId: cat,
+        tagId: tag,
+        serverUpdatedAtIso: updatedIso,
+      );
+      if (maxIso == null || updatedIso.compareTo(maxIso) > 0) {
+        maxIso = updatedIso;
+      }
+    }
+    if (maxIso != null) {
+      await _expenseRepo.setMeta(_kExpenseCursor, maxIso);
+    }
+    return true;
+  }
+
+  int? _asInt(dynamic v) {
+    if (v is int) {
+      return v;
+    }
+    if (v is num) {
+      return v.toInt();
+    }
+    return null;
+  }
+
+  double? _asDouble(dynamic v) {
+    if (v is num) {
+      return v.toDouble();
+    }
+    if (v is String) {
+      return double.tryParse(v);
+    }
+    return null;
   }
 }

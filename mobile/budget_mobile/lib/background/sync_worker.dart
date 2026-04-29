@@ -15,7 +15,7 @@ void callbackDispatcher() {
     try {
       await bootstrapApp(registerBackgroundSync: false);
       await AppScope.syncService.runBackgroundPing();
-      await AppScope.budgetSync.syncBudgets();
+      await AppScope.budgetSync.syncAll();
     } on Object {
       // Never fail the worker; WorkManager will reschedule per policy.
     }

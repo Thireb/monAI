@@ -2,21 +2,19 @@ import "package:path/path.dart" as p;
 import "package:path_provider/path_provider.dart";
 import "package:sqflite/sqflite.dart";
 
-const int _dbVersion = 2;
+const int _dbVersion = 3;
 
-/// Local SQLite for offline budgeting. Server sync will map rows to Django later.
+/// Local SQLite for offline budgeting and server sync.
 class AppDatabase {
   AppDatabase._();
 
   static final AppDatabase instance = AppDatabase._();
 
-  /// When set (e.g. in widget tests), DB file is created under this directory instead
-  /// of using path_provider (which is unreliable in VM tests).
+  /// When set (e.g. in tests), DB file uses this directory instead of path_provider.
   static String? testDocumentsOverride;
 
   Database? _db;
 
-  /// Clears the singleton connection (for tests only).
   Future<void> resetForTesting() async {
     if (_db != null) {
       await _db!.close();
@@ -61,8 +59,58 @@ class AppDatabase {
             "ALTER TABLE budget ADD COLUMN server_updated_at TEXT",
           );
         }
+        if (oldVersion < 3) {
+          await _createCatalogTables(db);
+        }
       },
     );
+  }
+
+  Future<void> _createCatalogTables(Database db) async {
+    await db.execute("""
+CREATE TABLE category (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  server_id INTEGER,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL DEFAULT '',
+  description TEXT NOT NULL DEFAULT '',
+  icon TEXT NOT NULL DEFAULT '',
+  color TEXT NOT NULL DEFAULT '#000000',
+  server_updated_at TEXT,
+  dirty INTEGER NOT NULL DEFAULT 0,
+  deleted INTEGER NOT NULL DEFAULT 0
+);
+""");
+    await db.execute("""
+CREATE TABLE tag (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  server_id INTEGER,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL DEFAULT '',
+  description TEXT NOT NULL DEFAULT '',
+  color TEXT NOT NULL DEFAULT '#2196f3',
+  is_active INTEGER NOT NULL DEFAULT 1,
+  server_updated_at TEXT,
+  dirty INTEGER NOT NULL DEFAULT 0,
+  deleted INTEGER NOT NULL DEFAULT 0
+);
+""");
+    await db.execute("""
+CREATE TABLE expense (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  server_id INTEGER,
+  budget_local_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  amount REAL NOT NULL,
+  is_recurring INTEGER NOT NULL DEFAULT 0,
+  category_server_id INTEGER,
+  tag_server_id INTEGER,
+  server_updated_at TEXT,
+  dirty INTEGER NOT NULL DEFAULT 0,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (budget_local_id) REFERENCES budget (id)
+);
+""");
   }
 
   Future<void> _createSchema(Database db) async {
@@ -86,6 +134,7 @@ CREATE TABLE meta (
   value TEXT NOT NULL
 );
 """);
+    await _createCatalogTables(db);
   }
 
   Future<int> countBudgets() async {

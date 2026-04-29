@@ -80,12 +80,39 @@ class MobileBudgetApiClient {
     }
   }
 
-  Future<Map<String, dynamic>?> pullBudgets(String? updatedAfterIso) async {
+  Future<Map<String, dynamic>?> pullCategories(String? updatedAfterIso) {
+    return _pullJson("/api/mobile/categories/pull/", updatedAfterIso);
+  }
+
+  Future<Map<String, dynamic>?> pushCategories(List<Map<String, dynamic>> items) {
+    return _postJson("/api/mobile/categories/push/", {"categories": items});
+  }
+
+  Future<Map<String, dynamic>?> pullTags(String? updatedAfterIso) {
+    return _pullJson("/api/mobile/tags/pull/", updatedAfterIso);
+  }
+
+  Future<Map<String, dynamic>?> pushTags(List<Map<String, dynamic>> items) {
+    return _postJson("/api/mobile/tags/push/", {"tags": items});
+  }
+
+  Future<Map<String, dynamic>?> pullExpenses(String? updatedAfterIso) {
+    return _pullJson("/api/mobile/expenses/pull/", updatedAfterIso);
+  }
+
+  Future<Map<String, dynamic>?> pushExpenses(List<Map<String, dynamic>> items) {
+    return _postJson("/api/mobile/expenses/push/", {"expenses": items});
+  }
+
+  Future<Map<String, dynamic>?> _pullJson(
+    String path,
+    String? updatedAfterIso,
+  ) async {
     final token = await _tokens.readToken();
     if (token == null || token.isEmpty) {
       return null;
     }
-    final base = _api("/api/mobile/budgets/pull/");
+    final base = _api(path);
     if (base == null) {
       return null;
     }
@@ -105,19 +132,21 @@ class MobileBudgetApiClient {
     }
   }
 
-  Future<Map<String, dynamic>?> pushBudgets(List<Map<String, dynamic>> budgets) async {
+  Future<Map<String, dynamic>?> _postJson(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
     final token = await _tokens.readToken();
     if (token == null || token.isEmpty) {
       return null;
     }
-    final uri = _api("/api/mobile/budgets/push/");
+    final uri = _api(path);
     if (uri == null) {
       return null;
     }
     try {
-      final body = jsonEncode({"budgets": budgets});
       final response = await http
-          .post(uri, headers: _jsonHeaders(token), body: body)
+          .post(uri, headers: _jsonHeaders(token), body: jsonEncode(body))
           .timeout(_timeout);
       if (response.statusCode < 200 || response.statusCode >= 300) {
         return null;
@@ -126,5 +155,13 @@ class MobileBudgetApiClient {
     } on Object {
       return null;
     }
+  }
+
+  Future<Map<String, dynamic>?> pullBudgets(String? updatedAfterIso) async {
+    return _pullJson("/api/mobile/budgets/pull/", updatedAfterIso);
+  }
+
+  Future<Map<String, dynamic>?> pushBudgets(List<Map<String, dynamic>> budgets) async {
+    return _postJson("/api/mobile/budgets/push/", {"budgets": budgets});
   }
 }

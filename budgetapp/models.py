@@ -99,6 +99,7 @@ class Category(models.Model):
     icon = models.CharField(max_length=50, blank=True, help_text="Font Awesome icon class")
     color = models.CharField(max_length=7, default="#000000", help_text="Hex color code")
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name_plural = "Categories"

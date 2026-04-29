@@ -5,7 +5,10 @@ import "../repositories/budget_repository.dart";
 import "../services/budget_sync_service.dart";
 import "../services/sync_service.dart";
 import "../theme/minimal_theme.dart";
+import "budget_detail_screen.dart";
 import "budget_form_screen.dart";
+import "catalog_categories_screen.dart";
+import "catalog_tags_screen.dart";
 import "settings_screen.dart";
 
 class HomeScreen extends StatefulWidget {
@@ -67,7 +70,29 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: AppBar(
           title: const Text("monAI"),
           actions: [
-            if (widget.budgetRepository != null)
+            if (widget.budgetRepository != null) ...[
+              IconButton(
+                icon: const Icon(Icons.category_outlined),
+                tooltip: "Categories",
+                onPressed: () {
+                  Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CatalogCategoriesScreen(),
+                    ),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.label_outline),
+                tooltip: "Tags",
+                onPressed: () {
+                  Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CatalogTagsScreen(),
+                    ),
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.add_circle_outline),
                 onPressed: () async {
@@ -83,6 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                 },
               ),
+            ],
             IconButton(
               icon: const Icon(Icons.settings_outlined),
               onPressed: () async {
@@ -132,10 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () async {
                             await Navigator.of(context).push<bool>(
                               MaterialPageRoute<bool>(
-                                builder: (_) => BudgetFormScreen(
-                                  repository: widget.budgetRepository!,
-                                  existing: r,
-                                ),
+                                builder: (_) => BudgetDetailScreen(budget: r),
                               ),
                             );
                             if (mounted) {
@@ -159,8 +182,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            "Ping checks the server. Sync pushes local changes "
-                            "then pulls updates (budgets only for now).",
+                            "Ping checks the server. Sync pushes categories, tags, "
+                            "budgets, expenses; then pulls server updates.",
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: MinimalColors.textSecondary,
                                 ),
@@ -220,8 +243,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 8),
                             FilledButton.tonalIcon(
                               onPressed: () async {
-                                final ok =
-                                    await widget.budgetSyncService!.syncBudgets();
+                                final ok = await widget.budgetSyncService!
+                                    .syncAll();
                                 if (!context.mounted) {
                                   return;
                                 }
@@ -237,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 await _load();
                               },
                               icon: const Icon(Icons.sync),
-                              label: const Text("Sync budgets now"),
+                              label: const Text("Sync data now"),
                             ),
                           ],
                         ],

@@ -1,11 +1,11 @@
 # monAI Budget (Flutter)
 
-Offline-first companion for the Django budget app. Sync runs over HTTP when your home server is reachable (budgets only in v1).
+Offline-first companion for the Django budget app. Sync runs over HTTP when your home server is reachable.
 
 ## Django (server)
 
-1. Create / activate a venv and install deps (`requirements.txt`).
-2. Apply migrations (adds `authtoken` and existing app tables):
+1. Create or activate a venv and install deps (`requirements.txt`).
+2. Apply migrations (`authtoken`, and `Category.updated_at` for incremental category sync):
 
    ```bash
    python manage.py migrate
@@ -17,35 +17,85 @@ Offline-first companion for the Django budget app. Sync runs over HTTP when your
    python manage.py runserver 0.0.0.0:8000
    ```
 
-4. Note your PC LAN IP (e.g. `http://192.168.1.10:8000`) and enter it in the app under **Settings**.
+4. Enter your PC LAN URL in the app (e.g. `http://192.168.1.10:8000`) under **Settings**, then **Save URL & sign in**.
 
-## Mobile API (v1)
+## Mobile API
 
-| Method | Path | Auth |
-|--------|------|------|
+All authenticated routes use header: `Authorization: Token <token>`  
+Token from: `POST /api/mobile/auth/token/` with JSON `{"email","password"}`.
+
+| Method | Path | Body / query |
+|--------|------|----------------|
 | GET | `/api/health/` | none |
-| POST | `/api/mobile/auth/token/` | body `email`, `password` → `{ "token": "..." }` |
-| GET | `/api/mobile/budgets/pull/?updated_after=` | `Authorization: Token …` |
-| POST | `/api/mobile/budgets/push/` | `Authorization: Token …`, body `{ "budgets": [ … ] }` |
+| POST | `/api/mobile/auth/token/` | `email`, `password` |
+| GET | `/api/mobile/categories/pull/` | optional `updated_after` |
+| POST | `/api/mobile/categories/push/` | `{ "categories": [ … ] }` |
+| GET | `/api/mobile/tags/pull/` | optional `updated_after` |
+| POST | `/api/mobile/tags/push/` | `{ "tags": [ … ] }` |
+| GET | `/api/mobile/budgets/pull/` | optional `updated_after` |
+| POST | `/api/mobile/budgets/push/` | `{ "budgets": [ … ] }` |
+| GET | `/api/mobile/expenses/pull/` | optional `updated_after` |
+| POST | `/api/mobile/expenses/push/` | `{ "expenses": [ … ] }` |
 
-Push response includes `server_ids` in the same order as the request list (needed to map new local rows to server IDs).
+Push responses include `server_ids` in the **same order** as the request list.
 
-## Flutter app
+**Sync order (app):** push categories → tags → budgets → expenses, then pull the same (expenses need server `budget_id`).
 
-```bash
-cd mobile/budget_mobile
-flutter pub get
-flutter test
-flutter run
-```
+## Garuda Linux: install Flutter and build APK
 
-Release APK (after configuring signing in `android/app/build.gradle`):
+Garuda is Arch-based. Use either **AUR** or the **official Flutter tarball** (below uses the tarball so versions match easily).
 
-```bash
-flutter build apk --release
-```
+1. **Dependencies** (Arch / Garuda):
+
+   ```bash
+   sudo pacman -S --needed base-devel git curl unzip jdk17-openjdk xz ninja cmake clang
+   ```
+
+2. **Android command-line tools** (pick one):
+
+   - Install **Android Studio** from AUR or Flatpak, open it once, and let it install the SDK; OR  
+   - Download “Command line tools only” from  
+     https://developer.android.com/studio#command-line-tools-only  
+     Unzip into e.g. `~/Android/Sdk/cmdline-tools/latest/` (see  
+     https://developer.android.com/studio/command-line for layout).
+
+3. **Environment** (add to `~/.bashrc` or `~/.config/fish/config.fish`):
+
+   ```bash
+   export ANDROID_HOME="$HOME/Android/Sdk"
+   export JAVA_HOME="/usr/lib/jvm/java-17-openjdk"
+   export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
+   ```
+
+   Accept licenses and install API 34:
+
+   ```bash
+   yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses
+   yes | sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+   ```
+
+4. **Flutter**:
+
+   ```bash
+   git clone https://github.com/flutter/flutter.git -b stable ~/flutter
+   export PATH="$HOME/flutter/bin:$PATH"
+   flutter doctor
+   ```
+
+5. **Build release APK** (from repo root):
+
+   ```bash
+   cd mobile/budget_mobile
+   flutter pub get
+   flutter build apk --release
+   ```
+
+   Output: `build/app/outputs/flutter-apk/app-release.apk`
+
+   For a **signed** store build, create a keystore and set `signingConfigs.release` in  
+   `android/app/build.gradle` (replace debug signing).
 
 ## Tests
 
-- **Django:** `python manage.py test budgetapp.tests.test_mobile_sync`
-- **Flutter:** `flutter test` (uses in-memory stubs; does not open SQLite FFI on Linux CI)
+- Django: `python manage.py test budgetapp.tests.test_mobile_sync`
+- Flutter: `flutter test` (widget test uses stubs; no device SDK required)
