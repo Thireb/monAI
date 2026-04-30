@@ -171,15 +171,122 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: labelStyle, textAlign: TextAlign.center),
+          Text(
+            label,
+            style: labelStyle,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: 6),
-          Text(valueLine, style: valueStyle, textAlign: TextAlign.center),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              valueLine,
+              style: valueStyle,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+            ),
+          ),
           if (footer != null) ...[
             const SizedBox(height: 6),
             footer,
           ],
         ],
       ),
+    );
+  }
+
+  /// On narrow screens a [Row] of three [Expanded] tiles overflows; stack instead.
+  Widget _summaryRowOrColumn({
+    required BuildContext context,
+    required double maxWidth,
+    required BudgetRow b,
+    required String totalExpensesLine,
+    required String remainingLine,
+  }) {
+    const narrowMax = 420.0;
+    if (maxWidth < narrowMax) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _summaryCard(
+            context: context,
+            label: "Income",
+            valueLine: formatMoneyLine(b.currency, b.income),
+            footer: TextButton(
+              onPressed: () async {
+                await Navigator.of(context).push<bool>(
+                  MaterialPageRoute<bool>(
+                    builder: (_) => BudgetFormScreen(
+                      repository: AppScope.budgetRepo,
+                      existing: b,
+                    ),
+                  ),
+                );
+                if (context.mounted) {
+                  await _load();
+                }
+              },
+              child: const Text("Edit"),
+            ),
+          ),
+          const Divider(height: 20),
+          _summaryCard(
+            context: context,
+            label: "Expenses",
+            valueLine: totalExpensesLine,
+          ),
+          const Divider(height: 20),
+          _summaryCard(
+            context: context,
+            label: "Remaining",
+            valueLine: remainingLine,
+          ),
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _summaryCard(
+            context: context,
+            label: "Income",
+            valueLine: formatMoneyLine(b.currency, b.income),
+            footer: TextButton(
+              onPressed: () async {
+                await Navigator.of(context).push<bool>(
+                  MaterialPageRoute<bool>(
+                    builder: (_) => BudgetFormScreen(
+                      repository: AppScope.budgetRepo,
+                      existing: b,
+                    ),
+                  ),
+                );
+                if (context.mounted) {
+                  await _load();
+                }
+              },
+              child: const Text("Edit"),
+            ),
+          ),
+        ),
+        Expanded(
+          child: _summaryCard(
+            context: context,
+            label: "Expenses",
+            valueLine: totalExpensesLine,
+          ),
+        ),
+        Expanded(
+          child: _summaryCard(
+            context: context,
+            label: "Remaining",
+            valueLine: remainingLine,
+          ),
+        ),
+      ],
     );
   }
 
@@ -259,6 +366,8 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
     final titleLabel = formatBudgetMonthLabel(b.month);
     final totalExpenses = _totalExpenseAllocated();
     final remaining = _remainingBudget();
+    final summaryExpensesLine = formatMoneyLine(b.currency, totalExpenses);
+    final summaryRemainingLine = formatMoneyLine(b.currency, remaining);
     return MinimalPageBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -313,57 +422,16 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
                                         ),
                                   ),
                                 ),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: _summaryCard(
-                                      context: context,
-                                      label: "Income",
-                                      valueLine: formatMoneyLine(
-                                        b.currency,
-                                        b.income,
-                                      ),
-                                      footer: TextButton(
-                                        onPressed: () async {
-                                          await Navigator.of(context)
-                                              .push<bool>(
-                                            MaterialPageRoute<bool>(
-                                              builder: (_) => BudgetFormScreen(
-                                                repository: AppScope.budgetRepo,
-                                                existing: b,
-                                              ),
-                                            ),
-                                          );
-                                          if (context.mounted) {
-                                            await _load();
-                                          }
-                                        },
-                                        child: const Text("Edit"),
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: _summaryCard(
-                                      context: context,
-                                      label: "Expenses",
-                                      valueLine: formatMoneyLine(
-                                        b.currency,
-                                        totalExpenses,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: _summaryCard(
-                                      context: context,
-                                      label: "Remaining",
-                                      valueLine: formatMoneyLine(
-                                        b.currency,
-                                        remaining,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              LayoutBuilder(
+                                builder: (ctx, constraints) {
+                                  return _summaryRowOrColumn(
+                                    context: context,
+                                    maxWidth: constraints.maxWidth,
+                                    b: b,
+                                    totalExpensesLine: summaryExpensesLine,
+                                    remainingLine: summaryRemainingLine,
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -406,17 +474,39 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
                             return minimalCard(
                               child: ExpansionTile(
                                 initiallyExpanded: subs.isNotEmpty,
+                                tilePadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
                                 title: Text(e.name),
-                                subtitle: Text(
-                                  "${formatMoneyLine(b.currency, e.amount)}"
-                                  "${e.isRecurring ? " · recurring" : ""}\n"
-                                  "${_remainingLine(e)}",
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: MinimalColors.textSecondary,
-                                      ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      "${formatMoneyLine(b.currency, e.amount)}"
+                                      "${e.isRecurring ? " · recurring" : ""}",
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: MinimalColors.textPrimary,
+                                            height: 1.35,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      _remainingLine(e),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: MinimalColors.textSecondary,
+                                            height: 1.45,
+                                          ),
+                                    ),
+                                  ],
                                 ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
