@@ -141,6 +141,11 @@ class MobileCatalogSyncApiTests(TestCase):
             email="cat@example.com",
             password="cat-pass-secure",
         )
+        self.other = User.objects.create_user(
+            username="othertag",
+            email="other-tag@example.com",
+            password="other-pass-secure",
+        )
         self.token = Token.objects.create(user=self.user)
         self.client = APIClient()
         self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
@@ -252,3 +257,61 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.status_code, status.HTTP_200_OK)
         self.assertEqual(len(r2.data["sub_expenses"]), 1)
         self.assertEqual(r2.data["sub_expenses"][0]["expense_id"], exp.id)
+
+    def test_tag_push_create_update_and_pull_cursor(self):
+        url_push = reverse("api-mobile-tag-push")
+        resp = self.client.post(
+            url_push,
+            {
+                "tags": [
+                    {"name": "Priority", "color": "#111111"},
+                    {"name": "Misc", "description": "x"},
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(resp.data["created_ids"]), 2)
+        t1 = Tag.objects.get(pk=resp.data["created_ids"][0])
+        self.assertEqual(t1.name, "Priority")
+        tid = t1.id
+        resp2 = self.client.post(
+            url_push,
+            {"tags": [{"id": tid, "name": "Urgent", "color": "#222222"}]},
+            format="json",
+        )
+        self.assertEqual(resp2.status_code, status.HTTP_200_OK)
+        t1.refresh_from_db()
+        self.assertEqual(t1.name, "Urgent")
+        ts = timezone.now()
+        Tag.objects.create(
+            user=self.user,
+            name="LaterTag",
+            slug="latertag",
+        )
+        url_pull = reverse("api-mobile-tag-pull")
+        resp_pull = self.client.get(url_pull, {"updated_after": ts.isoformat()})
+        self.assertEqual(resp_pull.status_code, status.HTTP_200_OK)
+        names = [x["name"] for x in resp_pull.data["tags"]]
+        self.assertIn("LaterTag", names)
+        self.assertNotIn("Urgent", names)
+
+    def test_tag_push_rejects_unknown_id(self):
+        url = reverse("api-mobile-tag-push")
+        r = self.client.post(
+            url,
+            {"tags": [{"id": 888888, "name": "Nope"}]},
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("unknown_ids", r.data)
+
+    def test_tag_pull_returns_only_own_tags(self):
+        Tag.objects.create(user=self.user, name="Mine", slug="mine")
+        Tag.objects.create(user=self.other, name="Theirs", slug="theirs")
+        url = reverse("api-mobile-tag-pull")
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        names = [x["name"] for x in r.data["tags"]]
+        self.assertIn("Mine", names)
+        self.assertNotIn("Theirs", names)
