@@ -82,70 +82,81 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
             backgroundColor: Colors.transparent,
             appBar: AppBar(title: const Text("Expense")),
             body: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
               children: [
                 Text(
                   "Category/tag must be synced (have server id) to attach.",
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: MinimalColors.textSecondary,
+                        height: 1.4,
                       ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
                 TextField(
                   controller: _name,
-                  decoration: const InputDecoration(labelText: "Name"),
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: "Name",
+                    alignLabelWithHint: true,
+                  ),
                 ),
+                const SizedBox(height: 20),
                 TextField(
                   controller: _amount,
-                  decoration: const InputDecoration(labelText: "Amount"),
+                  decoration: const InputDecoration(
+                    labelText: "Amount",
+                    alignLabelWithHint: true,
+                  ),
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r"[0-9.]")),
                   ],
                 ),
+                const SizedBox(height: 8),
                 SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
                   title: const Text("Recurring"),
                   value: _recurring,
                   onChanged: (v) => setState(() => _recurring = v),
                 ),
-                InputDecorator(
-                  decoration: const InputDecoration(labelText: "Category"),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<int?>(
-                      isExpanded: true,
-                      value: _validSelection(_categoryServerId, withCats),
-                      items: withCats
-                          .map(
-                            (t) => DropdownMenuItem<int?>(
-                              value: t.$1,
-                              child: Text(t.$2),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _categoryServerId = v),
-                    ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<int?>(
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: "Category",
+                    alignLabelWithHint: true,
                   ),
-                ),
-                InputDecorator(
-                  decoration: const InputDecoration(labelText: "Tag"),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<int?>(
-                      isExpanded: true,
-                      value: _validSelection(_tagServerId, withTags),
-                      items: withTags
-                          .map(
-                            (t) => DropdownMenuItem<int?>(
-                              value: t.$1,
-                              child: Text(t.$2),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _tagServerId = v),
-                    ),
-                  ),
+                  value: _validSelection(_categoryServerId, withCats),
+                  items: withCats
+                      .map(
+                        (t) => DropdownMenuItem<int?>(
+                          value: t.$1,
+                          child: Text(t.$2),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() => _categoryServerId = v),
                 ),
                 const SizedBox(height: 20),
+                DropdownButtonFormField<int?>(
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: "Tag",
+                    alignLabelWithHint: true,
+                  ),
+                  value: _validSelection(_tagServerId, withTags),
+                  items: withTags
+                      .map(
+                        (t) => DropdownMenuItem<int?>(
+                          value: t.$1,
+                          child: Text(t.$2),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() => _tagServerId = v),
+                ),
+                const SizedBox(height: 28),
                 FilledButton(
                   onPressed: () async {
                     final n = _name.text.trim();
