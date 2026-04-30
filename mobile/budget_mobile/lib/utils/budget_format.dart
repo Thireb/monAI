@@ -44,3 +44,26 @@ DateTime? parseBudgetMonth(String monthRaw) {
   }
   return DateTime.tryParse(t);
 }
+
+/// Thousands separators and two decimals (aligned with web `intcomma` display).
+String formatCurrencyAmount(double value) {
+  final negative = value < 0;
+  final abs = negative ? -value : value;
+  final parts = abs.toStringAsFixed(2).split(".");
+  final intPart = parts[0];
+  final decPart = parts[1];
+  final buf = StringBuffer();
+  for (var i = 0; i < intPart.length; i++) {
+    if (i > 0 && (intPart.length - i) % 3 == 0) {
+      buf.write(",");
+    }
+    buf.write(intPart[i]);
+  }
+  final numeral = "${buf.toString()}.$decPart";
+  return negative ? "-$numeral" : numeral;
+}
+
+/// Full money line: `PKR 1,234.56`.
+String formatMoneyLine(String currency, double value) {
+  return "$currency ${formatCurrencyAmount(value)}";
+}
