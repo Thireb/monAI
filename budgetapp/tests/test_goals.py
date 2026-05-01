@@ -165,3 +165,96 @@ class GoalMinimalViewTests(TestCase):
         self.assertTrue(
             GoalContribution.objects.filter(goal=self.goal, amount=Decimal("100.00")).exists()
         )
+
+    def test_update_contribution_resyncs_goal_current_amount(self):
+        contrib = GoalContribution.objects.create(
+            goal=self.goal,
+            amount=Decimal("50.00"),
+            date=timezone.now().date(),
+            source="A",
+        )
+        self.goal.current_amount = Decimal("50.00")
+        self.goal.save()
+
+        response = self.client.post(
+            reverse("minimal:goal_contribution_update"),
+            {
+                "contribution_id": str(contrib.id),
+                "goal_id": str(self.goal.id),
+                "amount": "75.00",
+                "date": timezone.now().date().isoformat(),
+                "source": "B",
+                "notes": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["contribution"]["amount"], "75.00")
+        self.goal.refresh_from_db()
+        self.assertEqual(self.goal.current_amount, Decimal("75.00"))
+
+    def test_delete_contribution_resyncs_goal_current_amount(self):
+        c1 = GoalContribution.objects.create(
+            goal=self.goal,
+            amount=Decimal("40.00"),
+            date=timezone.now().date(),
+            source="One",
+        )
+        GoalContribution.objects.create(
+            goal=self.goal,
+            amount=Decimal("60.00"),
+            date=timezone.now().date(),
+            source="Two",
+        )
+        self.goal.current_amount = Decimal("100.00")
+        self.goal.save()
+
+        response = self.client.post(
+            reverse("minimal:goal_contribution_delete"),
+            {"contribution_id": str(c1.id)},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+        self.assertFalse(GoalContribution.objects.filter(pk=c1.id).exists())
+        self.goal.refresh_from_db()
+        self.assertEqual(self.goal.current_amount, Decimal("60.00"))
+
+    def test_cannot_update_contribution_for_other_users_goal(self):
+        other = User.objects.create_user(
+            username="othergoal",
+            email="othergoal@example.com",
+            password="othergoalpass",
+        )
+        other_goal = Goal.objects.create(
+            user=other,
+            name="Their goal",
+            target_amount=Decimal("500.00"),
+            current_amount=Decimal("0.00"),
+            start_date=timezone.now().date(),
+            is_active=True,
+        )
+        contrib = GoalContribution.objects.create(
+            goal=other_goal,
+            amount=Decimal("10.00"),
+            date=timezone.now().date(),
+            source="X",
+        )
+
+        response = self.client.post(
+            reverse("minimal:goal_contribution_update"),
+            {
+                "contribution_id": str(contrib.id),
+                "goal_id": str(other_goal.id),
+                "amount": "99.00",
+                "date": timezone.now().date().isoformat(),
+                "source": "Hack",
+                "notes": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        contrib.refresh_from_db()
+        self.assertEqual(contrib.amount, Decimal("10.00"))
