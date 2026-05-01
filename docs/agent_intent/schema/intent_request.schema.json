@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/monai/intent_request.schema.json",
+  "title": "AgentIntentRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "utterance"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "utterance": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000,
+      "description": "User text after speech-to-text or typing (English)."
+    },
+    "locale": {
+      "type": "string",
+      "default": "en-US",
+      "pattern": "^en(-[A-Z]{2})?$"
+    },
+    "client_session_id": {
+      "type": "string",
+      "maxLength": 128,
+      "description": "Opaque id for logging; no PII."
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "active_budget_id": { "type": "integer", "minimum": 1 },
+        "active_month": {
+          "type": "string",
+          "description": "First day of month as YYYY-MM-DD",
+          "pattern": "^\\d{4}-\\d{2}-01$"
+        },
+        "recent_category_ids": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "recent_tag_ids": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  }
+}

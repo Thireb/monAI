@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "status": "needs_disambiguation",
+  "locale": "en-US",
+  "confidence": 0.55,
+  "utterance_normalized": "Log fifty dollars for coffee.",
+  "disambiguation": {
+    "question": "Which budget month should this expense use?",
+    "options": [
+      { "label": "May 2026 (current)", "value": "budget:12:2026-05-01" },
+      { "label": "April 2026", "value": "budget:11:2026-04-01" }
+    ]
+  }
+}
