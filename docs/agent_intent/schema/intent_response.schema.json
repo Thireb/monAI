@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/monai/intent_response.schema.json",
+  "title": "AgentIntentResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "status"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["resolved", "needs_disambiguation", "unsupported", "error"]
+    },
+    "locale": {
+      "type": "string",
+      "pattern": "^en(-[A-Z]{2})?$"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "utterance_normalized": {
+      "type": "string",
+      "maxLength": 4000
+    },
+    "plan": {
+      "type": "array",
+      "maxItems": 10,
+      "items": { "$ref": "#/$defs/plan_step" }
+    },
+    "disambiguation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "options"],
+      "properties": {
+        "question": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "value"],
+            "properties": {
+              "label": { "type": "string", "maxLength": 120 },
+              "value": {
+                "description": "Opaque handle the client sends back in a follow-up request",
+                "type": "string",
+                "maxLength": 256
+              }
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "invalid_json",
+            "schema_violation",
+            "unknown_action",
+            "validation_failed",
+            "unauthorized",
+            "internal"
+          ]
+        },
+        "message": { "type": "string", "maxLength": 500 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "resolved" } } },
+      "then": {
+        "required": ["plan"],
+        "properties": {
+          "plan": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": { "$ref": "#/$defs/plan_step" }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "needs_disambiguation" } } },
+      "then": { "required": ["disambiguation"] }
+    },
+    {
+      "if": { "properties": { "status": { "const": "error" } } },
+      "then": { "required": ["error"] }
+    }
+  ],
+  "$defs": {
+    "plan_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_id", "action", "args"],
+      "properties": {
+        "step_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]{1,32}$"
+        },
+        "action": {
+          "type": "string",
+          "description": "Whitelist id; see docs/agent_intent/README.md",
+          "pattern": "^[a-z_.]+$"
+        },
+        "requires_user_confirm": { "type": "boolean", "default": false },
+        "args": {
+          "type": "object",
+          "description": "Arguments merged into the HTTP body or query for that action"
+        }
+      }
+    }
+  }
+}
