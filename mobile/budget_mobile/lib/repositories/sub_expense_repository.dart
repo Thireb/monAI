@@ -36,6 +36,23 @@ ORDER BY se.id ASC
     return rows.map(_fromJoinMap).toList();
   }
 
+  Future<List<SubExpenseRow>> dirtyDeletedRowsReadyToPush() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery("""
+SELECT se.id AS sid, se.server_id AS ssid, se.expense_local_id AS elid,
+       e.server_id AS esid, se.name AS sname, se.amount AS samt,
+       se.is_return AS sret, se.server_updated_at AS supd, se.dirty AS sdirty
+FROM sub_expense se
+JOIN expense e ON e.id = se.expense_local_id
+JOIN budget b ON b.id = e.budget_local_id
+WHERE se.deleted = 1 AND se.dirty = 1 AND se.server_id IS NOT NULL
+  AND e.server_id IS NOT NULL AND e.deleted = 0
+  AND b.server_id IS NOT NULL AND b.deleted = 0
+ORDER BY se.id ASC
+""");
+    return rows.map(_fromJoinMap).toList();
+  }
+
   /// All sub-expenses for a budget, ordered by parent expense then sub-expense id.
   Future<List<SubExpenseRow>> listForBudgetLocalId(int budgetLocalId) async {
     final db = await _db.database;
@@ -154,6 +171,61 @@ ORDER BY se.id ASC
       },
       where: "id = ?",
       whereArgs: [localId],
+    );
+  }
+
+  Future<void> markDeletedLocal(int localId) async {
+    final db = await _db.database;
+    final rows = await db.query("sub_expense", where: "id = ?", whereArgs: [localId]);
+    if (rows.isEmpty) {
+      return;
+    }
+    final serverId = rows.first["server_id"] as int?;
+    if (serverId != null) {
+      await db.update(
+        "sub_expense",
+        {"deleted": 1, "dirty": 1},
+        where: "id = ?",
+        whereArgs: [localId],
+      );
+    } else {
+      await db.delete("sub_expense", where: "id = ?", whereArgs: [localId]);
+    }
+  }
+
+  Future<void> purgeLocalsAfterDeletePush(List<int> localIds) async {
+    if (localIds.isEmpty) {
+      return;
+    }
+    final db = await _db.database;
+    await db.transaction((txn) async {
+      for (final id in localIds) {
+        await txn.delete("sub_expense", where: "id = ?", whereArgs: [id]);
+      }
+    });
+  }
+
+  /// Removes synced local rows whose server_id is absent from [serverIdsPresent].
+  /// Skips dirty rows. Orphans whose parent expense row was pruned should already
+  /// be gone if [ExpenseRepository.removeSyncedRowsNotInServerIdSet] ran first.
+  Future<void> removeSyncedRowsNotInServerIdSet(Set<int> serverIdsPresent) async {
+    final db = await _db.database;
+    if (serverIdsPresent.isEmpty) {
+      await db.delete(
+        "sub_expense",
+        where: "server_id IS NOT NULL AND deleted = 0 AND dirty = 0",
+      );
+      return;
+    }
+    final placeholders = List.filled(serverIdsPresent.length, "?").join(",");
+    final args = serverIdsPresent.toList();
+    await db.rawDelete(
+      """
+DELETE FROM sub_expense
+WHERE server_id IS NOT NULL AND deleted = 0 AND dirty = 0
+  AND server_id NOT IN ($placeholders)
+""",
+      args,
     );
   }
 

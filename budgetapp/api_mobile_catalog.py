@@ -178,8 +178,10 @@ class MobileExpensePullView(APIView):
 
     def get(self, request):
         user = request.user
-        qs = Expense.objects.filter(budget__user=user).select_related("budget").order_by(
-            "updated_at", "id"
+        qs = (
+            Expense.objects.filter(budget__user=user)
+            .select_related("budget")
+            .order_by("updated_at", "id")
         )
         updated_after = _parse_updated_after(request.query_params.get("updated_after"))
         if updated_after is not None:
@@ -203,6 +205,8 @@ class MobileExpensePushView(APIView):
         ser.is_valid(raise_exception=True)
 
         for item in ser.validated_data:
+            if item.get("deleted"):
+                continue
             bid = item["budget_id"]
             if not Budget.objects.filter(pk=bid, user=user).exists():
                 return Response(
@@ -233,6 +237,12 @@ class MobileExpensePushView(APIView):
         server_ids = []
         with transaction.atomic():
             for item in ser.validated_data:
+                if item.get("deleted"):
+                    eid = item["id"]
+                    e = Expense.objects.get(pk=eid, budget__user=user)
+                    server_ids.append(e.id)
+                    e.delete()
+                    continue
                 eid = item.get("id")
                 budget = Budget.objects.get(pk=item["budget_id"], user=user)
                 name = item["name"]
@@ -275,9 +285,7 @@ class MobileSubExpensePullView(APIView):
 
     def get(self, request):
         user = request.user
-        qs = SubExpense.objects.filter(expense__budget__user=user).order_by(
-            "updated_at", "id"
-        )
+        qs = SubExpense.objects.filter(expense__budget__user=user).order_by("updated_at", "id")
         updated_after = _parse_updated_after(request.query_params.get("updated_after"))
         if updated_after is not None:
             qs = qs.filter(updated_at__gt=updated_after)
@@ -300,6 +308,8 @@ class MobileSubExpensePushView(APIView):
         ser.is_valid(raise_exception=True)
 
         for item in ser.validated_data:
+            if item.get("deleted"):
+                continue
             exp_id = item["expense_id"]
             if not Expense.objects.filter(pk=exp_id, budget__user=user).exists():
                 return Response(
@@ -321,6 +331,12 @@ class MobileSubExpensePushView(APIView):
         server_ids = []
         with transaction.atomic():
             for item in ser.validated_data:
+                if item.get("deleted"):
+                    sid = item["id"]
+                    sub = SubExpense.objects.get(pk=sid, expense__budget__user=user)
+                    server_ids.append(sub.id)
+                    sub.delete()
+                    continue
                 sid = item.get("id")
                 expense = Expense.objects.get(pk=item["expense_id"], budget__user=user)
                 name = item["name"]
