@@ -125,23 +125,44 @@ class MobileExpenseSyncSerializer(serializers.ModelSerializer):
 
 class MobileExpensePushItemSerializer(serializers.Serializer):
     id = serializers.IntegerField(required=False, allow_null=True)
-    budget_id = serializers.IntegerField()
-    name = serializers.CharField(max_length=200)
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    budget_id = serializers.IntegerField(required=False, allow_null=True)
+    name = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
     is_recurring = serializers.BooleanField(required=False, default=False)
     category_id = serializers.IntegerField(required=False, allow_null=True)
     tag_id = serializers.IntegerField(required=False, allow_null=True)
+    deleted = serializers.BooleanField(required=False, default=False)
 
     def validate_amount(self, value):
+        if value is None:
+            return value
         if value <= Decimal("0"):
             raise serializers.ValidationError("Amount must be greater than zero")
         return value
 
     def validate_name(self, value):
-        value = value.strip()
-        if not value:
-            raise serializers.ValidationError("Name is required")
-        return value
+        return (value or "").strip()
+
+    def validate(self, attrs):
+        if attrs.get("deleted"):
+            if attrs.get("id") is None:
+                raise serializers.ValidationError({"id": "Required when deleting an expense."})
+            return attrs
+        budget_id = attrs.get("budget_id")
+        if budget_id is None:
+            raise serializers.ValidationError({"budget_id": "This field is required."})
+        amount = attrs.get("amount")
+        if amount is None:
+            raise serializers.ValidationError({"amount": "This field is required."})
+        if amount <= Decimal("0"):
+            raise serializers.ValidationError({"amount": "Amount must be greater than zero"})
+        name = (attrs.get("name") or "").strip()
+        if not name:
+            raise serializers.ValidationError({"name": "Name is required."})
+        attrs["name"] = name
+        return attrs
 
 
 class MobileSubExpenseSyncSerializer(serializers.ModelSerializer):
@@ -163,21 +184,42 @@ class MobileSubExpenseSyncSerializer(serializers.ModelSerializer):
 
 class MobileSubExpensePushItemSerializer(serializers.Serializer):
     id = serializers.IntegerField(required=False, allow_null=True)
-    expense_id = serializers.IntegerField()
-    name = serializers.CharField(max_length=200)
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    expense_id = serializers.IntegerField(required=False, allow_null=True)
+    name = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
     is_return = serializers.BooleanField(required=False, default=False)
+    deleted = serializers.BooleanField(required=False, default=False)
 
     def validate_amount(self, value):
+        if value is None:
+            return value
         if value <= Decimal("0"):
             raise serializers.ValidationError("Amount must be greater than zero")
         return value
 
     def validate_name(self, value):
-        value = value.strip()
-        if not value:
-            raise serializers.ValidationError("Name is required")
-        return value
+        return (value or "").strip()
+
+    def validate(self, attrs):
+        if attrs.get("deleted"):
+            if attrs.get("id") is None:
+                raise serializers.ValidationError({"id": "Required when deleting a sub-expense."})
+            return attrs
+        expense_id = attrs.get("expense_id")
+        if expense_id is None:
+            raise serializers.ValidationError({"expense_id": "This field is required."})
+        amount = attrs.get("amount")
+        if amount is None:
+            raise serializers.ValidationError({"amount": "This field is required."})
+        if amount <= Decimal("0"):
+            raise serializers.ValidationError({"amount": "Amount must be greater than zero"})
+        name = (attrs.get("name") or "").strip()
+        if not name:
+            raise serializers.ValidationError({"name": "Name is required."})
+        attrs["name"] = name
+        return attrs
 
 
 def save_category_for_user(user, item):

@@ -12,6 +12,8 @@ const String _kExpenseCursor = "expense_sync_last_updated_after";
 const String _kSubExpenseCursor = "sub_expense_sync_last_updated_after";
 
 /// Push dirty categories → tags → budgets → expenses, then pull each table.
+/// Expense and sub-expense pulls always fetch the full server list and prune
+/// local synced rows missing from that list so web deletes apply on device.
 class BudgetSyncService {
   BudgetSyncService(
     this._api,
@@ -46,6 +48,12 @@ class BudgetSyncService {
       if (!await _pushSubExpenses()) {
         return false;
       }
+      if (!await _pushDeletedSubExpenses()) {
+        return false;
+      }
+      if (!await _pushDeletedExpenses()) {
+        return false;
+      }
       if (!await _pullCategories()) {
         return false;
       }
@@ -53,6 +61,24 @@ class BudgetSyncService {
         return false;
       }
       if (!await _pullBudgets()) {
+        return false;
+      }
+      if (!await _pullExpenses()) {
+        return false;
+      }
+      return _pullSubExpenses();
+    } on Object {
+      return false;
+    }
+  }
+
+  /// After a local delete, push tombstones and refresh expense lists from the server.
+  Future<bool> syncExpenseDeletes() async {
+    try {
+      if (!await _pushDeletedSubExpenses()) {
+        return false;
+      }
+      if (!await _pushDeletedExpenses()) {
         return false;
       }
       if (!await _pullExpenses()) {
@@ -184,6 +210,58 @@ class BudgetSyncService {
       return false;
     }
     await _expenseRepo.applyPushServerIds(ready, ids);
+    return true;
+  }
+
+  Future<bool> _pushDeletedSubExpenses() async {
+    final ready = await _subExpenseRepo.dirtyDeletedRowsReadyToPush();
+    if (ready.isEmpty) {
+      return true;
+    }
+    final payloads = <Map<String, dynamic>>[];
+    for (final r in ready) {
+      payloads.add({
+        "id": r.serverId,
+        "deleted": true,
+      });
+    }
+    final response = await _api.pushSubExpenses(payloads);
+    if (response == null) {
+      return false;
+    }
+    final ids = response["server_ids"];
+    if (ids is! List || ready.length != ids.length) {
+      return false;
+    }
+    await _subExpenseRepo.purgeLocalsAfterDeletePush(
+      ready.map((r) => r.localId).toList(),
+    );
+    return true;
+  }
+
+  Future<bool> _pushDeletedExpenses() async {
+    final ready = await _expenseRepo.dirtyDeletedRowsReadyToPush();
+    if (ready.isEmpty) {
+      return true;
+    }
+    final payloads = <Map<String, dynamic>>[];
+    for (final r in ready) {
+      payloads.add({
+        "id": r.serverId,
+        "deleted": true,
+      });
+    }
+    final response = await _api.pushExpenses(payloads);
+    if (response == null) {
+      return false;
+    }
+    final ids = response["server_ids"];
+    if (ids is! List || ready.length != ids.length) {
+      return false;
+    }
+    await _expenseRepo.purgeLocalsAfterDeletePush(
+      ready.map((r) => r.localId).toList(),
+    );
     return true;
   }
 
@@ -376,8 +454,9 @@ class BudgetSyncService {
   }
 
   Future<bool> _pullExpenses() async {
-    final cursor = await _expenseRepo.getMeta(_kExpenseCursor);
-    final data = await _api.pullExpenses(cursor);
+    // Always request the full list: cursor-based incremental pulls never include
+    // rows deleted on the server, so the client would keep stale copies forever.
+    final data = await _api.pullExpenses(null);
     if (data == null) {
       return false;
     }
@@ -386,6 +465,7 @@ class BudgetSyncService {
       return false;
     }
     String? maxIso;
+    final serverIds = <int>{};
     for (final raw in list) {
       if (raw is! Map) {
         continue;
@@ -395,6 +475,7 @@ class BudgetSyncService {
       if (sid == null) {
         continue;
       }
+      serverIds.add(sid);
       final budgetSid = _asInt(item["budget_id"]);
       if (budgetSid == null) {
         continue;
@@ -428,6 +509,7 @@ class BudgetSyncService {
         maxIso = updatedIso;
       }
     }
+    await _expenseRepo.removeSyncedRowsNotInServerIdSet(serverIds);
     if (maxIso != null) {
       await _expenseRepo.setMeta(_kExpenseCursor, maxIso);
     }
@@ -435,8 +517,7 @@ class BudgetSyncService {
   }
 
   Future<bool> _pullSubExpenses() async {
-    final cursor = await _subExpenseRepo.getMeta(_kSubExpenseCursor);
-    final data = await _api.pullSubExpenses(cursor);
+    final data = await _api.pullSubExpenses(null);
     if (data == null) {
       return false;
     }
@@ -445,6 +526,7 @@ class BudgetSyncService {
       return false;
     }
     String? maxIso;
+    final serverIds = <int>{};
     for (final raw in list) {
       if (raw is! Map) {
         continue;
@@ -454,6 +536,7 @@ class BudgetSyncService {
       if (sid == null) {
         continue;
       }
+      serverIds.add(sid);
       final expenseSid = _asInt(item["expense_id"]);
       if (expenseSid == null) {
         continue;
@@ -483,6 +566,7 @@ class BudgetSyncService {
         maxIso = updatedIso;
       }
     }
+    await _subExpenseRepo.removeSyncedRowsNotInServerIdSet(serverIds);
     if (maxIso != null) {
       await _subExpenseRepo.setMeta(_kSubExpenseCursor, maxIso);
     }
