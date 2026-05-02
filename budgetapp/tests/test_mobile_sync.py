@@ -92,6 +92,54 @@ class MobileBudgetSyncApiTests(TestCase):
         self.assertIn(b_new.id, ids)
         self.assertNotIn(b_old.id, ids)
 
+    def test_pull_invalid_updated_after_returns_all_budgets(self):
+        """Malformed cursor must not 500; treat as no filter (full sync)."""
+        Budget.objects.create(
+            user=self.user,
+            month=date(2025, 10, 1),
+            income=Decimal("1.00"),
+            currency="PKR",
+        )
+        url = reverse("api-mobile-budget-pull")
+        response = self.client.get(url, {"updated_after": "not-a-timestamp"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["budgets"]), 1)
+
+    def test_pull_requires_authentication(self):
+        anon = APIClient()
+        url = reverse("api-mobile-budget-pull")
+        response = anon.get(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_push_requires_authentication(self):
+        anon = APIClient()
+        url = reverse("api-mobile-budget-push")
+        response = anon.post(url, {"budgets": []}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_push_rejects_non_list_budgets(self):
+        url = reverse("api-mobile-budget-push")
+        response = self.client.post(url, {"budgets": {}}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("detail", response.data)
+
+    def test_push_rejects_negative_income(self):
+        url = reverse("api-mobile-budget-push")
+        response = self.client.post(
+            url,
+            {
+                "budgets": [
+                    {
+                        "month": "2025-11-01",
+                        "income": "-1.00",
+                        "currency": "PKR",
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_push_creates_and_updates(self):
         existing = Budget.objects.create(
             user=self.user,
@@ -342,6 +390,31 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(r.data.get("budget_id"), other_budget.id)
 
+    def test_expense_push_rejects_unknown_category_id(self):
+        url = reverse("api-mobile-expense-push")
+        r = self.client.post(
+            url,
+            {
+                "expenses": [
+                    {
+                        "budget_id": self.budget.id,
+                        "name": "Misc",
+                        "amount": "5.00",
+                        "category_id": 999999,
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(r.data.get("category_id"), 999999)
+
+    def test_expense_push_rejects_non_list_payload(self):
+        url = reverse("api-mobile-expense-push")
+        r = self.client.post(url, {"expenses": {}}, format="json")
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("detail", r.data)
+
     def test_expense_push_rejects_unknown_tag_id(self):
         url = reverse("api-mobile-expense-push")
         r = self.client.post(
@@ -378,3 +451,15 @@ class MobileCatalogSyncApiTests(TestCase):
         )
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(r.data.get("expense_id"), 999999)
+
+    def test_category_push_rejects_non_list_payload(self):
+        url = reverse("api-mobile-category-push")
+        r = self.client.post(url, {"categories": "x"}, format="json")
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("detail", r.data)
+
+    def test_tag_push_rejects_non_list_payload(self):
+        url = reverse("api-mobile-tag-push")
+        r = self.client.post(url, {"tags": {}}, format="json")
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("detail", r.data)
