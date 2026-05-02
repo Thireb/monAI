@@ -37,6 +37,23 @@ ORDER BY e.id ASC
     return rows.map(_fromJoinMap).toList();
   }
 
+  /// Soft-deleted expenses that still exist on the server and need a delete push.
+  Future<List<ExpenseRow>> dirtyDeletedRowsReadyToPush() async {
+    final db = await _db.database;
+    final rows = await db.rawQuery("""
+SELECT e.id AS eid, e.server_id AS esid, e.budget_local_id AS blid, b.server_id AS bsid,
+       e.name AS ename, e.amount AS eamount, e.is_recurring AS erec,
+       e.category_server_id AS ccat, e.tag_server_id AS etag,
+       e.server_updated_at AS eupd, e.dirty AS edirty
+FROM expense e
+JOIN budget b ON b.id = e.budget_local_id
+WHERE e.deleted = 1 AND e.dirty = 1 AND e.server_id IS NOT NULL
+  AND b.server_id IS NOT NULL AND b.deleted = 0
+ORDER BY e.id ASC
+""");
+    return rows.map(_fromJoinMap).toList();
+  }
+
   Future<List<ExpenseRow>> listForBudgetLocalId(int budgetLocalId) async {
     final db = await _db.database;
     final rows = await db.rawQuery("""
@@ -156,6 +173,53 @@ ORDER BY e.id ASC
       where: "id = ?",
       whereArgs: [localId],
     );
+  }
+
+  /// Marks an expense deleted locally. Unsynced rows are removed; synced rows are
+  /// tombstoned for the next push (child sub-expenses are cleared so the server
+  /// CASCADE from expense delete does not orphan push entries).
+  Future<void> markDeletedLocal(int localId) async {
+    final db = await _db.database;
+    final rows = await db.query("expense", where: "id = ?", whereArgs: [localId]);
+    if (rows.isEmpty) {
+      return;
+    }
+    final serverId = rows.first["server_id"] as int?;
+    await db.transaction((txn) async {
+      if (serverId != null) {
+        await txn.delete(
+          "sub_expense",
+          where: "expense_local_id = ?",
+          whereArgs: [localId],
+        );
+        await txn.update(
+          "expense",
+          {"deleted": 1, "dirty": 1},
+          where: "id = ?",
+          whereArgs: [localId],
+        );
+      } else {
+        await txn.delete(
+          "sub_expense",
+          where: "expense_local_id = ?",
+          whereArgs: [localId],
+        );
+        await txn.delete("expense", where: "id = ?", whereArgs: [localId]);
+      }
+    });
+  }
+
+  /// After a successful delete push, remove tombstoned rows from the local DB.
+  Future<void> purgeLocalsAfterDeletePush(List<int> localIds) async {
+    if (localIds.isEmpty) {
+      return;
+    }
+    final db = await _db.database;
+    await db.transaction((txn) async {
+      for (final id in localIds) {
+        await txn.delete("expense", where: "id = ?", whereArgs: [id]);
+      }
+    });
   }
 
   Future<void> applyPushServerIds(

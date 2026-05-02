@@ -53,6 +53,73 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
     return _subAll.where((s) => s.expenseLocalId == expenseLocalId).toList();
   }
 
+  Future<void> _confirmDeleteSubExpense(SubExpenseRow s) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete sub-expense?"),
+        content: Text(
+          s.isReturn
+              ? "Remove this return line from your budget?"
+              : "Remove this sub-expense line?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) {
+      return;
+    }
+    await AppScope.subExpenseRepo.markDeletedLocal(s.localId);
+    await AppScope.budgetSync.syncExpenseDeletes();
+    if (!mounted) {
+      return;
+    }
+    await _load();
+  }
+
+  Future<void> _confirmDeleteExpense(ExpenseRow e) async {
+    final subs = _subsForExpense(e.localId);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete expense?"),
+        content: Text(
+          subs.isEmpty
+              ? "This will remove \"${e.name}\" and its allocation."
+              : "This will remove \"${e.name}\" and ${subs.length} sub-line(s).",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) {
+      return;
+    }
+    await AppScope.expenseRepo.markDeletedLocal(e.localId);
+    await AppScope.budgetSync.syncExpenseDeletes();
+    if (!mounted) {
+      return;
+    }
+    await _load();
+  }
+
   String _remainingLine(ExpenseRow e) {
     final allocated = e.amount;
     double spent = 0;
@@ -564,12 +631,25 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
                                       subtitle: Text(
                                         formatMoneyLine(b.currency, s.amount),
                                       ),
-                                      trailing: s.dirty == 1
-                                          ? const Icon(
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (s.dirty == 1)
+                                            const Icon(
                                               Icons.cloud_upload_outlined,
                                               size: 16,
-                                            )
-                                          : null,
+                                            ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              size: 20,
+                                            ),
+                                            tooltip: "Delete sub-expense",
+                                            onPressed: () =>
+                                                _confirmDeleteSubExpense(s),
+                                          ),
+                                        ],
+                                      ),
                                       onTap: () async {
                                         await Navigator.of(context).push<bool>(
                                           MaterialPageRoute<bool>(
@@ -628,6 +708,18 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
                                             await _load();
                                           },
                                           child: const Text("Edit expense"),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              _confirmDeleteExpense(e),
+                                          child: Text(
+                                            "Delete",
+                                            style: TextStyle(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .error,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),

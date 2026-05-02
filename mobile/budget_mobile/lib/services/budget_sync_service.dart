@@ -46,6 +46,12 @@ class BudgetSyncService {
       if (!await _pushSubExpenses()) {
         return false;
       }
+      if (!await _pushDeletedSubExpenses()) {
+        return false;
+      }
+      if (!await _pushDeletedExpenses()) {
+        return false;
+      }
       if (!await _pullCategories()) {
         return false;
       }
@@ -53,6 +59,24 @@ class BudgetSyncService {
         return false;
       }
       if (!await _pullBudgets()) {
+        return false;
+      }
+      if (!await _pullExpenses()) {
+        return false;
+      }
+      return _pullSubExpenses();
+    } on Object {
+      return false;
+    }
+  }
+
+  /// After a local delete, push tombstones and refresh expense lists from the server.
+  Future<bool> syncExpenseDeletes() async {
+    try {
+      if (!await _pushDeletedSubExpenses()) {
+        return false;
+      }
+      if (!await _pushDeletedExpenses()) {
         return false;
       }
       if (!await _pullExpenses()) {
@@ -184,6 +208,58 @@ class BudgetSyncService {
       return false;
     }
     await _expenseRepo.applyPushServerIds(ready, ids);
+    return true;
+  }
+
+  Future<bool> _pushDeletedSubExpenses() async {
+    final ready = await _subExpenseRepo.dirtyDeletedRowsReadyToPush();
+    if (ready.isEmpty) {
+      return true;
+    }
+    final payloads = <Map<String, dynamic>>[];
+    for (final r in ready) {
+      payloads.add({
+        "id": r.serverId,
+        "deleted": true,
+      });
+    }
+    final response = await _api.pushSubExpenses(payloads);
+    if (response == null) {
+      return false;
+    }
+    final ids = response["server_ids"];
+    if (ids is! List || ready.length != ids.length) {
+      return false;
+    }
+    await _subExpenseRepo.purgeLocalsAfterDeletePush(
+      ready.map((r) => r.localId).toList(),
+    );
+    return true;
+  }
+
+  Future<bool> _pushDeletedExpenses() async {
+    final ready = await _expenseRepo.dirtyDeletedRowsReadyToPush();
+    if (ready.isEmpty) {
+      return true;
+    }
+    final payloads = <Map<String, dynamic>>[];
+    for (final r in ready) {
+      payloads.add({
+        "id": r.serverId,
+        "deleted": true,
+      });
+    }
+    final response = await _api.pushExpenses(payloads);
+    if (response == null) {
+      return false;
+    }
+    final ids = response["server_ids"];
+    if (ids is! List || ready.length != ids.length) {
+      return false;
+    }
+    await _expenseRepo.purgeLocalsAfterDeletePush(
+      ready.map((r) => r.localId).toList(),
+    );
     return true;
   }
 

@@ -285,6 +285,36 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.status_code, status.HTTP_200_OK)
         self.assertEqual(len(r2.data["expenses"]), 1)
 
+    def test_expense_push_delete(self):
+        cat = Category.objects.create(user=self.user, name="C", slug="c")
+        tag = Tag.objects.create(user=self.user, name="T", slug="t")
+        url = reverse("api-mobile-expense-push")
+        r = self.client.post(
+            url,
+            {
+                "expenses": [
+                    {
+                        "budget_id": self.budget.id,
+                        "name": "Rent",
+                        "amount": "500.00",
+                        "category_id": cat.id,
+                        "tag_id": tag.id,
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        eid = r.data["created_ids"][0]
+        r2 = self.client.post(
+            url,
+            {"expenses": [{"id": eid, "deleted": True}]},
+            format="json",
+        )
+        self.assertEqual(r2.status_code, status.HTTP_200_OK)
+        self.assertEqual(r2.data["server_ids"], [eid])
+        self.assertFalse(Expense.objects.filter(pk=eid).exists())
+
     def test_sub_expense_push_and_pull(self):
         exp = Expense.objects.create(
             budget=self.budget,
@@ -315,6 +345,38 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.status_code, status.HTTP_200_OK)
         self.assertEqual(len(r2.data["sub_expenses"]), 1)
         self.assertEqual(r2.data["sub_expenses"][0]["expense_id"], exp.id)
+
+    def test_sub_expense_push_delete(self):
+        exp = Expense.objects.create(
+            budget=self.budget,
+            name="Rent",
+            amount=Decimal("500.00"),
+        )
+        url_push = reverse("api-mobile-subexpense-push")
+        r = self.client.post(
+            url_push,
+            {
+                "sub_expenses": [
+                    {
+                        "expense_id": exp.id,
+                        "name": "Week 1",
+                        "amount": "100.00",
+                        "is_return": False,
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        sid = r.data["created_ids"][0]
+        r2 = self.client.post(
+            url_push,
+            {"sub_expenses": [{"id": sid, "deleted": True}]},
+            format="json",
+        )
+        self.assertEqual(r2.status_code, status.HTTP_200_OK)
+        self.assertEqual(r2.data["server_ids"], [sid])
+        self.assertFalse(SubExpense.objects.filter(pk=sid).exists())
 
     def test_tag_push_create_update_and_pull_cursor(self):
         url_push = reverse("api-mobile-tag-push")
