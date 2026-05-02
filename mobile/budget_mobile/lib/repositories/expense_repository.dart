@@ -222,6 +222,54 @@ ORDER BY e.id ASC
     });
   }
 
+  /// Removes synced local rows whose server_id is absent from [serverIdsPresent].
+  /// Skips dirty rows so offline edits are not wiped. Used after a full pull so
+  /// server-side deletes (e.g. web UI) disappear on the device.
+  Future<void> removeSyncedRowsNotInServerIdSet(Set<int> serverIdsPresent) async {
+    if (serverIdsPresent.isEmpty) {
+      final db = await _db.database;
+      await db.transaction((txn) async {
+        final rows = await txn.query(
+          "expense",
+          columns: ["id"],
+          where: "server_id IS NOT NULL AND deleted = 0 AND dirty = 0",
+        );
+        for (final r in rows) {
+          final lid = r["id"] as int;
+          await txn.delete(
+            "sub_expense",
+            where: "expense_local_id = ?",
+            whereArgs: [lid],
+          );
+          await txn.delete("expense", where: "id = ?", whereArgs: [lid]);
+        }
+      });
+      return;
+    }
+    final db = await _db.database;
+    final placeholders = List.filled(serverIdsPresent.length, "?").join(",");
+    final args = serverIdsPresent.toList();
+    await db.transaction((txn) async {
+      final rows = await txn.rawQuery(
+        """
+SELECT id FROM expense
+WHERE server_id IS NOT NULL AND deleted = 0 AND dirty = 0
+  AND server_id NOT IN ($placeholders)
+""",
+        args,
+      );
+      for (final r in rows) {
+        final lid = r["id"] as int;
+        await txn.delete(
+          "sub_expense",
+          where: "expense_local_id = ?",
+          whereArgs: [lid],
+        );
+        await txn.delete("expense", where: "id = ?", whereArgs: [lid]);
+      }
+    });
+  }
+
   Future<void> applyPushServerIds(
     List<ExpenseRow> pushedInOrder,
     List<dynamic> serverIds,

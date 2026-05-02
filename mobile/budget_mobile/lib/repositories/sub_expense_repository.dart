@@ -205,6 +205,30 @@ ORDER BY se.id ASC
     });
   }
 
+  /// Removes synced local rows whose server_id is absent from [serverIdsPresent].
+  /// Skips dirty rows. Orphans whose parent expense row was pruned should already
+  /// be gone if [ExpenseRepository.removeSyncedRowsNotInServerIdSet] ran first.
+  Future<void> removeSyncedRowsNotInServerIdSet(Set<int> serverIdsPresent) async {
+    final db = await _db.database;
+    if (serverIdsPresent.isEmpty) {
+      await db.delete(
+        "sub_expense",
+        where: "server_id IS NOT NULL AND deleted = 0 AND dirty = 0",
+      );
+      return;
+    }
+    final placeholders = List.filled(serverIdsPresent.length, "?").join(",");
+    final args = serverIdsPresent.toList();
+    await db.rawDelete(
+      """
+DELETE FROM sub_expense
+WHERE server_id IS NOT NULL AND deleted = 0 AND dirty = 0
+  AND server_id NOT IN ($placeholders)
+""",
+      args,
+    );
+  }
+
   Future<void> applyPushServerIds(
     List<SubExpenseRow> pushedInOrder,
     List<dynamic> serverIds,
