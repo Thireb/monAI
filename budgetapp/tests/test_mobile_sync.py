@@ -315,6 +315,49 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.data["server_ids"], [eid])
         self.assertFalse(Expense.objects.filter(pk=eid).exists())
 
+    def test_expense_push_delete_requires_id(self):
+        url = reverse("api-mobile-expense-push")
+        r = self.client.post(
+            url,
+            {"expenses": [{"deleted": True}]},
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_expense_push_delete_rejects_unknown_id(self):
+        url = reverse("api-mobile-expense-push")
+        r = self.client.post(
+            url,
+            {"expenses": [{"id": 999999, "deleted": True}]},
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("unknown_ids", r.data)
+        self.assertIn(999999, r.data["unknown_ids"])
+
+    def test_expense_push_delete_rejects_other_users_expense(self):
+        other_budget = Budget.objects.create(
+            user=self.other,
+            month=date(2025, 9, 1),
+            income=Decimal("1.00"),
+            currency="PKR",
+        )
+        other_expense = Expense.objects.create(
+            budget=other_budget,
+            name="Theirs",
+            amount=Decimal("10.00"),
+        )
+        url = reverse("api-mobile-expense-push")
+        r = self.client.post(
+            url,
+            {"expenses": [{"id": other_expense.id, "deleted": True}]},
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("unknown_ids", r.data)
+        self.assertIn(other_expense.id, r.data["unknown_ids"])
+        self.assertTrue(Expense.objects.filter(pk=other_expense.id).exists())
+
     def test_sub_expense_push_and_pull(self):
         exp = Expense.objects.create(
             budget=self.budget,
@@ -377,6 +420,54 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.status_code, status.HTTP_200_OK)
         self.assertEqual(r2.data["server_ids"], [sid])
         self.assertFalse(SubExpense.objects.filter(pk=sid).exists())
+
+    def test_sub_expense_push_delete_requires_id(self):
+        url = reverse("api-mobile-subexpense-push")
+        r = self.client.post(
+            url,
+            {"sub_expenses": [{"deleted": True}]},
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_sub_expense_push_delete_rejects_unknown_id(self):
+        url = reverse("api-mobile-subexpense-push")
+        r = self.client.post(
+            url,
+            {"sub_expenses": [{"id": 999999, "deleted": True}]},
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("unknown_ids", r.data)
+        self.assertIn(999999, r.data["unknown_ids"])
+
+    def test_sub_expense_push_delete_rejects_other_users_sub_expense(self):
+        other_budget = Budget.objects.create(
+            user=self.other,
+            month=date(2025, 10, 1),
+            income=Decimal("2.00"),
+            currency="PKR",
+        )
+        other_exp = Expense.objects.create(
+            budget=other_budget,
+            name="Other rent",
+            amount=Decimal("50.00"),
+        )
+        other_sub = SubExpense.objects.create(
+            expense=other_exp,
+            name="Slice",
+            amount=Decimal("5.00"),
+        )
+        url = reverse("api-mobile-subexpense-push")
+        r = self.client.post(
+            url,
+            {"sub_expenses": [{"id": other_sub.id, "deleted": True}]},
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("unknown_ids", r.data)
+        self.assertIn(other_sub.id, r.data["unknown_ids"])
+        self.assertTrue(SubExpense.objects.filter(pk=other_sub.id).exists())
 
     def test_tag_push_create_update_and_pull_cursor(self):
         url_push = reverse("api-mobile-tag-push")
