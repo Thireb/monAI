@@ -1,5 +1,12 @@
 # AGENTS.md
 
+## Agent / LLM integration sketch
+
+For **voice or text → structured actions** (English-first), see
+`docs/agent_intent/README.md` and JSON Schemas under
+`docs/agent_intent/schema/`. The sketch maps stable `action` ids to existing
+`/api/mobile/…` and `/api/…` REST endpoints; it does not add a server-side LLM.
+
 ## Cursor Cloud specific instructions
 
 ### Services
