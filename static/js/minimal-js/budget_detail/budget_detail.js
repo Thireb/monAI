@@ -65,6 +65,7 @@ $(function () {
         $('.remaining-budget-value').text(
           response.currency + ' ' + response.remaining_budget_display
         );
+        applyBudgetSummaryFromResponse(response, response.currency);
 
         // Show success message
         showToast('Success', response.message, 'success');
@@ -188,7 +189,9 @@ $(function () {
       data: data,
       success: function (response) {
         if (deleteType === 'subexpense') {
-          reloadSubExpenseList(expenseId);
+          reloadSubExpenseList(expenseId, function () {
+            updateBudgetTotals();
+          });
           showUndoSnackbar('Sub-expense deleted.', function () {
             undoDeleteSubExpense();
           });
@@ -200,17 +203,8 @@ $(function () {
           $(`#subexpenses-${expenseId}`).fadeOut(300, function () {
             $(this).remove();
           });
-          // Update totals
-          if (response.new_total_expenses_display) {
-            $('.total-expenses-value').text(
-              $('.budget-currency').text() + ' ' + response.new_total_expenses_display
-            );
-          }
-          if (response.new_remaining_budget_display) {
-            $('.remaining-budget-value').text(
-              $('.budget-currency').text() + ' ' + response.new_remaining_budget_display
-            );
-          }
+          applyBudgetSummaryFromResponse(response);
+          updateBudgetTotals();
           showToast('Success', response.message, 'success');
           updateCategoryStats();
           updateTagTotals(); // Update tag totals after expense deletion
@@ -490,6 +484,31 @@ $(function () {
     // Update totals
     updateBudgetTotals();
     updateTagTotals(); // Update tag totals after expense update
+  }
+
+  function applyBudgetSummaryFromResponse(payload, currencyOverride) {
+    if (!payload) {
+      return;
+    }
+    const c = currencyOverride || $('.budget-currency').text();
+    const gross =
+      payload.gross_expenses_display || payload.new_gross_expenses_display;
+    const ret = payload.total_returns_display || payload.new_total_returns_display;
+    const net = payload.net_expenses_display || payload.new_net_expenses_display;
+    const rem =
+      payload.remaining_budget_display || payload.new_remaining_budget_display;
+    if (gross) {
+      $('.gross-expenses-value').text(c + ' ' + gross);
+    }
+    if (ret) {
+      $('.total-returns-value').text(c + ' ' + ret);
+    }
+    if (net) {
+      $('.net-expenses-value').text(c + ' ' + net);
+    }
+    if (rem) {
+      $('.remaining-budget-value').text(c + ' ' + rem);
+    }
   }
 
   // Helper function to update budget totals
@@ -865,6 +884,9 @@ $(function () {
           highlightLastSubExpense(expenseId);
           if (response.summary) {
             updateSubexpenseSummary(expenseId, response.summary);
+          }
+          if (response.budget_summary) {
+            applyBudgetSummaryFromResponse(response.budget_summary);
           }
         });
 
