@@ -157,7 +157,12 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
     return t;
   }
 
-  /// Same rule as server [Budget.get_remaining_budget]: income - expenses + returns.
+  /// Gross budgeted line amounts minus returns (matches server net budgeted expenses).
+  double _netBudgetedExpenses() {
+    return _totalExpenseAllocated() - _totalReturnsAll();
+  }
+
+  /// Same rule as server [Budget.get_remaining_budget]: income - gross + returns.
   double _remainingBudget() {
     final b = widget.budget;
     return b.income - _totalExpenseAllocated() + _totalReturnsAll();
@@ -223,6 +228,7 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
     required BuildContext context,
     required String label,
     required String valueLine,
+    String? subline,
     Widget? footer,
   }) {
     final labelStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -232,6 +238,10 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
     final valueStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.bold,
           color: MinimalColors.textPrimary,
+        );
+    final subStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: MinimalColors.textSecondary,
+          height: 1.35,
         );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -255,6 +265,14 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
               maxLines: 1,
             ),
           ),
+          if (subline != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subline,
+              style: subStyle,
+              textAlign: TextAlign.center,
+            ),
+          ],
           if (footer != null) ...[
             const SizedBox(height: 6),
             footer,
@@ -264,94 +282,66 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
     );
   }
 
-  /// On narrow screens a [Row] of three [Expanded] tiles overflows; stack instead.
-  Widget _summaryRowOrColumn({
+  /// Summary matches minimal web: gross, returns, net, remaining (see Budget model).
+  Widget _budgetSummarySection({
     required BuildContext context,
-    required double maxWidth,
     required BudgetRow b,
-    required String totalExpensesLine,
+    required String grossLine,
+    required String returnsLine,
+    required String netLine,
     required String remainingLine,
   }) {
-    const narrowMax = 420.0;
-    if (maxWidth < narrowMax) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _summaryCard(
-            context: context,
-            label: "Income",
-            valueLine: formatMoneyLine(b.currency, b.income),
-            footer: TextButton(
-              onPressed: () async {
-                await Navigator.of(context).push<bool>(
-                  MaterialPageRoute<bool>(
-                    builder: (_) => BudgetFormScreen(
-                      repository: AppScope.budgetRepo,
-                      existing: b,
-                    ),
-                  ),
-                );
-                if (context.mounted) {
-                  await _load();
-                }
-              },
-              child: const Text("Edit"),
-            ),
-          ),
-          const Divider(height: 20),
-          _summaryCard(
-            context: context,
-            label: "Expenses",
-            valueLine: totalExpensesLine,
-          ),
-          const Divider(height: 20),
-          _summaryCard(
-            context: context,
-            label: "Remaining",
-            valueLine: remainingLine,
-          ),
-        ],
-      );
-    }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: _summaryCard(
-            context: context,
-            label: "Income",
-            valueLine: formatMoneyLine(b.currency, b.income),
-            footer: TextButton(
-              onPressed: () async {
-                await Navigator.of(context).push<bool>(
-                  MaterialPageRoute<bool>(
-                    builder: (_) => BudgetFormScreen(
-                      repository: AppScope.budgetRepo,
-                      existing: b,
-                    ),
+        _summaryCard(
+          context: context,
+          label: "Income",
+          valueLine: formatMoneyLine(b.currency, b.income),
+          footer: TextButton(
+            onPressed: () async {
+              await Navigator.of(context).push<bool>(
+                MaterialPageRoute<bool>(
+                  builder: (_) => BudgetFormScreen(
+                    repository: AppScope.budgetRepo,
+                    existing: b,
                   ),
-                );
-                if (context.mounted) {
-                  await _load();
-                }
-              },
-              child: const Text("Edit"),
-            ),
+                ),
+              );
+              if (context.mounted) {
+                await _load();
+              }
+            },
+            child: const Text("Edit"),
           ),
         ),
-        Expanded(
-          child: _summaryCard(
-            context: context,
-            label: "Expenses",
-            valueLine: totalExpensesLine,
-          ),
+        const Divider(height: 20),
+        _summaryCard(
+          context: context,
+          label: "Budgeted expenses (gross)",
+          valueLine: grossLine,
+          subline: "Sum of expense line amounts",
         ),
-        Expanded(
-          child: _summaryCard(
-            context: context,
-            label: "Remaining",
-            valueLine: remainingLine,
-          ),
+        const Divider(height: 20),
+        _summaryCard(
+          context: context,
+          label: "Returns / refunds",
+          valueLine: returnsLine,
+          subline: "Credited back toward remaining",
+        ),
+        const Divider(height: 20),
+        _summaryCard(
+          context: context,
+          label: "Net budgeted expenses",
+          valueLine: netLine,
+          subline: "Gross − returns",
+        ),
+        const Divider(height: 20),
+        _summaryCard(
+          context: context,
+          label: "Remaining",
+          valueLine: remainingLine,
+          subline: "Income − net budgeted expenses",
         ),
       ],
     );
@@ -431,9 +421,13 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
   Widget build(BuildContext context) {
     final b = widget.budget;
     final titleLabel = formatBudgetMonthLabel(b.month);
-    final totalExpenses = _totalExpenseAllocated();
+    final gross = _totalExpenseAllocated();
+    final returns = _totalReturnsAll();
+    final net = _netBudgetedExpenses();
     final remaining = _remainingBudget();
-    final summaryExpensesLine = formatMoneyLine(b.currency, totalExpenses);
+    final grossLine = formatMoneyLine(b.currency, gross);
+    final returnsLine = formatMoneyLine(b.currency, returns);
+    final netLine = formatMoneyLine(b.currency, net);
     final summaryRemainingLine = formatMoneyLine(b.currency, remaining);
     return MinimalPageBackground(
       child: Scaffold(
@@ -489,16 +483,13 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
                                         ),
                                   ),
                                 ),
-                              LayoutBuilder(
-                                builder: (ctx, constraints) {
-                                  return _summaryRowOrColumn(
-                                    context: context,
-                                    maxWidth: constraints.maxWidth,
-                                    b: b,
-                                    totalExpensesLine: summaryExpensesLine,
-                                    remainingLine: summaryRemainingLine,
-                                  );
-                                },
+                              _budgetSummarySection(
+                                context: context,
+                                b: b,
+                                grossLine: grossLine,
+                                returnsLine: returnsLine,
+                                netLine: netLine,
+                                remainingLine: summaryRemainingLine,
                               ),
                             ],
                           ),
