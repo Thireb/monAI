@@ -14,13 +14,25 @@
                 <button class="btn btn-sm btn-minimal edit-income-btn" data-modal-target="#incomeModal">Edit</button>
             </div>
             <div class="summary-card expenses-card">
-                <div class="summary-label">Expenses</div>
-                <div class="summary-value">{{ budget.currency }} {{ total_expenses_display }}</div>
+                <div class="summary-label">Budgeted expenses (gross)</div>
+                <div class="summary-value gross-expenses-value">{{ budget.currency }} {{ gross_expenses_display }}</div>
+                <div class="summary-subline text-muted small">Sum of expense line amounts</div>
+            </div>
+            <div class="summary-card returns-card">
+                <div class="summary-label">Returns / refunds</div>
+                <div class="summary-value total-returns-value">{{ budget.currency }} {{ total_returns_display }}</div>
+                <div class="summary-subline text-muted small">Credited back toward remaining</div>
+            </div>
+            <div class="summary-card net-expenses-card">
+                <div class="summary-label">Net budgeted expenses</div>
+                <div class="summary-value net-expenses-value">{{ budget.currency }} {{ net_expenses_display }}</div>
+                <div class="summary-subline text-muted small">Gross − returns</div>
             </div>
             <div class="summary-card remaining-card">
                 <div class="summary-label">Remaining</div>
                 <div class="summary-value remaining-budget-value">{{ budget.currency }} {{ remaining_budget_display }}
                 </div>
+                <div class="summary-subline text-muted small">Income − net budgeted expenses</div>
             </div>
         </div>
 

@@ -13,6 +13,10 @@ from budgetapp.models import Expense, SubExpense
 from .base import LoginRequiredView
 
 
+def _budget_summary_for_json(budget):
+    return budget.get_summary_display_strings(lambda v: intcomma(f"{float(v):,.2f}"))
+
+
 class SubExpenseCreateView(LoginRequiredView):
     """Class-based view for creating a new sub-expense."""
 
@@ -35,6 +39,7 @@ class SubExpenseCreateView(LoginRequiredView):
             # Calculate summary
             total_returns = expense.get_total_returns()
             remaining_amount = expense.get_remaining_amount()
+            budget_summary = _budget_summary_for_json(expense.budget)
             return JsonResponse(
                 {
                     "status": "success",
@@ -51,6 +56,7 @@ class SubExpenseCreateView(LoginRequiredView):
                         "total_returns": self._format_currency(float(total_returns)),
                         "remaining_amount": self._format_currency(float(remaining_amount)),
                     },
+                    "budget_summary": budget_summary,
                 }
             )
         except Exception as e:
@@ -82,6 +88,7 @@ class SubExpenseUpdateView(LoginRequiredView):
             # Calculate summary
             total_returns = expense.get_total_returns()
             remaining_amount = expense.get_remaining_amount()
+            budget_summary = _budget_summary_for_json(expense.budget)
             return JsonResponse(
                 {
                     "status": "success",
@@ -98,6 +105,7 @@ class SubExpenseUpdateView(LoginRequiredView):
                         "total_returns": self._format_currency(float(total_returns)),
                         "remaining_amount": self._format_currency(float(remaining_amount)),
                     },
+                    "budget_summary": budget_summary,
                 }
             )
         except Exception as e:
@@ -120,6 +128,7 @@ class SubExpenseDeleteView(LoginRequiredView):
             # Calculate summary
             total_returns = expense.get_total_returns()
             remaining_amount = expense.get_remaining_amount()
+            budget_summary = _budget_summary_for_json(expense.budget)
             return JsonResponse(
                 {
                     "status": "success",
@@ -130,10 +139,10 @@ class SubExpenseDeleteView(LoginRequiredView):
                         "total_returns": intcomma(f"{float(total_returns):,.2f}"),
                         "remaining_amount": intcomma(f"{float(remaining_amount):,.2f}"),
                     },
+                    "budget_summary": budget_summary,
                 }
             )
         except Exception as e:
             return JsonResponse(
                 {"status": "error", "message": f"Error deleting sub-expense: {str(e)}"}, status=400
             )
-

@@ -36,6 +36,8 @@ class BudgetSerializer(serializers.ModelSerializer):
     expenses = ExpenseSerializer(many=True, read_only=True)
     month = serializers.DateField(format="%Y-%m")
     total_expenses = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    total_returns = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    net_expenses = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     remaining_budget = serializers.DecimalField(
         max_digits=10, decimal_places=2, read_only=True, source="get_remaining_budget"
     )
@@ -51,6 +53,8 @@ class BudgetSerializer(serializers.ModelSerializer):
             "updated_at",
             "expenses",
             "total_expenses",
+            "total_returns",
+            "net_expenses",
             "remaining_budget",
         ]
 
@@ -61,7 +65,9 @@ class BudgetSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data["total_expenses"] = sum(expense.amount for expense in instance.expenses.all())
+        data["total_expenses"] = instance.get_gross_budgeted_expenses()
+        data["total_returns"] = instance.get_total_returns()
+        data["net_expenses"] = instance.get_net_budgeted_expenses()
         return data
 
 
