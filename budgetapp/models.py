@@ -41,23 +41,21 @@ class Budget(models.Model):
         """Return True if the budget was edited after creation"""
         return self.updated_at > self.created_at
 
-    def get_remaining_budget(self):
-        """Calculate remaining budget after all expenses, accounting for returns"""
-        # Get all expenses
-        expenses = self.expenses.all()
-
-        # Calculate total expense amounts
-        total_expenses = expenses.aggregate(
+    def get_gross_budgeted_expenses(self):
+        """Sum of expense line amounts (budgeted allocations), before returns."""
+        return self.expenses.aggregate(
             total=Coalesce(Sum("amount"), Value(0), output_field=DecimalField())
         )["total"]
 
-        # Calculate total returns from all sub-expenses
-        total_returns = Decimal("0")
-        for expense in expenses:
-            total_returns += expense.get_total_returns()
+    def get_net_budgeted_expenses(self):
+        """Gross budgeted expenses minus returns (equals income − remaining)."""
+        return self.get_gross_budgeted_expenses() - self.get_total_returns()
 
-        # Remaining is: income - expenses + returns
-        return self.income - total_expenses + total_returns
+    def get_remaining_budget(self):
+        """Remaining after budgeted expenses, with returns credited back."""
+        gross = self.get_gross_budgeted_expenses()
+        total_returns = self.get_total_returns()
+        return self.income - gross + total_returns
 
     def get_total_returns(self):
         """Calculate total returns from all expenses"""
@@ -83,6 +81,25 @@ class Budget(models.Model):
             ("SAR", "SAR - Saudi Riyal"),
         ]
         return currencies
+
+    def get_summary_display_strings(self, fmt):
+        """
+        Human-readable summary numbers for UI and PDF.
+        fmt: callable taking a numeric value, returning a formatted string.
+        """
+        gross = self.get_gross_budgeted_expenses()
+        total_ret = self.get_total_returns()
+        net = self.get_net_budgeted_expenses()
+        return {
+            "gross_budgeted_expenses": gross,
+            "total_returns_amount": total_ret,
+            "net_budgeted_expenses": net,
+            "budget_income_display": fmt(self.income),
+            "gross_expenses_display": fmt(float(gross)),
+            "total_returns_display": fmt(float(total_ret)),
+            "net_expenses_display": fmt(float(net)),
+            "remaining_budget_display": fmt(self.get_remaining_budget()),
+        }
 
 
 class Category(models.Model):

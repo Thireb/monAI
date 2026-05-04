@@ -52,14 +52,17 @@
 
         .summary-section {
             display: flex;
-            justify-content: space-between;
+            flex-wrap: wrap;
+            justify-content: center;
             margin-bottom: 30px;
-            gap: 15px;
+            gap: 12px;
         }
 
         .summary-card {
-            flex: 1;
-            padding: 15px;
+            flex: 1 1 140px;
+            min-width: 120px;
+            max-width: 200px;
+            padding: 12px;
             border-radius: 8px;
             text-align: center;
         }
@@ -72,6 +75,16 @@
         .summary-card.expenses {
             background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
             border: 1px solid #e57373;
+        }
+
+        .summary-card.returns {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border: 1px solid #66bb6a;
+        }
+
+        .summary-card.net {
+            background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+            border: 1px solid #ffb74d;
         }
 
         .summary-card.remaining {
@@ -98,6 +111,14 @@
 
         .summary-card.expenses .value {
             color: #c62828;
+        }
+
+        .summary-card.returns .value {
+            color: #2e7d32;
+        }
+
+        .summary-card.net .value {
+            color: #e65100;
         }
 
         .summary-card.remaining .value {
@@ -304,12 +325,20 @@
     <!-- Summary Cards -->
     <div class="summary-section">
         <div class="summary-card income">
-            <div class="label">Total Income</div>
+            <div class="label">Total income</div>
             <div class="value">{{ budget.currency }} {{ budget_income_display }}</div>
         </div>
         <div class="summary-card expenses">
-            <div class="label">Total Expenses</div>
-            <div class="value">{{ budget.currency }} {{ total_expenses_display }}</div>
+            <div class="label">Budgeted expenses (gross)</div>
+            <div class="value">{{ budget.currency }} {{ gross_expenses_display }}</div>
+        </div>
+        <div class="summary-card returns">
+            <div class="label">Returns / refunds</div>
+            <div class="value">{{ budget.currency }} {{ total_returns_display }}</div>
+        </div>
+        <div class="summary-card net">
+            <div class="label">Net budgeted expenses</div>
+            <div class="value">{{ budget.currency }} {{ net_expenses_display }}</div>
         </div>
         <div class="summary-card remaining">
             <div class="label">Remaining</div>
