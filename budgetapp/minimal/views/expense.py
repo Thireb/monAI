@@ -159,9 +159,9 @@ class ExpenseDeleteView(LoginRequiredView):
                 expense_amount = float(expense.amount)
                 expense.delete()
 
-                # Calculate new budget totals
-                total_expenses = sum(e.amount for e in budget.expenses.all())
-                remaining_budget = budget.get_remaining_budget()
+                displays = budget.get_summary_display_strings(
+                    lambda v: intcomma(f"{float(v):,.2f}")
+                )
 
                 return JsonResponse(
                     {
@@ -169,10 +169,10 @@ class ExpenseDeleteView(LoginRequiredView):
                         "message": f'Expense "{expense_name}" deleted successfully!',
                         "expense_id": expense_id,
                         "deleted_amount": expense_amount,
-                        "new_total_expenses": float(total_expenses),
-                        "new_total_expenses_display": intcomma(f"{float(total_expenses):,.2f}"),
-                        "new_remaining_budget": float(remaining_budget),
-                        "new_remaining_budget_display": intcomma(f"{float(remaining_budget):,.2f}"),
+                        "new_gross_expenses_display": displays["gross_expenses_display"],
+                        "new_total_returns_display": displays["total_returns_display"],
+                        "new_net_expenses_display": displays["net_expenses_display"],
+                        "new_remaining_budget_display": displays["remaining_budget_display"],
                     }
                 )
             except Exception as e:
@@ -181,4 +181,3 @@ class ExpenseDeleteView(LoginRequiredView):
                 )
 
         return JsonResponse({"status": "error", "message": "No expense ID provided"}, status=400)
-

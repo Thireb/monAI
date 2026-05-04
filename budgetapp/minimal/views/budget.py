@@ -41,14 +41,10 @@ class BudgetDetailView(LoginRequiredTemplateView):
 
         # Get all expenses for this budget
         expenses_qs = budget.expenses.all().order_by("created_at")
-        total_expenses = sum(e.amount for e in expenses_qs)
         categories = Category.objects.filter(user=self.request.user)
         tags = Tag.objects.filter(user=self.request.user).order_by("name")
 
-        # Format numbers for display
-        budget_income_display = self._format_currency(budget.income)
-        total_expenses_display = self._format_currency(total_expenses)
-        remaining_budget_display = self._format_currency(budget.get_remaining_budget())
+        displays = budget.get_summary_display_strings(self._format_currency)
 
         # Prepare expenses with amount_display and sub_expenses with amount_display
         expenses = []
@@ -64,7 +60,7 @@ class BudgetDetailView(LoginRequiredTemplateView):
                 for sub in expense.sub_expenses.all()
             ]
             subexpense_total = expense.subexpense_total
-            total_returns = expense.get_total_returns()
+            expense_returns = expense.get_total_returns()
             remaining_amount = expense.get_remaining_amount()
             expenses.append(
                 {
@@ -82,8 +78,8 @@ class BudgetDetailView(LoginRequiredTemplateView):
                     "sub_expenses_exists": expense.sub_expenses.exists(),
                     "subexpense_total": subexpense_total,
                     "subexpense_total_display": self._format_currency(subexpense_total),
-                    "returns": total_returns,
-                    "total_returns": self._format_currency(float(total_returns)),
+                    "returns": expense_returns,
+                    "total_returns": self._format_currency(float(expense_returns)),
                     "remaining_amount": self._format_currency(float(remaining_amount)),
                 }
             )
@@ -101,7 +97,8 @@ class BudgetDetailView(LoginRequiredTemplateView):
                     }
                 category_totals[cat]["amount"] += float(expense.amount)
             for cat, data in category_totals.items():
-                percent = (data["amount"] / float(total_expenses) * 100) if total_expenses else 0
+                denom = float(displays["gross_budgeted_expenses"])
+                percent = (data["amount"] / denom * 100) if denom else 0
                 expenses_by_category[cat] = {
                     "amount": data["amount"],
                     "amount_display": self._format_currency(data["amount"]),
@@ -127,14 +124,11 @@ class BudgetDetailView(LoginRequiredTemplateView):
                 "expenses": expenses,
                 "categories": categories,
                 "tags": tags,
-                "total_expenses": total_expenses,
                 "currency_choices": Budget.get_currency_choices(),
-                "budget_income_display": budget_income_display,
-                "total_expenses_display": total_expenses_display,
-                "remaining_budget_display": remaining_budget_display,
                 "expenses_by_category": expenses_by_category,
                 "tag_totals": tag_totals,
                 "tag_labels": tag_labels,
+                **displays,
             }
         )
         return context
@@ -313,8 +307,8 @@ class IncomeUpdateView(LoginRequiredView):
 
             # Format for display
             income_display = intcomma(f"{float(budget.income):,.2f}")
+            displays = budget.get_summary_display_strings(lambda v: intcomma(f"{float(v):,.2f}"))
             remaining_budget = budget.get_remaining_budget()
-            remaining_budget_display = intcomma(f"{float(remaining_budget):,.2f}")
 
             return JsonResponse(
                 {
@@ -324,7 +318,10 @@ class IncomeUpdateView(LoginRequiredView):
                     "income_display": income_display,
                     "currency": currency,
                     "remaining_budget": float(remaining_budget),
-                    "remaining_budget_display": remaining_budget_display,
+                    "remaining_budget_display": displays["remaining_budget_display"],
+                    "gross_expenses_display": displays["gross_expenses_display"],
+                    "total_returns_display": displays["total_returns_display"],
+                    "net_expenses_display": displays["net_expenses_display"],
                 }
             )
 
@@ -343,23 +340,14 @@ class SummaryCardsView(LoginRequiredView):
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
         budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
-        # Get all expenses for this budget
-        expenses_qs = budget.expenses.all()
-        total_expenses = sum(e.amount for e in expenses_qs)
-
-        # Format numbers for display
-        budget_income_display = self._format_currency(budget.income)
-        total_expenses_display = self._format_currency(total_expenses)
-        remaining_budget_display = self._format_currency(budget.get_remaining_budget())
+        displays = budget.get_summary_display_strings(self._format_currency)
 
         # Render the summary cards section
         html = render_to_string(
             "minimal/budget_detail_pages/summary_cards.html",
             {
                 "budget": budget,
-                "budget_income_display": budget_income_display,
-                "total_expenses_display": total_expenses_display,
-                "remaining_budget_display": remaining_budget_display,
+                **displays,
             },
         )
 
@@ -382,12 +370,8 @@ class BudgetEmailPDFView(LoginRequiredView):
         Reuses logic from BudgetDetailView.
         """
         expenses_qs = budget.expenses.all().order_by("created_at")
-        total_expenses = sum(e.amount for e in expenses_qs)
-
-        # Format numbers for display
-        budget_income_display = self._format_currency(budget.income)
-        total_expenses_display = self._format_currency(total_expenses)
-        remaining_budget_display = self._format_currency(budget.get_remaining_budget())
+        displays = budget.get_summary_display_strings(self._format_currency)
+        gross_budgeted = displays["gross_budgeted_expenses"]
 
         # Prepare expenses with formatted amounts and sub_expenses
         expenses = []
@@ -427,17 +411,12 @@ class BudgetEmailPDFView(LoginRequiredView):
                 if cat not in category_totals:
                     category_totals[cat] = {
                         "amount": 0,
-                        "color": (
-                            expense.category.color if expense.category else "#e0e0e0"
-                        ),
+                        "color": (expense.category.color if expense.category else "#e0e0e0"),
                     }
                 category_totals[cat]["amount"] += float(expense.amount)
             for cat, data in category_totals.items():
-                percent = (
-                    (data["amount"] / float(total_expenses) * 100)
-                    if total_expenses
-                    else 0
-                )
+                denom = float(gross_budgeted)
+                percent = (data["amount"] / denom * 100) if denom else 0
                 expenses_by_category[cat] = {
                     "amount": data["amount"],
                     "amount_display": self._format_currency(data["amount"]),
@@ -460,9 +439,8 @@ class BudgetEmailPDFView(LoginRequiredView):
         # Format tag breakdown similar to expenses_by_category
         tag_breakdown = {}
         for tag_name, amount in tag_totals.items():
-            percent = (
-                (amount / float(total_expenses) * 100) if total_expenses else 0
-            )
+            denom = float(gross_budgeted)
+            percent = (amount / denom * 100) if denom else 0
             tag_breakdown[tag_name] = {
                 "amount": amount,
                 "amount_display": self._format_currency(amount),
@@ -474,10 +452,7 @@ class BudgetEmailPDFView(LoginRequiredView):
         return {
             "budget": budget,
             "expenses": expenses,
-            "total_expenses": total_expenses,
-            "budget_income_display": budget_income_display,
-            "total_expenses_display": total_expenses_display,
-            "remaining_budget_display": remaining_budget_display,
+            **displays,
             "expenses_by_category": expenses_by_category,
             "tag_breakdown": tag_breakdown,
             "generated_date": timezone.now(),
@@ -508,8 +483,7 @@ class BudgetEmailPDFView(LoginRequiredView):
         except ImportError:
             logger.error("Resend SDK is not installed")
             raise ImportError(
-                "Resend SDK is required for email. "
-                "Install it with: pip install resend"
+                "Resend SDK is required for email. " "Install it with: pip install resend"
             )
 
         api_key = getattr(settings, "RESEND_API_KEY", "")
@@ -517,8 +491,7 @@ class BudgetEmailPDFView(LoginRequiredView):
 
         if not api_key:
             raise ValueError(
-                "RESEND_API_KEY is not configured. "
-                "Please add your Resend API key to config.yaml"
+                "RESEND_API_KEY is not configured. " "Please add your Resend API key to config.yaml"
             )
 
         resend.api_key = api_key
@@ -562,9 +535,7 @@ class BudgetEmailPDFView(LoginRequiredView):
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
 
         try:
-            budget = get_object_or_404(
-                Budget, month=budget_date, user=self.request.user
-            )
+            budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
         except Exception:
             return JsonResponse(
                 {"status": "error", "message": "Budget not found."},
@@ -632,4 +603,3 @@ class BudgetEmailPDFView(LoginRequiredView):
                 },
                 status=500,
             )
-

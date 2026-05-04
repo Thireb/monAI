@@ -53,6 +53,7 @@ $(function () {
     e.preventDefault();
     const form = $(this);
     const url = form.attr('action');
+    clearFormErrors(form);
 
     $.ajax({
       url: url,
@@ -64,6 +65,7 @@ $(function () {
         $('.remaining-budget-value').text(
           response.currency + ' ' + response.remaining_budget_display
         );
+        applyBudgetSummaryFromResponse(response, response.currency);
 
         // Show success message
         showToast('Success', response.message, 'success');
@@ -72,11 +74,12 @@ $(function () {
         closeModalWithAnimation('#incomeModal');
       },
       error: function (xhr) {
-        let errorMsg = 'An error occurred while updating income.';
-        if (xhr.responseJSON && xhr.responseJSON.message) {
-          errorMsg = xhr.responseJSON.message;
+        var response = xhr.responseJSON;
+        if (response && response.errors) {
+          displayFormErrors(form, response.errors);
+        } else {
+          showToast('Error', response?.message || 'An error occurred while updating income.', 'error');
         }
-        showToast('Error', errorMsg, 'error');
       },
     });
   });
@@ -84,31 +87,30 @@ $(function () {
   // Handle expense form submission with AJAX
   $('#expense-form').on('submit', function (e) {
     e.preventDefault();
+    const form = $(this);
+    clearFormErrors(form);
 
     // Validate form
     let valid = true;
-    const name = $(this).find('[name=name]');
-    const amount = $(this).find('[name=amount]');
+    const name = form.find('[name=name]');
+    const amount = form.find('[name=amount]');
 
     if (!name.val().trim()) {
       name.addClass('is-invalid');
+      name.siblings('.invalid-feedback').text('Name is required.').show();
       valid = false;
-    } else {
-      name.removeClass('is-invalid');
     }
 
     if (!amount.val().trim() || isNaN(amount.val()) || Number(amount.val()) <= 0) {
       amount.addClass('is-invalid');
+      amount.siblings('.invalid-feedback').text('Amount must be a positive number.').show();
       valid = false;
-    } else {
-      amount.removeClass('is-invalid');
     }
 
     if (!valid) {
       return;
     }
 
-    const form = $(this);
     const url = form.attr('action');
 
     $.ajax({
@@ -137,11 +139,12 @@ $(function () {
         resetExpenseForm();
       },
       error: function (xhr) {
-        let errorMsg = 'An error occurred while saving the expense.';
-        if (xhr.responseJSON && xhr.responseJSON.message) {
-          errorMsg = xhr.responseJSON.message;
+        var response = xhr.responseJSON;
+        if (response && response.errors) {
+          displayFormErrors(form, response.errors);
+        } else {
+          showToast('Error', response?.message || 'An error occurred while saving the expense.', 'error');
         }
-        showToast('Error', errorMsg, 'error');
       },
     });
   });
@@ -186,7 +189,9 @@ $(function () {
       data: data,
       success: function (response) {
         if (deleteType === 'subexpense') {
-          reloadSubExpenseList(expenseId);
+          reloadSubExpenseList(expenseId, function () {
+            updateBudgetTotals();
+          });
           showUndoSnackbar('Sub-expense deleted.', function () {
             undoDeleteSubExpense();
           });
@@ -198,17 +203,7 @@ $(function () {
           $(`#subexpenses-${expenseId}`).fadeOut(300, function () {
             $(this).remove();
           });
-          // Update totals
-          if (response.new_total_expenses_display) {
-            $('.total-expenses-value').text(
-              $('.budget-currency').text() + ' ' + response.new_total_expenses_display
-            );
-          }
-          if (response.new_remaining_budget_display) {
-            $('.remaining-budget-value').text(
-              $('.budget-currency').text() + ' ' + response.new_remaining_budget_display
-            );
-          }
+          updateBudgetTotals();
           showToast('Success', response.message, 'success');
           updateCategoryStats();
           updateTagTotals(); // Update tag totals after expense deletion
@@ -231,13 +226,22 @@ $(function () {
 
   // Reset expense form helper
   function resetExpenseForm() {
-    $('#expense-form')[0].reset();
+    var $form = $('#expense-form');
+    $form[0].reset();
     $('#expense_id').val('');
+    clearFormErrors($form);
   }
 
   // Helper function to add a new expense row to the table
   function addExpenseRow(expense) {
-    const newRow = $('<tr>').addClass('expense-row').attr('data-expense-id', expense.id);
+    // Get the next original index for the new expense
+    const existingRows = $('.wide-expense-table > tbody .expense-row');
+    const nextIndex = existingRows.length;
+
+    const newRow = $('<tr>')
+      .addClass('expense-row')
+      .attr('data-expense-id', expense.id)
+      .attr('data-original-index', nextIndex);
 
     // Add cells
     const nameCell = $('<td>')
@@ -344,8 +348,8 @@ $(function () {
     actionsCell.append(editBtn, deleteBtn);
     newRow.append(actionsCell);
 
-    // Add the new row to the table
-    $('.wide-expense-table tbody').append(newRow);
+    // Add the new row to the table (use > to target only the main table's tbody, not nested ones)
+    $('.wide-expense-table > tbody').append(newRow);
 
     // Initialize tooltips on the new buttons
     if (window.initMinimalTooltips) {
@@ -481,14 +485,33 @@ $(function () {
     updateTagTotals(); // Update tag totals after expense update
   }
 
-  // Helper function to update budget totals
-  // Helper function to format currency
-  function formatCurrency(amount) {
-    return amount.toLocaleString('en', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+  function applyBudgetSummaryFromResponse(payload, currencyOverride) {
+    if (!payload) {
+      return;
+    }
+    const c = currencyOverride || $('.budget-currency').text();
+    const gross =
+      payload.gross_expenses_display || payload.new_gross_expenses_display;
+    const ret = payload.total_returns_display || payload.new_total_returns_display;
+    const net = payload.net_expenses_display || payload.new_net_expenses_display;
+    const rem =
+      payload.remaining_budget_display || payload.new_remaining_budget_display;
+    if (gross) {
+      $('.gross-expenses-value').text(c + ' ' + gross);
+    }
+    if (ret) {
+      $('.total-returns-value').text(c + ' ' + ret);
+    }
+    if (net) {
+      $('.net-expenses-value').text(c + ' ' + net);
+    }
+    if (rem) {
+      $('.remaining-budget-value').text(c + ' ' + rem);
+    }
   }
+
+  // Helper function to update budget totals
+  // NOTE: formatCurrency is provided by core/utils.js (global)
 
   function updateBudgetTotals() {
     // Instead of client-side calculation, reload the summary cards from server
@@ -615,56 +638,7 @@ $(function () {
     }
   }
 
-  // Helper function to show toast notifications
-  function showToast(title, message, type) {
-    // Check if we have a toast container, if not create one
-    if ($('#toast-container').length === 0) {
-      $('body').append(
-        '<div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>'
-      );
-    }
-
-    // Create a unique ID for this toast
-    const toastId = 'toast-' + Date.now();
-
-    // Create the toast element
-    const toast = $(`
-      <div id="${toastId}" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="d-flex">
-          <div class="toast-body">
-            <strong>${title}:</strong> ${message}
-          </div>
-          <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-      </div>
-    `);
-
-    // Add color based on type
-    if (type === 'success') {
-      toast.addClass('bg-success text-white');
-    } else if (type === 'error') {
-      toast.addClass('bg-danger text-white');
-    } else if (type === 'warning') {
-      toast.addClass('bg-warning');
-    } else {
-      toast.addClass('bg-info text-white');
-    }
-
-    // Add to container
-    $('#toast-container').append(toast);
-
-    // Initialize and show the toast
-    const bsToast = new bootstrap.Toast(toast[0], {
-      autohide: true,
-      delay: 5000,
-    });
-    bsToast.show();
-
-    // Remove from DOM after hidden
-    toast.on('hidden.bs.toast', function () {
-      $(this).remove();
-    });
-  }
+  // NOTE: showToast is provided by core/utils.js (global)
 
   // Toggle summary section with animation
   $('.summary-toggle-btn').on('click', function () {
@@ -910,6 +884,9 @@ $(function () {
           if (response.summary) {
             updateSubexpenseSummary(expenseId, response.summary);
           }
+          if (response.budget_summary) {
+            applyBudgetSummaryFromResponse(response.budget_summary);
+          }
         });
 
         // Update summary cards to reflect changes in expenses/returns
@@ -1084,6 +1061,59 @@ $(function () {
     }
   }
 
+  // Email PDF Functionality
+  $('#email-pdf-btn').on('click', function () {
+    const $btn = $(this);
+    const url = $btn.data('url');
+
+    // Prevent double-clicks
+    if ($btn.hasClass('loading')) {
+      return;
+    }
+
+    // Show loading state
+    const originalText = $btn.find('.email-pdf-text').text();
+    $btn.addClass('loading').prop('disabled', true);
+    $btn.find('.email-pdf-text').text('⏳ Sending...');
+
+    $.ajax({
+      url: url,
+      type: 'POST',
+      data: {
+        csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+      },
+      success: function (response) {
+        showToast('Success', response.message, 'success');
+
+        // Animate success state
+        $btn.find('.email-pdf-text').text('✅ Sent!');
+        anime({
+          targets: $btn[0],
+          scale: [1, 1.1, 1],
+          duration: 400,
+          easing: 'easeOutElastic(1, .5)',
+        });
+
+        // Reset button after delay
+        setTimeout(function () {
+          $btn.removeClass('loading').prop('disabled', false);
+          $btn.find('.email-pdf-text').text(originalText);
+        }, 2000);
+      },
+      error: function (xhr) {
+        let errorMsg = 'Failed to send email. Please try again.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          errorMsg = xhr.responseJSON.message;
+        }
+        showToast('Error', errorMsg, 'error');
+
+        // Reset button
+        $btn.removeClass('loading').prop('disabled', false);
+        $btn.find('.email-pdf-text').text(originalText);
+      },
+    });
+  });
+
   // Budget Delete Functionality
   $('#delete-budget-btn').on('click', function () {
     openModalWithAnimation('#deleteBudgetModal');
@@ -1138,6 +1168,264 @@ $(function () {
       },
     });
   });
+
+  // ============================================
+  // EXPENSE TABLE SORTING FUNCTIONALITY
+  // ============================================
+
+  // Sorting state
+  let currentSortColumn = null;
+  let currentSortDirection = null; // 'asc', 'desc', or null
+
+  // Initialize original indices on page load for new rows without them
+  function initializeOriginalIndices() {
+    const $tbody = $('.wide-expense-table > tbody');
+    let index = 0;
+    $tbody.find('.expense-row').each(function () {
+      if (!$(this).attr('data-original-index')) {
+        $(this).attr('data-original-index', index);
+      }
+      const expenseId = $(this).data('expense-id');
+      const $subRow = $(`#subexpenses-${expenseId}`);
+      if ($subRow.length && !$subRow.attr('data-original-index')) {
+        $subRow.attr('data-original-index', index);
+      }
+      index++;
+    });
+  }
+
+  // Get sort value from a row based on column type
+  function getSortValue(row, column) {
+    const $row = $(row);
+    switch (column) {
+      case 'name':
+        return $row.find('td:nth-child(1)').text().trim().toLowerCase();
+      case 'amount':
+        // Parse numeric value from currency text
+        const amountText = $row.find('td:nth-child(2)').text();
+        return parseFloat(amountText.replace(/[^\d.-]/g, '')) || 0;
+      case 'category':
+        const categoryText = $row.find('td:nth-child(3)').text().trim().toLowerCase();
+        // Put "uncategorized" at the end when sorting
+        return categoryText === 'uncategorized' ? 'zzz_uncategorized' : categoryText;
+      case 'tag':
+        const tagText = $row.find('td:nth-child(4)').text().trim().toLowerCase();
+        // Put "no tag" at the end when sorting
+        return tagText === 'no tag' ? 'zzz_no_tag' : tagText;
+      case 'recurring':
+        // "Yes" comes before "No" in ascending order
+        const isRecurring = $row.find('td:nth-child(5)').text().trim().toLowerCase();
+        return isRecurring === 'yes' ? 0 : 1;
+      default:
+        return 0;
+    }
+  }
+
+  // Compare function for sorting
+  function compareRows(a, b, column, direction) {
+    const valA = getSortValue(a, column);
+    const valB = getSortValue(b, column);
+
+    let comparison = 0;
+    if (typeof valA === 'string' && typeof valB === 'string') {
+      comparison = valA.localeCompare(valB);
+    } else {
+      comparison = valA - valB;
+    }
+
+    return direction === 'desc' ? -comparison : comparison;
+  }
+
+  // Sort the expense table
+  function sortExpenseTable(column, direction) {
+    const $tbody = $('.wide-expense-table > tbody');
+
+    // Get all expense rows (not subexpense rows)
+    const $expenseRows = $tbody.find('.expense-row').toArray();
+
+    // Sort the rows
+    $expenseRows.sort((a, b) => compareRows(a, b, column, direction));
+
+    // Animate and reorder rows
+    const rowPairs = [];
+    $expenseRows.forEach(row => {
+      const $row = $(row);
+      const expenseId = $row.data('expense-id');
+      const $subRow = $(`#subexpenses-${expenseId}`);
+      rowPairs.push({ expense: $row, subexpense: $subRow });
+    });
+
+    // Fade out, reorder, fade in with Anime.js
+    anime({
+      targets: '.expense-row',
+      opacity: [1, 0.3],
+      duration: 150,
+      easing: 'easeOutQuad',
+      complete: function () {
+        // Detach and reappend in sorted order
+        rowPairs.forEach(pair => {
+          pair.expense.detach();
+          if (pair.subexpense.length) {
+            pair.subexpense.detach();
+          }
+        });
+
+        rowPairs.forEach(pair => {
+          $tbody.append(pair.expense);
+          if (pair.subexpense.length) {
+            $tbody.append(pair.subexpense);
+          }
+        });
+
+        // Fade back in
+        anime({
+          targets: '.expense-row',
+          opacity: [0.3, 1],
+          duration: 200,
+          easing: 'easeOutQuad',
+        });
+      },
+    });
+  }
+
+  // Clear sorting and restore original order
+  function clearSort() {
+    const $tbody = $('.wide-expense-table > tbody');
+
+    // Get all expense rows with their original indices
+    const $expenseRows = $tbody.find('.expense-row').toArray();
+
+    // Sort by original index
+    $expenseRows.sort((a, b) => {
+      const indexA = parseInt($(a).attr('data-original-index')) || 0;
+      const indexB = parseInt($(b).attr('data-original-index')) || 0;
+      return indexA - indexB;
+    });
+
+    // Collect row pairs
+    const rowPairs = [];
+    $expenseRows.forEach(row => {
+      const $row = $(row);
+      const expenseId = $row.data('expense-id');
+      const $subRow = $(`#subexpenses-${expenseId}`);
+      rowPairs.push({ expense: $row, subexpense: $subRow });
+    });
+
+    // Animate and reorder
+    anime({
+      targets: '.expense-row',
+      opacity: [1, 0.3],
+      duration: 150,
+      easing: 'easeOutQuad',
+      complete: function () {
+        rowPairs.forEach(pair => {
+          pair.expense.detach();
+          if (pair.subexpense.length) {
+            pair.subexpense.detach();
+          }
+        });
+
+        rowPairs.forEach(pair => {
+          $tbody.append(pair.expense);
+          if (pair.subexpense.length) {
+            $tbody.append(pair.subexpense);
+          }
+        });
+
+        anime({
+          targets: '.expense-row',
+          opacity: [0.3, 1],
+          duration: 200,
+          easing: 'easeOutQuad',
+        });
+      },
+    });
+
+    // Reset state
+    currentSortColumn = null;
+    currentSortDirection = null;
+
+    // Update UI
+    updateSortIndicators();
+    $('#clear-sort-btn').hide();
+  }
+
+  // Update sort indicators on headers
+  function updateSortIndicators() {
+    $('.sortable-header').each(function () {
+      const $header = $(this);
+      const column = $header.data('sort');
+      const $indicator = $header.find('.sort-indicator');
+
+      $header.removeClass('sorted-asc sorted-desc');
+
+      if (column === currentSortColumn) {
+        if (currentSortDirection === 'asc') {
+          $indicator.text(' ↑');
+          $header.addClass('sorted-asc');
+        } else if (currentSortDirection === 'desc') {
+          $indicator.text(' ↓');
+          $header.addClass('sorted-desc');
+        } else {
+          $indicator.text('');
+        }
+      } else {
+        $indicator.text('');
+      }
+    });
+  }
+
+  // Handle sortable header clicks
+  $(document).on('click keydown', '.sortable-header', function (e) {
+    // Handle keyboard navigation
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') {
+      return;
+    }
+    if (e.type === 'keydown') {
+      e.preventDefault();
+    }
+
+    const column = $(this).data('sort');
+
+    // Cycle through: asc -> desc -> none
+    if (currentSortColumn === column) {
+      if (currentSortDirection === 'asc') {
+        currentSortDirection = 'desc';
+      } else if (currentSortDirection === 'desc') {
+        // Clear sort
+        currentSortColumn = null;
+        currentSortDirection = null;
+        clearSort();
+        return;
+      } else {
+        currentSortDirection = 'asc';
+      }
+    } else {
+      currentSortColumn = column;
+      currentSortDirection = 'asc';
+    }
+
+    // Perform sort
+    sortExpenseTable(currentSortColumn, currentSortDirection);
+
+    // Update indicators
+    updateSortIndicators();
+
+    // Show/hide clear sort button
+    if (currentSortColumn) {
+      $('#clear-sort-btn').fadeIn(200);
+    } else {
+      $('#clear-sort-btn').fadeOut(200);
+    }
+  });
+
+  // Handle clear sort button click
+  $('#clear-sort-btn').on('click', function () {
+    clearSort();
+  });
+
+  // Initialize original indices on page load
+  initializeOriginalIndices();
 });
 
 // Add Select2 initialization
