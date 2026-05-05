@@ -41,7 +41,13 @@ Token from: `POST /api/mobile/auth/token/` with JSON `{"email","password"}`.
 
 Push responses include `server_ids` in the **same order** as the request list.
 
+**Deletes:** include items with `"deleted": true` and the existing server **`id`** in `expenses` or `sub_expenses` push payloads. Validation and cascade behavior live in `MobileExpensePushView` / `MobileSubExpensePushView` (`budgetapp/api_mobile_catalog.py`).
+
 **Sync order (app):** push categories → tags → budgets → expenses → sub-expenses, then pull the same.
+
+### Budget summary vs Django
+
+The budget detail summary cards (gross budgeted expenses, returns, net, remaining) follow **`Budget`** in `budgetapp/models.py`: gross = sum of expense amounts, returns from sub-expenses with `is_return`, remaining = **income − gross + returns**. Same rules as the minimal web UI and PDF context built from `get_summary_display_strings`.
 
 ## Download APK (GitHub Actions — no local Flutter)
 
