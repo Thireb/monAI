@@ -315,6 +315,16 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.data["server_ids"], [eid])
         self.assertFalse(Expense.objects.filter(pk=eid).exists())
 
+    def test_expense_push_delete_is_idempotent_for_already_deleted_id(self):
+        url = reverse("api-mobile-expense-push")
+        r = self.client.post(
+            url,
+            {"expenses": [{"id": 999999, "deleted": True}]},
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertEqual(r.data["server_ids"], [999999])
+
     def test_expense_push_delete_removes_sub_expenses(self):
         """Deleting an expense must remove child sub-expenses (CASCADE on the model)."""
         exp = Expense.objects.create(
@@ -431,6 +441,16 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.status_code, status.HTTP_200_OK)
         self.assertEqual(r2.data["server_ids"], [sid])
         self.assertFalse(SubExpense.objects.filter(pk=sid).exists())
+
+    def test_sub_expense_push_delete_is_idempotent_for_already_deleted_id(self):
+        url_push = reverse("api-mobile-subexpense-push")
+        r = self.client.post(
+            url_push,
+            {"sub_expenses": [{"id": 999999, "deleted": True}]},
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertEqual(r.data["server_ids"], [999999])
 
     def test_sub_expense_push_delete_rejects_other_users_sub_expense_id(self):
         other_budget = Budget.objects.create(
