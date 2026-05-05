@@ -61,6 +61,8 @@ def _collect_unknown_expense_ids(user, validated_items):
         eid = item.get("id")
         if eid is None:
             continue
+        if item.get("deleted") and not Expense.objects.filter(pk=eid).exists():
+            continue
         if not Expense.objects.filter(pk=eid, budget__user=user).exists():
             unknown.append(eid)
     return unknown
@@ -71,6 +73,8 @@ def _collect_unknown_subexpense_ids(user, validated_items):
     for item in validated_items:
         sid = item.get("id")
         if sid is None:
+            continue
+        if item.get("deleted") and not SubExpense.objects.filter(pk=sid).exists():
             continue
         if not SubExpense.objects.filter(pk=sid, expense__budget__user=user).exists():
             unknown.append(sid)
@@ -239,9 +243,10 @@ class MobileExpensePushView(APIView):
             for item in ser.validated_data:
                 if item.get("deleted"):
                     eid = item["id"]
-                    e = Expense.objects.get(pk=eid, budget__user=user)
-                    server_ids.append(e.id)
-                    e.delete()
+                    e = Expense.objects.filter(pk=eid, budget__user=user).first()
+                    server_ids.append(eid)
+                    if e is not None:
+                        e.delete()
                     continue
                 eid = item.get("id")
                 budget = Budget.objects.get(pk=item["budget_id"], user=user)
@@ -333,9 +338,10 @@ class MobileSubExpensePushView(APIView):
             for item in ser.validated_data:
                 if item.get("deleted"):
                     sid = item["id"]
-                    sub = SubExpense.objects.get(pk=sid, expense__budget__user=user)
-                    server_ids.append(sub.id)
-                    sub.delete()
+                    sub = SubExpense.objects.filter(pk=sid, expense__budget__user=user).first()
+                    server_ids.append(sid)
+                    if sub is not None:
+                        sub.delete()
                     continue
                 sid = item.get("id")
                 expense = Expense.objects.get(pk=item["expense_id"], budget__user=user)
