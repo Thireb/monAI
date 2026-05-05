@@ -3,7 +3,7 @@
 > **Single Source of Truth** for the monAI Budget Tracker application.
 
 **Version:** 1.0.0  
-**Last Updated:** April 2026
+**Last Updated:** May 2026
 
 ---
 
@@ -60,8 +60,8 @@ monAI is a personal budget tracking application built with Django. It features:
 ### Setup
 
 ```bash
-# Clone and enter directory
-cd django_budget_tracker
+# Clone and enter directory (repository root is typically named monAI)
+cd monAI
 
 # Create virtual environment
 pyenv virtualenv 3.13.1 budget_tracker_env
@@ -180,7 +180,7 @@ superuser:
 ## Project Structure
 
 ```
-django_budget_tracker/
+monAI/
 ├── accounts/                 # Custom user model and auth
 │   ├── models.py            # CustomUser model
 │   ├── views.py             # Profile views
@@ -254,6 +254,17 @@ budget = Budget.objects.create(
 # Get remaining budget
 remaining = budget.get_remaining_budget()
 ```
+
+**Summary numbers (web minimal UI, budget PDF, Flutter budget detail)** use the same `Budget` helpers in `budgetapp/models.py`:
+
+| Concept | Method | Meaning |
+|---------|--------|---------|
+| Gross budgeted expenses | `get_gross_budgeted_expenses()` | Sum of expense line **amount** fields (allocations). |
+| Returns | `get_total_returns()` | Sum of return sub-expenses across expenses. |
+| Net budgeted expenses | `get_net_budgeted_expenses()` | Gross − returns (equals income − remaining). |
+| Remaining | `get_remaining_budget()` | **income − gross + returns** (returns credited back). |
+
+The DRF `BudgetSerializer` exposes these as `total_expenses`, `total_returns`, `net_expenses`, and `remaining_budget` on `/api/budgets/…` for clients that consume JSON.
 
 ### Expense Tracking
 
@@ -404,31 +415,41 @@ register_script(Script(
 
 ## API Reference
 
+REST routes are mounted under **`/api/`** (see `budgetapp/api_urls.py`). Mobile sync uses **`/api/mobile/…`**; goals use the same DRF router as the web API.
+
 ### Authentication
 
-All API endpoints require authentication:
+DRF token endpoints require `Authorization: Token <key>` on subsequent requests.
 
 ```bash
-# Get auth token
+# Obtain token (username field must be the user's email — see project auth notes)
 curl -X POST http://localhost:8000/api-token-auth/ \
   -d "username=user@example.com&password=secret"
 
-# Use token
 curl -H "Authorization: Token YOUR_TOKEN" \
   http://localhost:8000/api/budgets/
 ```
 
-### Endpoints
+Mobile clients typically use `POST /api/mobile/auth/token/` with JSON `email` and `password` (same token header). See **[mobile/budget_mobile/README.md](../mobile/budget_mobile/README.md)** for pull/push paths and sync order.
+
+### Endpoints (DRF)
 
 | Endpoint | Methods | Description |
 |----------|---------|-------------|
-| `/api/budgets/` | GET, POST | List/create budgets |
-| `/api/budgets/{id}/` | GET, PUT, DELETE | Budget detail |
+| `/api/budgets/` | GET, POST | List/create budgets (`BudgetSerializer` includes gross/net/returns/remaining fields) |
+| `/api/budgets/{id}/` | GET, PUT, PATCH, DELETE | Budget detail |
 | `/api/goals/` | GET, POST | List/create goals |
-| `/api/goals/{id}/` | GET, PUT, DELETE | Goal detail |
-| `/api/goals/{id}/statistics/` | GET | Goal statistics |
-| `/api/goals/{id}/add_contribution/` | POST | Add contribution |
-| `/api/contributions/` | GET, POST | List/create contributions |
+| `/api/goals/{id}/` | GET, PUT, PATCH, DELETE | Goal detail |
+| `/api/goals/{id}/statistics/` | GET | Aggregated progress stats |
+| `/api/goals/{id}/add_contribution/` | POST | Add contribution (also updates goal `current_amount`) |
+| `/api/goal-contributions/` | GET, POST | List/create contributions (`goal` must belong to the user) |
+| `/api/goal-contributions/{id}/` | GET, PUT, PATCH, DELETE | Contribution detail |
+
+### Mobile sync API (summary)
+
+- **Registration:** `budgetapp/api_urls.py` — paths like `/api/mobile/budgets/pull/`, `/api/mobile/expenses/push/`, etc.
+- **Deletes:** push payloads may set **`deleted: true`** on an expense or sub-expense item (requires **`id`**). The server removes the row and still returns `server_ids` aligned with the request list (see `MobileExpensePushView` / `MobileSubExpensePushView` in `budgetapp/api_mobile_catalog.py`).
+- **Agent / LLM mapping:** stable `action` ids and JSON schemas are documented under **[docs/agent_intent/README.md](agent_intent/README.md)**.
 
 ---
 
