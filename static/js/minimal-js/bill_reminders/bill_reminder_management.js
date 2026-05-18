@@ -2,6 +2,22 @@
 $(function () {
   const saveUrl = window.BILL_REMINDER_SAVE_URL;
   const deleteUrl = window.BILL_REMINDER_DELETE_URL;
+  const $formSection = $('#bill-reminder-form-section');
+
+  function initBillReminderSelects() {
+    if (!$formSection.length || typeof $.fn.select2 !== 'function') {
+      return;
+    }
+    const $pair = $('#br_category, #br_tag');
+    if ($pair.filter('.select2-hidden-accessible').length) {
+      $pair.select2('destroy');
+    }
+    $pair.select2({
+      dropdownParent: $formSection,
+      width: '100%',
+      minimumResultsForSearch: Infinity,
+    });
+  }
 
   function clearErrors() {
     $('.form-errors').hide().empty();
@@ -10,6 +26,8 @@ $(function () {
   function showErrors(msg) {
     $('.form-errors').text(msg).show();
   }
+
+  initBillReminderSelects();
 
   $('#bill-reminder-form').on('submit', function (e) {
     e.preventDefault();
@@ -33,6 +51,8 @@ $(function () {
     $('#bill-reminder-form')[0].reset();
     $('#reminder_id').val('');
     $('#br_active').prop('checked', true);
+    $('#br_category').val('').trigger('change');
+    $('#br_tag').val('').trigger('change');
     clearErrors();
   });
 
@@ -46,8 +66,8 @@ $(function () {
     $('#br_severity').val(b.data('severity'));
     $('#br_rec').val(b.data('recurrence'));
     $('#br_active').prop('checked', b.data('active') === true || b.data('active') === 'true');
-    $('#br_category').val(b.data('category') ? String(b.data('category')) : '');
-    $('#br_tag').val(b.data('tag') ? String(b.data('tag')) : '');
+    $('#br_category').val(b.data('category') ? String(b.data('category')) : '').trigger('change');
+    $('#br_tag').val(b.data('tag') ? String(b.data('tag')) : '').trigger('change');
     $('#br_notes').val(b.data('notes') || '');
     clearErrors();
     $('html, body').animate({ scrollTop: $('#bill-reminder-form').offset().top - 80 }, 300);
