@@ -1,6 +1,10 @@
 from django.urls import path
 
 from .views import (
+    BillReminderDefaultsView,
+    BillReminderDeleteView,
+    BillReminderListView,
+    BillReminderSaveView,
     BudgetCreateView,
     BudgetDeleteView,
     BudgetDetailView,
@@ -156,5 +160,13 @@ urlpatterns = [
         "goals/contribution/delete/",
         GoalContributionDeleteView.as_view(),
         name="goal_contribution_delete",
+    ),
+    path("bill-reminders/", BillReminderListView.as_view(), name="bill_reminder_list"),
+    path("bill-reminders/save/", BillReminderSaveView.as_view(), name="bill_reminder_save"),
+    path("bill-reminders/delete/", BillReminderDeleteView.as_view(), name="bill_reminder_delete"),
+    path(
+        "bill-reminders/defaults/",
+        BillReminderDefaultsView.as_view(),
+        name="bill_reminder_defaults",
     ),
 ]

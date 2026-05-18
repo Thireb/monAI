@@ -16,6 +16,13 @@ from .base import (
 # Home and calendar views
 from .home import CalendarContentView, HomeView
 
+from .bill_reminder import (
+    BillReminderDefaultsView,
+    BillReminderDeleteView,
+    BillReminderListView,
+    BillReminderSaveView,
+)
+
 # Budget views
 from .budget import (
     BudgetCreateView,
@@ -138,5 +145,9 @@ __all__ = [
     "GoalContributionCreateView",
     "GoalContributionUpdateView",
     "GoalContributionDeleteView",
+    # Bill reminders
+    "BillReminderListView",
+    "BillReminderSaveView",
+    "BillReminderDeleteView",
+    "BillReminderDefaultsView",
 ]
-

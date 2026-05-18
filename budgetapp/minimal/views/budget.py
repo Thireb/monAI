@@ -15,7 +15,8 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
-from budgetapp.models import Budget, Category, Expense, IncomeHistory, Tag
+from budgetapp.bill_reminder_utils import apply_bill_reminders_to_budget
+from budgetapp.models import BillReminder, Budget, Category, Expense, IncomeHistory, Tag
 
 from .base import LoginRequiredTemplateView, LoginRequiredView
 
@@ -40,7 +41,11 @@ class BudgetDetailView(LoginRequiredTemplateView):
         budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
 
         # Get all expenses for this budget
-        expenses_qs = budget.expenses.all().order_by("created_at")
+        expenses_qs = (
+            budget.expenses.all()
+            .select_related("category", "tag_foreign_key", "bill_reminder")
+            .order_by("created_at")
+        )
         categories = Category.objects.filter(user=self.request.user)
         tags = Tag.objects.filter(user=self.request.user).order_by("name")
 
@@ -81,6 +86,23 @@ class BudgetDetailView(LoginRequiredTemplateView):
                     "returns": expense_returns,
                     "total_returns": self._format_currency(float(expense_returns)),
                     "remaining_amount": self._format_currency(float(remaining_amount)),
+                    "bill_reminder_id": expense.bill_reminder_id,
+                    "bill_reminder_next": (
+                        expense.bill_reminder.next_bill_date.isoformat()
+                        if expense.bill_reminder_id
+                        else ""
+                    ),
+                    "bill_reminder_days": (
+                        expense.bill_reminder.remind_days_before if expense.bill_reminder_id else 30
+                    ),
+                    "bill_reminder_severity": (
+                        expense.bill_reminder.severity if expense.bill_reminder_id else "medium"
+                    ),
+                    "bill_reminder_recurrence": (
+                        expense.bill_reminder.recurrence_months
+                        if expense.bill_reminder_id
+                        else 12
+                    ),
                 }
             )
 
@@ -128,6 +150,8 @@ class BudgetDetailView(LoginRequiredTemplateView):
                 "expenses_by_category": expenses_by_category,
                 "tag_totals": tag_totals,
                 "tag_labels": tag_labels,
+                "bill_reminder_defaults_url": reverse("minimal:bill_reminder_defaults"),
+                "bill_reminder_severity_choices": BillReminder.Severity.choices,
                 **displays,
             }
         )
@@ -224,6 +248,13 @@ class BudgetCreateView(LoginRequiredView):
         messages.success(
             request, f'Budget for {target_month_date.strftime("%B %Y")} has been created'
         )
+
+        added = apply_bill_reminders_to_budget(budget)
+        if added:
+            messages.info(
+                request,
+                f"Added {added} scheduled bill line item(s) from your bill reminders.",
+            )
 
         # Return JSON response with redirect URL
         redirect_url = reverse(

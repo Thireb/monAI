@@ -1,0 +1,9 @@
+{% if bill_reminder_banners %}
+<div class="bill-reminder-banner-stack mb-3" role="status" aria-live="polite">
+    {% for b in bill_reminder_banners %}
+    <div class="bill-reminder-banner bill-reminder-banner--{{ b.severity }}">
+        <span class="bill-reminder-banner__text">{{ b.text }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}

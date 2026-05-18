@@ -6,9 +6,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from budgetapp.models import Budget, Category, Expense, SubExpense, Tag
+from budgetapp.models import BillReminder, Budget, Category, Expense, SubExpense, Tag
 
 from .serializers_mobile import (
+    MobileBillReminderPushItemSerializer,
+    MobileBillReminderSyncSerializer,
     MobileCategoryPushItemSerializer,
     MobileCategorySyncSerializer,
     MobileExpensePushItemSerializer,
@@ -17,6 +19,7 @@ from .serializers_mobile import (
     MobileSubExpenseSyncSerializer,
     MobileTagPushItemSerializer,
     MobileTagSyncSerializer,
+    save_bill_reminder_for_user,
     save_category_for_user,
     save_tag_for_user,
 )
@@ -78,6 +81,19 @@ def _collect_unknown_subexpense_ids(user, validated_items):
             continue
         if not SubExpense.objects.filter(pk=sid, expense__budget__user=user).exists():
             unknown.append(sid)
+    return unknown
+
+
+def _collect_unknown_bill_reminder_ids(user, validated_items):
+    unknown = []
+    for item in validated_items:
+        rid = item.get("id")
+        if rid is None:
+            continue
+        if item.get("deleted") and not BillReminder.objects.filter(pk=rid).exists():
+            continue
+        if not BillReminder.objects.filter(pk=rid, user=user).exists():
+            unknown.append(rid)
     return unknown
 
 
@@ -229,6 +245,12 @@ class MobileExpensePushView(APIView):
                     {"detail": "Unknown tag_id.", "tag_id": tag},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+            brm = item.get("bill_reminder_id")
+            if brm is not None and not BillReminder.objects.filter(pk=brm, user=user).exists():
+                return Response(
+                    {"detail": "Unknown bill_reminder_id.", "bill_reminder_id": brm},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         unknown = _collect_unknown_expense_ids(user, ser.validated_data)
         if unknown:
@@ -255,6 +277,7 @@ class MobileExpensePushView(APIView):
                 is_rec = item.get("is_recurring", False)
                 cat = item.get("category_id")
                 tag = item.get("tag_id")
+                brm = item.get("bill_reminder_id")
                 if eid is None:
                     e = Expense.objects.create(
                         budget=budget,
@@ -263,6 +286,7 @@ class MobileExpensePushView(APIView):
                         is_recurring=is_rec,
                         category_id=cat,
                         tag_foreign_key_id=tag,
+                        bill_reminder_id=brm,
                     )
                     created_ids.append(e.id)
                     server_ids.append(e.id)
@@ -274,6 +298,7 @@ class MobileExpensePushView(APIView):
                     e.is_recurring = is_rec
                     e.category_id = cat
                     e.tag_foreign_key_id = tag
+                    e.bill_reminder_id = brm
                     e.save()
                     server_ids.append(e.id)
         return Response(
@@ -370,5 +395,76 @@ class MobileSubExpensePushView(APIView):
                 "created_ids": created_ids,
                 "server_ids": server_ids,
             },
+            status=status.HTTP_200_OK,
+        )
+
+
+class MobileBillReminderPullView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        qs = BillReminder.objects.filter(user=user).order_by("updated_at", "id")
+        updated_after = _parse_updated_after(request.query_params.get("updated_after"))
+        if updated_after is not None:
+            qs = qs.filter(updated_at__gt=updated_after)
+        data = MobileBillReminderSyncSerializer(qs, many=True).data
+        return Response({"bill_reminders": data})
+
+
+class MobileBillReminderPushView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        raw_list = request.data.get("bill_reminders")
+        if not isinstance(raw_list, list):
+            return Response(
+                {"detail": "Expected key 'bill_reminders' with a list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ser = MobileBillReminderPushItemSerializer(data=raw_list, many=True)
+        ser.is_valid(raise_exception=True)
+        unknown = _collect_unknown_bill_reminder_ids(user, ser.validated_data)
+        if unknown:
+            return Response(
+                {"detail": "Unknown bill reminder id(s).", "unknown_ids": unknown},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        for item in ser.validated_data:
+            if item.get("deleted"):
+                continue
+            cat = item.get("category_id")
+            if cat is not None and not Category.objects.filter(pk=cat, user=user).exists():
+                return Response(
+                    {"detail": "Unknown category_id.", "category_id": cat},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            tag = item.get("tag_id")
+            if tag is not None and not Tag.objects.filter(pk=tag, user=user).exists():
+                return Response(
+                    {"detail": "Unknown tag_id.", "tag_id": tag},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        created_ids = []
+        server_ids = []
+        with transaction.atomic():
+            for item in ser.validated_data:
+                if item.get("deleted"):
+                    rid = item["id"]
+                    br = BillReminder.objects.filter(pk=rid, user=user).first()
+                    server_ids.append(rid)
+                    if br is not None:
+                        br.delete()
+                    continue
+                obj, created = save_bill_reminder_for_user(user, item)
+                if obj is None:
+                    continue
+                if created:
+                    created_ids.append(obj.id)
+                server_ids.append(obj.id)
+        return Response(
+            {"created_ids": created_ids, "server_ids": server_ids},
             status=status.HTTP_200_OK,
         )
