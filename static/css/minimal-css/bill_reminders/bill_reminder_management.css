@@ -1,5 +1,29 @@
 /* Bill reminder management page */
 
+#bill-reminder-form-section {
+    position: relative;
+}
+
+.bill-reminder-form-glass .select2-container {
+    display: block;
+    width: 100% !important;
+}
+
+.bill-reminder-signal-row .form-control,
+.bill-reminder-signal-row .form-select {
+    box-sizing: border-box;
+    min-height: 46px;
+    font-size: 1.05rem;
+    padding-top: 0.5625rem;
+    padding-bottom: 0.5625rem;
+    line-height: 1.35;
+}
+
+.bill-reminder-signal-row .form-select {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
 .bill-reminder-management-container {
     min-height: 100vh;
     background: linear-gradient(135deg, #f3f6fa 0%, #e9eafc 100%) !important;
