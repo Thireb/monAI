@@ -3,10 +3,12 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% versioned_static 'css/minimal-css/calendar/calendar.css' %}">
 <link rel="stylesheet" href="{% versioned_static 'css/minimal-css/tooltip/tooltip.css' %}">
+<link rel="stylesheet" href="{% versioned_static 'css/minimal-css/bill_reminders/dashboard_banner.css' %}">
 {% endblock extra_css %}
 {% block content %}
 {% csrf_token %}
 <div class="minimal-home-outer">
+    {% include "minimal/components/bill_reminder_banner.html" %}
     <div class="minimal-home-container">
         <div id="calendarContent">
             {% include "minimal/components/calendar_content.html" %}

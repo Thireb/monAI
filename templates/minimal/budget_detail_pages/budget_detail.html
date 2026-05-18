@@ -12,7 +12,8 @@
     <!-- Hidden element to store currency for JavaScript -->
     <span class="budget-currency d-none">{{ budget.currency }}</span>
     <span id="js-budget-meta" data-year="{{ budget.month.year }}" data-month="{{ budget.month.month }}"
-        data-home-url="{% url 'minimal:home' %}"></span>
+        data-home-url="{% url 'minimal:home' %}"
+        data-bill-reminder-defaults-url="{{ bill_reminder_defaults_url }}"></span>
 
     <div class="budget-header colorful-bg mb-4">
         <div class="d-flex align-items-center">

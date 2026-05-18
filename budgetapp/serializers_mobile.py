@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from budgetapp.models import Budget, Category, Expense, SubExpense, Tag
+from budgetapp.models import BillReminder, Budget, Category, Expense, SubExpense, Tag
 
 
 class MobileBudgetSyncSerializer(serializers.ModelSerializer):
@@ -106,6 +106,7 @@ class MobileExpenseSyncSerializer(serializers.ModelSerializer):
     budget_id = serializers.IntegerField(read_only=True)
     category_id = serializers.IntegerField(read_only=True, allow_null=True)
     tag_id = serializers.IntegerField(source="tag_foreign_key_id", read_only=True, allow_null=True)
+    bill_reminder_id = serializers.IntegerField(read_only=True, allow_null=True)
 
     class Meta:
         model = Expense
@@ -117,6 +118,7 @@ class MobileExpenseSyncSerializer(serializers.ModelSerializer):
             "is_recurring",
             "category_id",
             "tag_id",
+            "bill_reminder_id",
             "created_at",
             "updated_at",
         ]
@@ -133,6 +135,7 @@ class MobileExpensePushItemSerializer(serializers.Serializer):
     is_recurring = serializers.BooleanField(required=False, default=False)
     category_id = serializers.IntegerField(required=False, allow_null=True)
     tag_id = serializers.IntegerField(required=False, allow_null=True)
+    bill_reminder_id = serializers.IntegerField(required=False, allow_null=True)
     deleted = serializers.BooleanField(required=False, default=False)
 
     def validate_amount(self, value):
@@ -282,3 +285,113 @@ def save_tag_for_user(user, item):
     t.is_active = is_active
     t.save()
     return t, False
+
+
+class MobileBillReminderSyncSerializer(serializers.ModelSerializer):
+    category_id = serializers.IntegerField(read_only=True, allow_null=True)
+    tag_id = serializers.IntegerField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = BillReminder
+        fields = [
+            "id",
+            "name",
+            "amount",
+            "category_id",
+            "tag_id",
+            "next_bill_date",
+            "remind_days_before",
+            "severity",
+            "recurrence_months",
+            "is_active",
+            "notes",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class MobileBillReminderPushItemSerializer(serializers.Serializer):
+    id = serializers.IntegerField(required=False, allow_null=True)
+    deleted = serializers.BooleanField(required=False, default=False)
+    name = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    category_id = serializers.IntegerField(required=False, allow_null=True)
+    tag_id = serializers.IntegerField(required=False, allow_null=True)
+    next_bill_date = serializers.DateField(required=False, allow_null=True)
+    remind_days_before = serializers.IntegerField(required=False, default=30)
+    severity = serializers.CharField(
+        max_length=10, required=False, default=BillReminder.Severity.MEDIUM
+    )
+    recurrence_months = serializers.IntegerField(required=False, default=12)
+    is_active = serializers.BooleanField(required=False, default=True)
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+    def validate_amount(self, value):
+        if value is None:
+            return value
+        if value < Decimal("0"):
+            raise serializers.ValidationError("Amount cannot be negative")
+        return value
+
+    def validate(self, attrs):
+        if attrs.get("deleted"):
+            if attrs.get("id") is None:
+                err = {"id": "Required when deleting a bill reminder."}
+                raise serializers.ValidationError(err)
+            return attrs
+        name = (attrs.get("name") or "").strip()
+        if not name:
+            raise serializers.ValidationError({"name": "Name is required."})
+        attrs["name"] = name
+        if attrs.get("amount") is None:
+            raise serializers.ValidationError({"amount": "This field is required."})
+        if attrs.get("next_bill_date") is None:
+            raise serializers.ValidationError({"next_bill_date": "This field is required."})
+        sev_ok = {c[0] for c in BillReminder.Severity.choices}
+        if attrs.get("severity") not in sev_ok:
+            attrs["severity"] = BillReminder.Severity.MEDIUM
+        attrs["remind_days_before"] = max(1, int(attrs.get("remind_days_before") or 30))
+        attrs["recurrence_months"] = max(1, int(attrs.get("recurrence_months") or 12))
+        return attrs
+
+
+def save_bill_reminder_for_user(user, item):
+    """Create or update bill reminder.
+
+    Returns (instance, created) or (None, False) if id unknown.
+    """
+    rid = item.get("id")
+    if rid is None:
+        br = BillReminder.objects.create(
+            user=user,
+            name=item["name"],
+            amount=item["amount"],
+            category_id=item.get("category_id"),
+            tag_id=item.get("tag_id"),
+            next_bill_date=item["next_bill_date"],
+            remind_days_before=item.get("remind_days_before", 30),
+            severity=item.get("severity", BillReminder.Severity.MEDIUM),
+            recurrence_months=item.get("recurrence_months", 12),
+            is_active=item.get("is_active", True),
+            notes=item.get("notes") or "",
+        )
+        return br, True
+    try:
+        br = BillReminder.objects.get(pk=rid, user=user)
+    except BillReminder.DoesNotExist:
+        return None, False
+    br.name = item["name"]
+    br.amount = item["amount"]
+    br.category_id = item.get("category_id")
+    br.tag_id = item.get("tag_id")
+    br.next_bill_date = item["next_bill_date"]
+    br.remind_days_before = item.get("remind_days_before", 30)
+    br.severity = item.get("severity", BillReminder.Severity.MEDIUM)
+    br.recurrence_months = item.get("recurrence_months", 12)
+    br.is_active = item.get("is_active", True)
+    br.notes = item.get("notes") or ""
+    br.save()
+    return br, False

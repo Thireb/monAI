@@ -6,6 +6,8 @@ from .api import BudgetViewSet
 from .api_goals import GoalContributionViewSet, GoalViewSet
 from .api_mobile_auth import MobileObtainAuthTokenView
 from .api_mobile_catalog import (
+    MobileBillReminderPullView,
+    MobileBillReminderPushView,
     MobileCategoryPullView,
     MobileCategoryPushView,
     MobileExpensePullView,
@@ -61,6 +63,16 @@ urlpatterns = [
         "mobile/sub-expenses/push/",
         MobileSubExpensePushView.as_view(),
         name="api-mobile-subexpense-push",
+    ),
+    path(
+        "mobile/bill-reminders/pull/",
+        MobileBillReminderPullView.as_view(),
+        name="api-mobile-bill-reminder-pull",
+    ),
+    path(
+        "mobile/bill-reminders/push/",
+        MobileBillReminderPushView.as_view(),
+        name="api-mobile-bill-reminder-push",
     ),
     path("", include(router.urls)),
 ]

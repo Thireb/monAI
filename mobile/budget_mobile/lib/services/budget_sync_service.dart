@@ -196,6 +196,9 @@ class BudgetSyncService {
         "category_id": r.categoryServerId,
         "tag_id": r.tagServerId,
       };
+      if (r.billReminderServerId != null) {
+        m["bill_reminder_id"] = r.billReminderServerId;
+      }
       if (r.serverId != null) {
         m["id"] = r.serverId;
       }
@@ -491,6 +494,7 @@ class BudgetSyncService {
       final rec = item["is_recurring"] == true;
       final cat = _asInt(item["category_id"]);
       final tag = _asInt(item["tag_id"]);
+      final billRem = _asInt(item["bill_reminder_id"]);
       final updatedIso = item["updated_at"] as String?;
       if (updatedIso == null || updatedIso.isEmpty) {
         continue;
@@ -503,6 +507,7 @@ class BudgetSyncService {
         isRecurring: rec,
         categoryId: cat,
         tagId: tag,
+        billReminderId: billRem,
         serverUpdatedAtIso: updatedIso,
       );
       if (maxIso == null || updatedIso.compareTo(maxIso) > 0) {

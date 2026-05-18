@@ -636,3 +636,61 @@ class MobileCatalogSyncApiTests(TestCase):
         r = self.client.post(url, {"tags": {}}, format="json")
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("detail", r.data)
+
+    def test_bill_reminder_pull_returns_own(self):
+        from budgetapp.models import BillReminder
+
+        BillReminder.objects.create(
+            user=self.user,
+            name="Tax",
+            amount=Decimal("100.00"),
+            next_bill_date=date(2040, 6, 1),
+        )
+        url = reverse("api-mobile-bill-reminder-pull")
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(r.data["bill_reminders"]), 1)
+
+    def test_bill_reminder_push_create_and_expense_link(self):
+        from budgetapp.models import BillReminder, Budget, Expense
+
+        b = Budget.objects.create(
+            user=self.user,
+            month=date(2041, 1, 1),
+            income=Decimal("1000.00"),
+        )
+        url_br = reverse("api-mobile-bill-reminder-push")
+        r1 = self.client.post(
+            url_br,
+            {
+                "bill_reminders": [
+                    {
+                        "name": "Annual",
+                        "amount": "50.00",
+                        "next_bill_date": "2041-03-15",
+                        "remind_days_before": 14,
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(r1.status_code, status.HTTP_200_OK)
+        br = BillReminder.objects.get(user=self.user, name="Annual")
+        url_ex = reverse("api-mobile-expense-push")
+        r2 = self.client.post(
+            url_ex,
+            {
+                "expenses": [
+                    {
+                        "budget_id": b.id,
+                        "name": "Annual",
+                        "amount": "50.00",
+                        "bill_reminder_id": br.id,
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(r2.status_code, status.HTTP_200_OK)
+        exp = Expense.objects.get(budget=b)
+        self.assertEqual(exp.bill_reminder_id, br.id)
