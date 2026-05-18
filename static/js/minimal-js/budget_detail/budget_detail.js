@@ -7,7 +7,7 @@ $(function () {
   });
 
   // Show Edit Expense modal (fill form with data)
-  $('.edit-expense-btn').on('click', function () {
+  $(document).on('click', '.edit-expense-btn', function () {
     var btn = $(this);
     $('#expense_id').val(btn.data('expense-id'));
     $('#expense_name').val(btn.data('expense-name'));
@@ -26,9 +26,20 @@ $(function () {
       btn.data('expense-recurring') === true || btn.data('expense-recurring') === 'true'
     );
 
+    const remEnabled = btn.data('reminder-enabled') === true || btn.data('reminder-enabled') === 'true';
+    $('#bill_reminder_enabled').prop('checked', remEnabled);
+    $('#bill_reminder_next_date').val(btn.data('reminder-next-date') || '');
+    $('#bill_reminder_days_before').val(btn.data('reminder-days-before') || 30);
+    $('#bill_reminder_severity').val(btn.data('reminder-severity') || 'medium');
+    $('#bill_reminder_recurrence_months').val(btn.data('reminder-recurrence') || 12);
+
     // Trigger Select2 to update its display for dropdowns
     $('#expense_category').trigger('change');
     $('#expense_tag_foreign_key').trigger('change');
+
+    if ($('#bill_reminder_enabled').is(':checked') && $('#bill_reminder_next_date').val()) {
+      refreshBillReminderDefaultsFromServer();
+    }
 
     // Use the shared openModalWithAnimation function
     openModalWithAnimation('#expenseModal');
@@ -230,8 +241,44 @@ $(function () {
     var $form = $('#expense-form');
     $form[0].reset();
     $('#expense_id').val('');
+    $('#bill_reminder_enabled').prop('checked', false);
+    $('#bill_reminder_next_date').val('');
+    $('#bill_reminder_days_before').val(30);
+    $('#bill_reminder_severity').val('medium');
+    $('#bill_reminder_recurrence_months').val(12);
     clearFormErrors($form);
   }
+
+  function refreshBillReminderDefaultsFromServer() {
+    const base = $('#js-budget-meta').data('bill-reminder-defaults-url');
+    if (!base) {
+      return;
+    }
+    const eid = $('#expense_id').val();
+    const dt = $('#bill_reminder_next_date').val();
+    if (!dt) {
+      return;
+    }
+    let url = base + '?next_bill_date=' + encodeURIComponent(dt);
+    if (eid) {
+      url += '&expense_id=' + encodeURIComponent(eid);
+    }
+    $.getJSON(url).done(function (data) {
+      if (data.remind_days_before != null) {
+        $('#bill_reminder_days_before').val(data.remind_days_before);
+      }
+      if (data.severity) {
+        $('#bill_reminder_severity').val(data.severity);
+      }
+      if (data.recurrence_months != null) {
+        $('#bill_reminder_recurrence_months').val(data.recurrence_months);
+      }
+    });
+  }
+
+  $(document).on('change', '#bill_reminder_next_date', function () {
+    refreshBillReminderDefaultsFromServer();
+  });
 
   // Helper function to add a new expense row to the table
   function addExpenseRow(expense) {
@@ -322,6 +369,9 @@ $(function () {
     const actionsCell = $('<td>').addClass('expense-actions-cell');
 
     // Edit button
+    const br = expense.bill_reminder;
+    const brId = expense.bill_reminder_id;
+    const remEnabled = !!(br && brId);
     const editBtn = $('<button>')
       .addClass('btn-icon edit-expense-btn minimal-tooltip-trigger')
       .attr({
@@ -333,6 +383,12 @@ $(function () {
         'data-expense-category': expense.category_id || null,
         'data-expense-tag': expense.tag_foreign_key_id || '',
         'data-expense-recurring': expense.is_recurring,
+        'data-bill-reminder-id': brId || '',
+        'data-reminder-next-date': br && br.next_bill_date ? br.next_bill_date : '',
+        'data-reminder-days-before': br ? br.remind_days_before : 30,
+        'data-reminder-severity': br ? br.severity : 'medium',
+        'data-reminder-recurrence': br ? br.recurrence_months : 12,
+        'data-reminder-enabled': remEnabled,
       })
       .text('✏️');
 
@@ -356,32 +412,6 @@ $(function () {
     if (window.initMinimalTooltips) {
       window.initMinimalTooltips('.minimal-tooltip-trigger');
     }
-
-    // Rebind event handlers for the new buttons
-    editBtn.on('click', function () {
-      $('#expense_id').val($(this).data('expense-id'));
-      $('#expense_name').val($(this).data('expense-name'));
-      $('#expense_amount').val($(this).data('expense-amount'));
-
-      // Handle category - set to empty string if null/undefined
-      var categoryValue = $(this).data('expense-category');
-      $('#expense_category').val(categoryValue || '');
-
-      // Handle tag - use tag_foreign_key_id for the new tag system
-      var tagValue = $(this).data('expense-tag');
-      $('#expense_tag_foreign_key').val(tagValue || '');
-
-      $('#expense_recurring').prop(
-        'checked',
-        $(this).data('expense-recurring') === true || $(this).data('expense-recurring') === 'true'
-      );
-
-      // Trigger Select2 to update its display for dropdowns
-      $('#expense_category').trigger('change');
-      $('#expense_tag_foreign_key').trigger('change');
-
-      openModalWithAnimation('#expenseModal');
-    });
 
     // Update totals
     updateBudgetTotals();
@@ -468,12 +498,21 @@ $(function () {
 
     // Update data attributes on the edit button
     const editBtn = row.find('.edit-expense-btn');
+    const br = expense.bill_reminder;
+    const brId = expense.bill_reminder_id;
+    const remEnabled = !!(br && brId);
     editBtn.attr({
       'data-expense-name': expense.name,
       'data-expense-amount': expense.amount,
       'data-expense-category': expense.category_id || null,
       'data-expense-tag': expense.tag_foreign_key_id || '',
       'data-expense-recurring': expense.is_recurring,
+      'data-bill-reminder-id': brId || '',
+      'data-reminder-next-date': br && br.next_bill_date ? br.next_bill_date : '',
+      'data-reminder-days-before': br ? br.remind_days_before : 30,
+      'data-reminder-severity': br ? br.severity : 'medium',
+      'data-reminder-recurrence': br ? br.recurrence_months : 12,
+      'data-reminder-enabled': remEnabled,
     });
 
     // Reinitialize tooltips on the updated row

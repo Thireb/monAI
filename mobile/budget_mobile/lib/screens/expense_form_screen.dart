@@ -183,6 +183,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                         isRecurring: _recurring,
                         categoryServerId: _categoryServerId,
                         tagServerId: _tagServerId,
+                        billReminderServerId: e.billReminderServerId,
                       );
                     }
                     if (context.mounted) {
