@@ -86,7 +86,13 @@
                                 data-expense-amount="{{ expense.amount }}"
                                 data-expense-category="{% if expense.category %}{{ expense.category.id }}{% else %}{% endif %}"
                                 data-expense-tag="{% if expense.tag_foreign_key %}{{ expense.tag_foreign_key.id }}{% else %}{% endif %}"
-                                data-expense-recurring="{% if expense.is_recurring %}true{% else %}false{% endif %}">✏️</button>
+                                data-expense-recurring="{% if expense.is_recurring %}true{% else %}false{% endif %}"
+                                data-bill-reminder-id="{{ expense.bill_reminder_id|default:'' }}"
+                                data-reminder-next-date="{{ expense.bill_reminder_next }}"
+                                data-reminder-days-before="{{ expense.bill_reminder_days }}"
+                                data-reminder-severity="{{ expense.bill_reminder_severity }}"
+                                data-reminder-recurrence="{{ expense.bill_reminder_recurrence }}"
+                                data-reminder-enabled="{% if expense.bill_reminder_id %}true{% else %}false{% endif %}">✏️</button>
                             <button class="btn-icon btn-danger delete-expense-btn minimal-tooltip-trigger"
                                 aria-label="Delete" data-tooltip="Delete"
                                 data-expense-id="{{ expense.id }}">🗑️</button>

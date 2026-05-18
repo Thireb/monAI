@@ -207,6 +207,14 @@ class Expense(models.Model):
         related_name="expenses",
         help_text="Custom tag for this expense",
     )
+    bill_reminder = models.ForeignKey(
+        "BillReminder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="linked_expenses",
+        help_text="Optional scheduled bill used for reminders and dashboard banner",
+    )
 
     def __str__(self):
         return f"{self.name} - {self.amount}"
@@ -240,6 +248,69 @@ class Expense(models.Model):
             self.sub_expenses.filter(is_return=False).aggregate(total=models.Sum("amount"))["total"]
             or 0
         )
+
+
+class BillReminder(models.Model):
+    """
+    Scheduled non-monthly bill (for example annual tax) with dashboard alerts
+    and optional auto-insert into the budget for its due month.
+    """
+
+    class Severity(models.TextChoices):
+        LOW = "low", "Low"
+        MEDIUM = "medium", "Medium"
+        HIGH = "high", "High"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="bill_reminders",
+        null=True,
+        blank=True,
+    )
+    name = models.CharField(max_length=200)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0"))
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bill_reminders",
+    )
+    tag = models.ForeignKey(
+        Tag,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bill_reminders",
+    )
+    next_bill_date = models.DateField()
+    remind_days_before = models.PositiveIntegerField(
+        default=30,
+        help_text="How many days before the due date the alert window starts",
+    )
+    severity = models.CharField(
+        max_length=10,
+        choices=Severity.choices,
+        default=Severity.MEDIUM,
+    )
+    recurrence_months = models.PositiveIntegerField(
+        default=12,
+        help_text="How many months to advance the due date after it is applied to a budget",
+    )
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["next_bill_date", "name"]
+        indexes = [
+            models.Index(fields=["user", "is_active", "next_bill_date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.next_bill_date})"
 
 
 class SubExpense(models.Model):

@@ -12,6 +12,7 @@ typedef ExpenseRow = ({
   bool isRecurring,
   int? categoryServerId,
   int? tagServerId,
+  int? billReminderServerId,
   String? serverUpdatedAtIso,
   int dirty,
 });
@@ -21,14 +22,19 @@ class ExpenseRepository {
 
   final AppDatabase _db;
 
+  static const String _selectCols = """
+SELECT e.id AS eid, e.server_id AS esid, e.budget_local_id AS blid, b.server_id AS bsid,
+       e.name AS ename, e.amount AS eamount, e.is_recurring AS erec,
+       e.category_server_id AS ccat, e.tag_server_id AS etag,
+       e.bill_reminder_server_id AS brrem,
+       e.server_updated_at AS eupd, e.dirty AS edirty
+""";
+
   /// Dirty expenses whose budget row has server_id (can push).
   Future<List<ExpenseRow>> dirtyRowsReadyToPush() async {
     final db = await _db.database;
     final rows = await db.rawQuery("""
-SELECT e.id AS eid, e.server_id AS esid, e.budget_local_id AS blid, b.server_id AS bsid,
-       e.name AS ename, e.amount AS eamount, e.is_recurring AS erec,
-       e.category_server_id AS ccat, e.tag_server_id AS etag,
-       e.server_updated_at AS eupd, e.dirty AS edirty
+$_selectCols
 FROM expense e
 JOIN budget b ON b.id = e.budget_local_id
 WHERE e.deleted = 0 AND e.dirty = 1 AND b.server_id IS NOT NULL AND b.deleted = 0
@@ -41,10 +47,7 @@ ORDER BY e.id ASC
   Future<List<ExpenseRow>> dirtyDeletedRowsReadyToPush() async {
     final db = await _db.database;
     final rows = await db.rawQuery("""
-SELECT e.id AS eid, e.server_id AS esid, e.budget_local_id AS blid, b.server_id AS bsid,
-       e.name AS ename, e.amount AS eamount, e.is_recurring AS erec,
-       e.category_server_id AS ccat, e.tag_server_id AS etag,
-       e.server_updated_at AS eupd, e.dirty AS edirty
+$_selectCols
 FROM expense e
 JOIN budget b ON b.id = e.budget_local_id
 WHERE e.deleted = 1 AND e.dirty = 1 AND e.server_id IS NOT NULL
@@ -57,10 +60,7 @@ ORDER BY e.id ASC
   Future<List<ExpenseRow>> listForBudgetLocalId(int budgetLocalId) async {
     final db = await _db.database;
     final rows = await db.rawQuery("""
-SELECT e.id AS eid, e.server_id AS esid, e.budget_local_id AS blid, b.server_id AS bsid,
-       e.name AS ename, e.amount AS eamount, e.is_recurring AS erec,
-       e.category_server_id AS ccat, e.tag_server_id AS etag,
-       e.server_updated_at AS eupd, e.dirty AS edirty
+$_selectCols
 FROM expense e
 JOIN budget b ON b.id = e.budget_local_id
 WHERE e.deleted = 0 AND e.budget_local_id = ?
@@ -77,6 +77,7 @@ ORDER BY e.id ASC
     required bool isRecurring,
     int? categoryId,
     int? tagId,
+    int? billReminderId,
     required String serverUpdatedAtIso,
   }) async {
     final db = await _db.database;
@@ -103,6 +104,7 @@ ORDER BY e.id ASC
         "is_recurring": isRecurring ? 1 : 0,
         "category_server_id": categoryId,
         "tag_server_id": tagId,
+        "bill_reminder_server_id": billReminderId,
         "server_updated_at": serverUpdatedAtIso,
         "dirty": 0,
         "deleted": 0,
@@ -119,6 +121,7 @@ ORDER BY e.id ASC
         "is_recurring": isRecurring ? 1 : 0,
         "category_server_id": categoryId,
         "tag_server_id": tagId,
+        "bill_reminder_server_id": billReminderId,
         "server_updated_at": serverUpdatedAtIso,
         "dirty": 0,
       },
@@ -134,6 +137,7 @@ ORDER BY e.id ASC
     bool isRecurring = false,
     int? categoryServerId,
     int? tagServerId,
+    int? billReminderServerId,
   }) async {
     final db = await _db.database;
     return db.insert("expense", {
@@ -143,6 +147,7 @@ ORDER BY e.id ASC
       "is_recurring": isRecurring ? 1 : 0,
       "category_server_id": categoryServerId,
       "tag_server_id": tagServerId,
+      "bill_reminder_server_id": billReminderServerId,
       "server_updated_at": null,
       "dirty": 1,
       "deleted": 0,
@@ -157,6 +162,7 @@ ORDER BY e.id ASC
     bool isRecurring = false,
     int? categoryServerId,
     int? tagServerId,
+    int? billReminderServerId,
   }) async {
     final db = await _db.database;
     await db.update(
@@ -168,6 +174,7 @@ ORDER BY e.id ASC
         "is_recurring": isRecurring ? 1 : 0,
         "category_server_id": categoryServerId,
         "tag_server_id": tagServerId,
+        "bill_reminder_server_id": billReminderServerId,
         "dirty": 1,
       },
       where: "id = ?",
@@ -327,6 +334,7 @@ WHERE server_id IS NOT NULL AND deleted = 0 AND dirty = 0
       isRecurring: rec == 1 || rec == true,
       categoryServerId: m["ccat"] as int?,
       tagServerId: m["etag"] as int?,
+      billReminderServerId: m["brrem"] as int?,
       serverUpdatedAtIso: m["eupd"] as String?,
       dirty: m["edirty"] as int,
     );

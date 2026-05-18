@@ -57,6 +57,44 @@
                     <label class="form-check-label" for="expense_recurring">Recurring Expense</label>
                     <div class="form-text">Check if this is a monthly recurring expense</div>
                 </div>
+                <fieldset class="border rounded p-3 mb-3 bill-reminder-fieldset">
+                    <legend class="float-none w-auto px-2 fs-6 mb-0">Bill reminder (optional)</legend>
+                    <div class="mb-2 form-check">
+                        <input type="checkbox" name="bill_reminder_enabled" class="form-check-input"
+                            id="bill_reminder_enabled" aria-label="Enable bill reminder">
+                        <label class="form-check-label" for="bill_reminder_enabled">Track next due date</label>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label for="bill_reminder_next_date" class="form-label">Next due date</label>
+                            <input type="date" name="bill_reminder_next_date" class="form-control"
+                                id="bill_reminder_next_date" aria-label="Next bill due date">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="bill_reminder_days_before" class="form-label">Remind days before</label>
+                            <input type="number" min="1" max="365" name="bill_reminder_days_before"
+                                class="form-control" id="bill_reminder_days_before" value="30"
+                                aria-label="Days before due date to start reminder">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="bill_reminder_severity" class="form-label">Severity</label>
+                            <select name="bill_reminder_severity" id="bill_reminder_severity" class="form-select"
+                                aria-label="Reminder severity">
+                                {% for value, label in bill_reminder_severity_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="bill_reminder_recurrence_months" class="form-label">Repeat every (months)</label>
+                            <input type="number" min="1" max="120" name="bill_reminder_recurrence_months"
+                                class="form-control" id="bill_reminder_recurrence_months" value="12"
+                                aria-label="Months between occurrences">
+                        </div>
+                    </div>
+                    <p class="form-text mb-0 mt-2">Shows a dashboard banner before the billing month and can auto-add
+                        this line when you create that month&apos;s budget.</p>
+                </fieldset>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-minimal expense-cancel-btn" aria-label="Cancel">Cancel</button>

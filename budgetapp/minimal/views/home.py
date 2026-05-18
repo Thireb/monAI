@@ -9,6 +9,7 @@ from datetime import date
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 
+from budgetapp.bill_reminder_utils import dashboard_banner_reminders_for_user
 from budgetapp.models import Budget
 
 from .base import LoginRequiredTemplateView, LoginRequiredView
@@ -117,6 +118,16 @@ class HomeView(LoginRequiredTemplateView):
         context["cache_min_year"] = min_year
         context["cache_max_year"] = max_year
 
+        banners = dashboard_banner_reminders_for_user(self.request.user, today)
+        context["bill_reminder_banners"] = [
+            {
+                "id": r.id,
+                "text": f"{r.name} — due {r.next_bill_date.strftime('%b %d, %Y')}",
+                "severity": r.severity,
+            }
+            for r in banners
+        ]
+
         return context
 
 
@@ -146,4 +157,3 @@ class CalendarContentView(LoginRequiredView):
             request=request,
         )
         return JsonResponse({"html": html, "year": selected_year})
-

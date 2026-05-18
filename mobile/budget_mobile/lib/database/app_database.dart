@@ -2,7 +2,7 @@ import "package:path/path.dart" as p;
 import "package:path_provider/path_provider.dart";
 import "package:sqflite/sqflite.dart";
 
-const int _dbVersion = 4;
+const int _dbVersion = 5;
 
 /// Local SQLite for offline budgeting and server sync.
 class AppDatabase {
@@ -65,6 +65,11 @@ class AppDatabase {
         if (oldVersion < 4) {
           await _createSubExpenseTable(db);
         }
+        if (oldVersion < 5) {
+          await db.execute(
+            "ALTER TABLE expense ADD COLUMN bill_reminder_server_id INTEGER",
+          );
+        }
       },
     );
   }
@@ -125,6 +130,7 @@ CREATE TABLE expense (
   is_recurring INTEGER NOT NULL DEFAULT 0,
   category_server_id INTEGER,
   tag_server_id INTEGER,
+  bill_reminder_server_id INTEGER,
   server_updated_at TEXT,
   dirty INTEGER NOT NULL DEFAULT 0,
   deleted INTEGER NOT NULL DEFAULT 0,
