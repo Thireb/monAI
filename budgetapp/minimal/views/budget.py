@@ -38,7 +38,7 @@ class BudgetDetailView(LoginRequiredTemplateView):
         year = self.kwargs.get("year")
         month = self.kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
+        budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
 
         # Get all expenses for this budget
         expenses_qs = (
@@ -197,7 +197,7 @@ class BudgetCreateView(LoginRequiredView):
                 target_month_date = timezone.now().date().replace(day=1)
 
         # Check if budget already exists for this month
-        if Budget.objects.filter(user=request.user, month=target_month_date).exists():
+        if Budget.objects.filter(user=request.user, month=target_month_date, is_archived=False).exists():
             return JsonResponse(
                 {
                     "status": "error",
