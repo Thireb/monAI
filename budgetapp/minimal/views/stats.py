@@ -25,7 +25,7 @@ class CategoryStatsView(LoginRequiredView):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
+        budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
 
         # Get all expenses for this budget
         expenses_qs = budget.expenses.all()
@@ -75,7 +75,7 @@ class TagStatsView(LoginRequiredView):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
+        budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
 
         # Get all expenses for this budget
         expenses_qs = budget.expenses.all()

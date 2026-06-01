@@ -312,7 +312,7 @@ class IncomeUpdateView(LoginRequiredView):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
+        budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
 
         income = request.POST.get("income")
         currency = request.POST.get("currency")
@@ -369,7 +369,7 @@ class SummaryCardsView(LoginRequiredView):
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
+        budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
 
         displays = budget.get_summary_display_strings(self._format_currency)
 
@@ -566,7 +566,7 @@ class BudgetEmailPDFView(LoginRequiredView):
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
 
         try:
-            budget = get_object_or_404(Budget, month=budget_date, user=self.request.user)
+            budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
         except Exception:
             return JsonResponse(
                 {"status": "error", "message": "Budget not found."},
