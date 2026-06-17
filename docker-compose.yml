@@ -8,7 +8,12 @@
 # =============================================================================
 name: monai
 services:
-  # One service = one container (you can add more later: db, redis, celery…)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  # One service = one container (you can add more later: db, celery…)
   budget_tracker:
     build:
       context: .

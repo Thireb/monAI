@@ -6,5 +6,4 @@ class BudgetappConfig(AppConfig):
     name = "budgetapp"
 
     def ready(self):
-        # Import tasks but don't execute them during app initialization
-        pass  # No action needed after removing the unused import
+        import budgetapp.signals  # noqa: F401

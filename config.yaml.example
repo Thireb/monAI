@@ -25,6 +25,11 @@ celery:
   broker_url: "redis://localhost:6379/0"
   result_backend: "redis://localhost:6379/0"
 
+# Django cache backend (use DB 1 so Celery broker stays on DB 0)
+redis:
+  cache_url: "redis://localhost:6379/1"
+  cache_timeout_seconds: 3600
+
 # backend: console | smtp | resend
 email:
   backend: "console"
@@ -43,3 +48,8 @@ superuser:
   email: ""
   username: ""
   password: ""
+
+# Optional: simulate slow dashboard/calendar queries for load-testing lessons.
+# Set calendar_query_delay_seconds to 0 (or remove this block) for normal speed.
+learning_demo:
+  calendar_query_delay_seconds: 0

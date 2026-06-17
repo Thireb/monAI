@@ -22,6 +22,7 @@ from .config import (
     get_celery_config,
     get_database_config,
     get_email_config,
+    get_redis_config,
     get_server_config,
 )
 
@@ -37,6 +38,7 @@ server_config = get_server_config()
 db_config = get_database_config()
 celery_config = get_celery_config()
 email_config = get_email_config()
+redis_config = get_redis_config()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = app_config.get("secret_key", "django-insecure-fallback-key")
@@ -94,11 +96,24 @@ if _csrf_env:
 # (it embeds the web app in an iframe)
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 X_FRAME_OPTIONS = "ALLOWALL"
-# changes for csrf error in ngrok apk
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SECURE = True
+# Capacitor APK embeds the app in a cross-site iframe (ngrok HTTPS). Enable only for that:
+#   CAPACITOR_SECURE_COOKIES=1 uv run gunicorn ...
+_use_capacitor_cookies = os.environ.get("CAPACITOR_SECURE_COOKIES", "").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+if _use_capacitor_cookies:
+    CSRF_COOKIE_SAMESITE = "None"
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = "None"
+    SESSION_COOKIE_SECURE = True
+else:
+    # Local http://127.0.0.1:8000 and Locust: browsers ignore Secure cookies without HTTPS.
+    CSRF_COOKIE_SAMESITE = "Lax"
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = False
 # =============================================================================
 # Application definition
 # =============================================================================
@@ -340,6 +355,19 @@ CELERY_BROKER_URL = celery_config.get("broker_url", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = celery_config.get("result_backend", "redis://localhost:6379/0")
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+# =============================================================================
+# Redis cache (calendar HTML and dashboard payloads)
+# =============================================================================
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": redis_config.get("cache_url", "redis://localhost:6379/1"),
+        "KEY_PREFIX": "monai",
+        "TIMEOUT": redis_config.get("cache_timeout_seconds", 3600),
+    }
+}
 
 # =============================================================================
 # Django-allauth Configuration

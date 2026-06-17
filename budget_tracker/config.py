@@ -95,6 +95,10 @@ except FileNotFoundError:
             "broker_url": "redis://localhost:6379/0",
             "result_backend": "redis://localhost:6379/0",
         },
+        "redis": {
+            "cache_url": "redis://localhost:6379/1",
+            "cache_timeout_seconds": 3600,
+        },
         "email": {
             "backend": "console",
             "resend": {
@@ -136,6 +140,11 @@ def get_celery_config():
     return CONFIG.get("celery", {})
 
 
+def get_redis_config():
+    """Get Redis configuration (Django cache backend)."""
+    return CONFIG.get("redis", {})
+
+
 def get_email_config():
     """Get email configuration."""
     return CONFIG.get("email", {})
@@ -144,4 +153,9 @@ def get_email_config():
 def get_superuser_config():
     """Get initial superuser configuration."""
     return CONFIG.get("superuser", {})
+
+
+def get_learning_demo_config():
+    """Get optional settings for Redis/performance learning exercises."""
+    return CONFIG.get("learning_demo", {})
 
