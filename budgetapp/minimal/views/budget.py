@@ -8,7 +8,6 @@ from decimal import Decimal
 from io import BytesIO
 from typing import Any
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.http import HttpRequest, JsonResponse
@@ -17,6 +16,11 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.email_utils import (
+    get_user_resend_credentials,
+    resend_not_configured_message,
+    user_has_resend_config,
+)
 from budgetapp.bill_reminder_utils import apply_bill_reminders_to_budget
 from budgetapp.models import BillReminder, Budget, Category, Expense, IncomeHistory, Tag
 
@@ -152,6 +156,8 @@ class BudgetDetailView(LoginRequiredTemplateView):
                 "tag_labels": tag_labels,
                 "bill_reminder_defaults_url": reverse("minimal:bill_reminder_defaults"),
                 "bill_reminder_severity_choices": BillReminder.Severity.choices,
+                "resend_configured": user_has_resend_config(self.request.user),
+                "resend_not_configured_message": resend_not_configured_message(),
                 **displays,
             }
         )
@@ -521,22 +527,16 @@ class BudgetEmailPDFView(LoginRequiredView):
         user_email: str,
         pdf_bytes: bytes,
         budget_month: date,
+        api_key: str,
+        from_email: str,
     ) -> Any:
-        """Send email with PDF attachment using Resend API."""
+        """Send email with PDF attachment using the user's Resend API credentials."""
         try:
             import resend
         except ImportError:
             logger.error("Resend SDK is not installed")
             raise ImportError(
-                "Resend SDK is required for email. " "Install it with: pip install resend"
-            )
-
-        api_key = getattr(settings, "RESEND_API_KEY", "")
-        from_email = getattr(settings, "RESEND_FROM_EMAIL", "onboarding@resend.dev")
-
-        if not api_key:
-            raise ValueError(
-                "RESEND_API_KEY is not configured. " "Please add your Resend API key to config.yaml"
+                "Resend SDK is required for email. Install it with: pip install resend"
             )
 
         resend.api_key = api_key
@@ -608,7 +608,24 @@ class BudgetEmailPDFView(LoginRequiredView):
                     status=400,
                 )
 
-            self._send_email_with_resend(user_email, pdf_bytes, budget.month)
+            credentials = get_user_resend_credentials(request.user)
+            if not credentials:
+                return JsonResponse(
+                    {
+                        "status": "error",
+                        "message": resend_not_configured_message(),
+                    },
+                    status=400,
+                )
+
+            api_key, from_email = credentials
+            self._send_email_with_resend(
+                user_email,
+                pdf_bytes,
+                budget.month,
+                api_key,
+                from_email,
+            )
 
             logger.info(
                 f"Budget PDF emailed successfully to {user_email} "

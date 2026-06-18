@@ -49,121 +49,46 @@ Push responses include `server_ids` in the **same order** as the request list.
 
 The budget detail summary cards (gross budgeted expenses, returns, net, remaining) follow **`Budget`** in `budgetapp/models.py`: gross = sum of expense amounts, returns from sub-expenses with `is_return`, remaining = **income − gross + returns**. Same rules as the minimal web UI and PDF context built from `get_summary_display_strings`.
 
-## Download APK (GitHub Actions — no local Flutter)
+## Build APK with Docker (no local Flutter SDK)
 
-When this workflow is on your default branch, each qualifying push builds an APK. You can also run it manually.
+You only need **Docker** — no Flutter, Android SDK, or Java on your machine.
 
-1. Open the repo on GitHub → **Actions**.
-2. Select **Build Android APK**.
-3. Open the latest successful run.
-4. Scroll to **Artifacts** → download **`monai-budget-release-apk`** (zip contains `app-release.apk`).
+From the **repository root**:
 
-**Manual run:** Actions → **Build Android APK** → **Run workflow**.
+```bash
+chmod +x scripts/build_flutter_apk.sh
+./scripts/build_flutter_apk.sh
+```
 
-Retention follows your org/repo artifact settings (often ~90 days).
+The first run downloads the Flutter Docker image (`ghcr.io/cirruslabs/flutter:stable`, ~2 GB). Later builds reuse the cache.
 
-### Release signing (GitHub Actions only — no local Flutter)
+**Output:** `mobile/budget_mobile/build/app/outputs/flutter-apk/app-release.apk`
 
-The workflow signs **release** APKs with your **upload keystore** from repository secrets so **every new artifact can update the previous install** on your phone (same certificate).
+Copy the APK to your phone and install (enable “Install unknown apps” if prompted).
 
-**One-time setup**
+### Release signing (optional)
 
-1. Create a keystore once (any machine with Java `keytool` — for example Garuda: `jdk17-openjdk` includes it):
+Debug builds work for personal use. For release signing, copy `android/key.properties.example` to `android/key.properties` and place your keystore beside it. See `android/key.properties.example` for field names. Never commit `key.properties` or `*.jks`.
 
-   ```bash
-   keytool -genkey -v -keystore monai-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias monai_budget_upload
-   ```
+### Alternate image
 
-   Remember the **keystore password**, **key password**, and **alias**. Back up **`monai-upload.jks`** in a safe place; losing it means you cannot ship updates under the same signing key.
+Override the Flutter image if needed:
 
-2. Produce Base64 for GitHub (single line, no wraps):
+```bash
+FLUTTER_DOCKER_IMAGE=cirrusci/flutter:stable ./scripts/build_flutter_apk.sh
+```
 
-   ```bash
-   base64 -w0 monai-upload.jks
-   ```
+## Local Flutter build (optional)
 
-   Paste the **entire single line** into the secret. If you already have a multi-line file, remove line breaks or run  
-   `cat monai-upload.jks | base64 -w0` so the value has **no spaces or newlines** inside the base64 alphabet.  
-   Do not paste PEM text or `data:` URLs — only raw base64 of the `.jks` bytes.
+If you already have Flutter and the Android SDK installed:
 
-3. In the GitHub repo: **Settings → Secrets and variables → Actions → New repository secret**
+```bash
+cd mobile/budget_mobile
+flutter pub get
+flutter build apk --release
+```
 
-   | Name | Value |
-   |------|--------|
-   | `ANDROID_UPLOAD_KEYSTORE_BASE64` | entire output from the `base64` command |
-   | `ANDROID_KEYSTORE_PASSWORD` | keystore password |
-   | `ANDROID_KEY_PASSWORD` | key password (often same as keystore) |
-   | `ANDROID_KEY_ALIAS` | e.g. `monai_budget_upload` (must match `-alias` above) |
-
-4. Push to `main` (or run **Actions → Build Android APK → Run workflow**). The job **fails fast** if these secrets are missing on `push` / `workflow_dispatch` so you never publish another mismatched APK by accident.
-
-**First install after this change:** if the phone still has an old app signed with a **different** key, **uninstall** once, then install the new artifact. After that, future Action artifacts update in place.
-
-**Pull requests:** forks may omit these secrets; CI still builds using **debug** signing so checks can pass without your keystore.
-
-### "App not installed" / conflicting package (signature)
-
-Android only **updates over an existing install** if the **new APK is signed with the same certificate** as the one already on the phone.
-
-| Situation | Result |
-|-----------|--------|
-| APK from **same** upload keystore (Actions secrets) | **Updates** in place |
-| Mixed: old local debug / old CI vs new signed Actions | **Blocked** — use one uninstall, then only signed artifacts |
-| **`flutter build`** on PC with different key | **Blocked** vs Actions (you said you will not use local builds; good) |
-
-## Garuda Linux: install Flutter and build APK
-
-Garuda is Arch-based. Use either **AUR** or the **official Flutter tarball** (below uses the tarball so versions match easily).
-
-1. **Dependencies** (Arch / Garuda):
-
-   ```bash
-   sudo pacman -S --needed base-devel git curl unzip jdk17-openjdk xz ninja cmake clang
-   ```
-
-2. **Android command-line tools** (pick one):
-
-   - Install **Android Studio** from AUR or Flatpak, open it once, and let it install the SDK; OR  
-   - Download “Command line tools only” from  
-     https://developer.android.com/studio#command-line-tools-only  
-     Unzip into e.g. `~/Android/Sdk/cmdline-tools/latest/` (see  
-     https://developer.android.com/studio/command-line for layout).
-
-3. **Environment** (add to `~/.bashrc` or `~/.config/fish/config.fish`):
-
-   ```bash
-   export ANDROID_HOME="$HOME/Android/Sdk"
-   export JAVA_HOME="/usr/lib/jvm/java-17-openjdk"
-   export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
-   ```
-
-   Accept licenses and install API 34:
-
-   ```bash
-   yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses
-   yes | sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-   ```
-
-4. **Flutter**:
-
-   ```bash
-   git clone https://github.com/flutter/flutter.git -b stable ~/flutter
-   export PATH="$HOME/flutter/bin:$PATH"
-   flutter doctor
-   ```
-
-5. **Build release APK** (from repo root):
-
-   ```bash
-   cd mobile/budget_mobile
-   flutter pub get
-   flutter build apk --release
-   ```
-
-   Output: `build/app/outputs/flutter-apk/app-release.apk`
-
-   Release signing uses `android/key.properties` when present; see **Conflicting package** above  
-   and `android/key.properties.example`.
+Output: `build/app/outputs/flutter-apk/app-release.apk`
 
 ## Tests
 

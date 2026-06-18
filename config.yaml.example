@@ -2,7 +2,7 @@
 # See docs/README.md for full configuration documentation.
 #
 # Production: set app.debug to false and use a long random app.secret_key.
-# Prefer SECRET_KEY and RESEND_API_KEY environment variables on hosted platforms.
+# Prefer SECRET_KEY environment variable on hosted platforms.
 
 app:
   name: "monAI"
@@ -34,7 +34,7 @@ redis:
   cache_url: "redis://localhost:6379/1"
   cache_timeout_seconds: 3600
 
-# backend: console | smtp | resend
+# backend: console | smtp
 email:
   backend: "console"
   smtp:
@@ -44,9 +44,6 @@ email:
     user: ""
     password: ""
     default_from: "noreply@example.com"
-  resend:
-    api_key: ""
-    from_email: "onboarding@resend.dev"
 
 superuser:
   email: ""

@@ -109,7 +109,6 @@ except FileNotFoundError:
     if not _hosts:
         _hosts = ["localhost", "127.0.0.1"]
     _debug = _env_bool("DEBUG", default=False)
-    _resend_api_key = os.getenv("RESEND_API_KEY", "")
     CONFIG = {
         "app": {
             "name": "monAI",
@@ -138,10 +137,6 @@ except FileNotFoundError:
         },
         "email": {
             "backend": "console",
-            "resend": {
-                "api_key": _resend_api_key,
-                "from_email": os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev"),
-            },
         },
         "superuser": {
             "email": "",

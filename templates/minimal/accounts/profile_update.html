@@ -82,6 +82,49 @@
                 {% endif %}
             </div>
 
+            <hr class="my-4">
+            <h2 class="h5 mb-3">Budget PDF email (Resend)</h2>
+            <p class="text-muted small mb-3">
+                Optional. Each user supplies their own Resend API key and verified sender
+                address. Leave the API key blank to keep your current key unchanged.
+            </p>
+
+            <div class="form-group">
+                <label for="id_resend_api_key" class="form-label">Resend API key</label>
+                <input type="password"
+                       name="resend_api_key"
+                       id="id_resend_api_key"
+                       class="form-control {% if form.resend_api_key.errors %}is-invalid{% endif %}"
+                       placeholder="Leave blank to keep current key"
+                       autocomplete="off">
+                {% if form.resend_api_key.help_text %}
+                <small class="form-text text-muted">{{ form.resend_api_key.help_text }}</small>
+                {% endif %}
+                {% if form.resend_api_key.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.resend_api_key.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_resend_from_email" class="form-label">Resend from email</label>
+                <input type="email"
+                       name="resend_from_email"
+                       id="id_resend_from_email"
+                       class="form-control {% if form.resend_from_email.errors %}is-invalid{% endif %}"
+                       value="{{ form.resend_from_email.value|default:'' }}"
+                       placeholder="you@yourdomain.com">
+                {% if form.resend_from_email.help_text %}
+                <small class="form-text text-muted">{{ form.resend_from_email.help_text }}</small>
+                {% endif %}
+                {% if form.resend_from_email.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.resend_from_email.errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                     Save Changes

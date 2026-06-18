@@ -32,7 +32,15 @@ class CustomUserAdmin(UserAdmin):
         (None, {"fields": ("email", "username", "password")}),
         (
             "Personal Info",
-            {"fields": ("first_name", "last_name")},
+            {"fields": ("first_name", "last_name", "resend_from_email")},
+        ),
+        (
+            "Resend (budget PDF)",
+            {
+                "fields": ("resend_api_key",),
+                "classes": ("collapse",),
+                "description": "Per-user Resend credentials for budget PDF emails.",
+            },
         ),
         (
             "Permissions",

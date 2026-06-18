@@ -38,7 +38,25 @@
                 <span class="info-label">Member Since</span>
                 <span class="info-value">{{ user.date_joined|date:"F j, Y" }}</span>
             </div>
+            <div class="info-row">
+                <span class="info-label">Budget PDF email (Resend)</span>
+                <span class="info-value">
+                    {% if resend_configured %}
+                    Configured — sends from {{ resend_from_email }}
+                    {% else %}
+                    Not configured — PDF emails cannot be sent
+                    {% endif %}
+                </span>
+            </div>
         </div>
+
+        {% if not resend_configured %}
+        <div class="alert alert-warning mt-3 mb-0" role="alert">
+            Add your Resend API key and from email under Edit Profile to enable budget PDF
+            emails. Django system mail (password reset, etc.) uses console or SMTP from
+            config.yaml.
+        </div>
+        {% endif %}
 
         <div class="profile-actions">
             <a href="{% url 'accounts:profile_update' %}" class="btn btn-primary">

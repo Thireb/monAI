@@ -57,6 +57,15 @@ class CustomUser(AbstractUser):
             "unique": "A user with that email already exists.",
         },
     )
+    resend_api_key = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Resend API key for budget PDF emails.",
+    )
+    resend_from_email = models.EmailField(
+        blank=True,
+        help_text="Verified sender address in your Resend account.",
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
@@ -69,3 +78,9 @@ class CustomUser(AbstractUser):
 
     def __str__(self) -> str:
         return self.email
+
+    def has_resend_email_config(self) -> bool:
+        """Return True when Resend API key and from email are both set."""
+        return bool(
+            (self.resend_api_key or "").strip() and (self.resend_from_email or "").strip()
+        )

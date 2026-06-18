@@ -411,24 +411,10 @@ elif email_backend_type == "smtp":
     EMAIL_HOST_USER = smtp_config.get("user", "")
     EMAIL_HOST_PASSWORD = smtp_config.get("password", "")
     DEFAULT_FROM_EMAIL = smtp_config.get("default_from", "noreply@monai.app")
-elif email_backend_type == "resend":
-    # Resend API via django-anymail backend for Django email system
-    # This integrates with django-allauth for verification/password reset emails
-    resend_config = email_config.get("resend", {})
-    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
-    ANYMAIL = {
-        "RESEND_API_KEY": resend_config.get("api_key", ""),
-    }
-    DEFAULT_FROM_EMAIL = resend_config.get("from_email", "onboarding@resend.dev")
-    RESEND_API_KEY = resend_config.get("api_key", "")
-    RESEND_FROM_EMAIL = resend_config.get("from_email", "onboarding@resend.dev")
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-# Always load Resend config for PDF email feature (can be used independently)
-resend_config = email_config.get("resend", {})
-RESEND_API_KEY = resend_config.get("api_key", "")
-RESEND_FROM_EMAIL = resend_config.get("from_email", "onboarding@resend.dev")
+# Budget PDF emails use per-user Resend credentials from the profile (accounts.CustomUser).
 
 # =============================================================================
 # Django REST framework (API + mobile sync)

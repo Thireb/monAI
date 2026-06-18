@@ -29,8 +29,7 @@ history and has been removed. **Treat that key as compromised.**
 Before publishing to Google Play or distributing signed APKs:
 
 1. Generate a new upload keystore locally (never commit it).
-2. Update GitHub Actions secrets (`ANDROID_KEYSTORE_BASE64`, etc.) per
-   `mobile/budget_mobile/README.md`.
+2. Update signing material locally if you use release builds (`android/key.properties`).
 3. If the app is already on Play Store, follow Google's key upgrade process.
 
 To verify the keystore is gone from history:
@@ -51,4 +50,5 @@ git push --force-with-lease origin main
 
 - Copy `config.yaml.example` to `config.yaml` (gitignored).
 - Never commit `config.yaml`, `.env`, keystores, or API keys.
-- Use environment variables (`SECRET_KEY`, `RESEND_API_KEY`) in production.
+- Use environment variables (`SECRET_KEY`) in production.
+- Budget PDF emails use **per-user** Resend credentials saved in Profile → Edit Profile.

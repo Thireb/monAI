@@ -99,7 +99,8 @@ cp config.yaml.example config.yaml
 |---------|----------------------|--------|
 | Missing file fallback | `ALLOWED_HOSTS`, `DEBUG`, `SECRET_KEY`, `TIMEZONE` | Comma-separated `ALLOWED_HOSTS`; see `budget_tracker/config.py` |
 | Overrides when YAML exists | `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` | Parsed in `budget_tracker/settings.py`; replace or extend YAML lists |
-| Resend (PDF + optional mail backend) | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Always read into `RESEND_*` settings from `email.resend` in YAML or env fallback |
+
+Budget **PDF emails** use each user's **Resend API key and from email** saved under Profile → Edit Profile (not `config.yaml`).
 
 ### `config.yaml` structure
 
@@ -119,7 +120,7 @@ server:
     - "*.ngrok-free.app"
   timezone: "Asia/Karachi"
 
-# URLs for APK Building + CSRF (ngrok/local LAN)
+# URLs for CSRF (ngrok / local LAN)
 urls:
   local: "http://192.168.1.100:8000"
   ngrok: "https://your-subdomain.ngrok-free.app"
@@ -134,7 +135,7 @@ celery:
   broker_url: "redis://localhost:6379/0"
   result_backend: "redis://localhost:6379/0"
 
-# Email: backend is console | smtp | resend
+# Email: backend is console | smtp
 email:
   backend: "console"
   smtp:
@@ -144,9 +145,6 @@ email:
     user: ""
     password: ""
     default_from: "noreply@example.com"
-  resend:
-    api_key: ""
-    from_email: "onboarding@resend.dev"
 
 # Initial Superuser (for setup_superuser command)
 superuser:
@@ -161,9 +159,8 @@ superuser:
 |-----------------|----------|
 | `console` | Prints mail to the console (development). |
 | `smtp` | Uses `email.smtp` for Django’s mail API (e.g. django-allauth). |
-| `resend` | Uses **django-anymail** Resend backend for Django mail; set `email.resend.api_key` and `from_email`. |
 
-**Resend** is also used for the **budget PDF attachment** feature (`BudgetEmailPDFView`), which reads `RESEND_API_KEY` and `RESEND_FROM_EMAIL` from settings regardless of `email.backend`, so you can keep `backend: console` for development and still email PDFs once keys are set.
+**Budget PDF emails** use the **Resend Python SDK** with credentials stored on each user’s profile (`resend_api_key`, `resend_from_email` on `accounts.CustomUser`). Django system mail still follows `email.backend` (`console` or `smtp`).
 
 ### Environment-Specific Settings
 
@@ -171,7 +168,7 @@ superuser:
 |---------|-------------|------------|
 | `app.debug` | `true` | `false` |
 | `app.secret_key` | Any string | 50+ chars (validated when `debug` is false) |
-| `email.backend` | `console` | `smtp` or `resend` as needed |
+| `email.backend` | `console` | `smtp` as needed |
 | `database.engine` | `sqlite3` | `postgresql` |
 
 ---
@@ -340,7 +337,8 @@ The PDF template `minimal/pdf/budget_report.html` receives context built in `_ge
 **Delivery**
 
 - PDF generation requires **WeasyPrint** (`pip install weasyprint` if missing).
-- Email uses the **Resend Python SDK** directly (`resend` package). Configure `email.resend.api_key` and `email.resend.from_email` in `config.yaml`, or set **`RESEND_API_KEY`** and **`RESEND_FROM_EMAIL`** in the environment (including platforms without `config.yaml`).
+- Email uses the **Resend Python SDK** with the logged-in user’s profile credentials (Profile → Edit Profile).
+- If Resend is not configured on the profile, the UI shows a warning and the endpoint returns HTTP 400.
 - The user must have an **email address** on their account; otherwise the view returns HTTP 400.
 
 ---
@@ -448,8 +446,16 @@ Mobile clients typically use `POST /api/mobile/auth/token/` with JSON `email` an
 
 ## Flutter Android App
 
-The mobile companion lives in `mobile/budget_mobile/`. See that directory's README for
-local setup. CI builds a release APK via `.github/workflows/flutter-apk.yml`.
+The mobile companion lives in `mobile/budget_mobile/`. See that directory's README.
+
+**Build APK without installing Flutter** (Docker only, from repo root):
+
+```bash
+chmod +x scripts/build_flutter_apk.sh
+./scripts/build_flutter_apk.sh
+```
+
+**Optional local Flutter build:**
 
 ```bash
 cd mobile/budget_mobile
@@ -459,8 +465,7 @@ flutter test
 flutter build apk --release
 ```
 
-Keystore material must stay in GitHub Actions secrets or local untracked files — never
-commit `.jks` or `key.properties`. See [SECURITY.md](../SECURITY.md).
+Never commit `.jks` or `key.properties`. See [SECURITY.md](../SECURITY.md).
 
 ---
 
@@ -563,7 +568,7 @@ The repo includes `render.yaml` for a **Python web service** that runs:
 2. `python manage.py collectstatic --noinput`
 3. Start: `python manage.py migrate --noinput && gunicorn budget_tracker.wsgi:application`
 
-Set **`SECRET_KEY`** in the Render dashboard (`sync: false` in the blueprint). Typical env vars also include **`ALLOWED_HOSTS`**, **`CSRF_TRUSTED_ORIGINS`**, **`DEBUG=False`**, and **`RESEND_API_KEY`** if you use Resend.
+Set **`SECRET_KEY`** in the Render dashboard (`sync: false` in the blueprint). Typical env vars also include **`ALLOWED_HOSTS`**, **`CSRF_TRUSTED_ORIGINS`**, and **`DEBUG=False`**.
 
 Without `config.yaml` on the host, **`budget_tracker/config.py`** falls back to environment defaults so migrations and the app can boot.
 
@@ -572,7 +577,8 @@ Without `config.yaml` on the host, **`budget_tracker/config.py`** falls back to 
 1. **Configuration**
    - [ ] Set `app.debug: false` (or `DEBUG=false` in env)
    - [ ] Set strong `app.secret_key` (50+ chars) or `SECRET_KEY` in env
-   - [ ] Configure email (`smtp` or `resend`) or env vars for Resend if needed
+   - [ ] Configure email (`smtp` for django-allauth) or keep `console` for dev
+   - [ ] Users who want budget PDF email add Resend credentials in Profile → Edit Profile
    - [ ] Set proper `server.allowed_hosts` and/or `ALLOWED_HOSTS`
    - [ ] Set `CSRF_TRUSTED_ORIGINS` for your HTTPS origin when not using only defaults
 

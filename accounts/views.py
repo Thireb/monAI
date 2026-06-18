@@ -11,6 +11,7 @@ from django.http import HttpResponse
 from django.urls import reverse_lazy
 from django.views.generic import TemplateView, UpdateView
 
+from accounts.email_utils import user_has_resend_config
 from accounts.models import CustomUser
 from .forms import ProfileUpdateForm
 
@@ -19,6 +20,18 @@ class ProfileView(LoginRequiredMixin, TemplateView):
     """Display the authenticated user's profile."""
 
     template_name = "minimal/accounts/profile.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Add Resend configuration status for the profile page."""
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        if isinstance(user, CustomUser):
+            context["resend_configured"] = user_has_resend_config(user)
+            context["resend_from_email"] = user.resend_from_email
+        else:
+            context["resend_configured"] = False
+            context["resend_from_email"] = ""
+        return context
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):

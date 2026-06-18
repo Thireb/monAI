@@ -19,8 +19,9 @@
         <div class="d-flex align-items-center">
             <h1 class="mb-0">Budget for {{ budget.month|date:"F Y" }}</h1>
             <button class="budget-action-link email-pdf-tooltip-trigger" id="email-pdf-btn"
-                data-tooltip="📧 Email PDF report to yourself"
-                data-url="{% url 'minimal:budget_email_pdf' year=budget.month.year month=budget.month.month %}">
+                data-tooltip="{% if resend_configured %}📧 Email PDF report to yourself{% else %}Configure Resend in your profile to email PDFs{% endif %}"
+                data-url="{% url 'minimal:budget_email_pdf' year=budget.month.year month=budget.month.month %}"
+                {% if not resend_configured %}disabled aria-disabled="true"{% endif %}>
                 <span class="email-pdf-text">📧 Email PDF</span>
             </button>
             <button class="budget-delete-link delete-tooltip-trigger" id="delete-budget-btn"
@@ -29,6 +30,13 @@
             </button>
         </div>
     </div>
+
+    {% if not resend_configured %}
+    <div class="alert alert-warning mb-4" role="alert">
+        {{ resend_not_configured_message }}
+        <a href="{% url 'accounts:profile_update' %}" class="alert-link">Edit Profile</a>
+    </div>
+    {% endif %}
 
     <!-- Summary Cards Section -->
     {% include "minimal/budget_detail_pages/summary_cards.html" %}
