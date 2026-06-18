@@ -9,11 +9,15 @@ cd "$ROOT"
 
 FAIL=0
 
+tracked_files() {
+  git ls-files | grep -v '^scripts/audit_public_repo\.sh$'
+}
+
 check_rg() {
   local label="$1"
   local pattern="$2"
   local matches
-  matches="$(git ls-files -z | xargs -0 rg -l "$pattern" 2>/dev/null || true)"
+  matches="$(tracked_files | xargs rg -l "$pattern" 2>/dev/null || true)"
   if [[ -n "$matches" ]]; then
     echo "FAIL ($label):" >&2
     echo "$matches" >&2
