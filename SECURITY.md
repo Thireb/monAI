@@ -8,9 +8,7 @@ Security fixes are applied to the default branch of this repository.
 
 If you discover a security vulnerability, please **do not** open a public GitHub issue.
 
-Instead, report it privately by emailing the repository maintainer or opening a
-[GitHub Security Advisory](https://github.com/Thireb/django_budget_tracker/security/advisories/new)
-if you have access.
+Report it privately via your repository’s **Security → Advisories** tab, or email the maintainer directly.
 
 Include:
 
@@ -19,36 +17,32 @@ Include:
 - Impact assessment (if known)
 - Suggested fix (optional)
 
-We aim to acknowledge reports within 7 days.
+## Secrets and credentials
 
-## Android Keystore Rotation
+**Never commit:**
 
-A signing keystore (`.cursor/monai-upload.jks`) was previously committed to git
-history and has been removed. **Treat that key as compromised.**
+- `config.yaml` (copy from `config.yaml.example` locally)
+- `.env` files
+- Android keystores (`*.jks`, `key.properties`)
+- API keys or passwords
 
-Before publishing to Google Play or distributing signed APKs:
+**Budget PDF email:** each user stores their own Resend API key and from address on their profile. These live in your database on self-hosted instances — protect database backups accordingly.
 
-1. Generate a new upload keystore locally (never commit it).
-2. Update signing material locally if you use release builds (`android/key.properties`).
-3. If the app is already on Play Store, follow Google's key upgrade process.
+**Django system mail** (password reset, etc.) uses `email.backend` in `config.yaml` (`console` or `smtp`).
 
-To verify the keystore is gone from history:
+## Android signing
 
-```bash
-git log --all -- .cursor/monai-upload.jks
-# Should return no commits
-```
-
-If history was rewritten with `git filter-repo`, re-add your remote:
+If an upload keystore was ever committed to git history, treat it as compromised: rotate the key, update any deploy secrets, and verify removal with:
 
 ```bash
-git remote add origin git@github.com:Thireb/django_budget_tracker.git
-git push --force-with-lease origin main
+git log --all -- '*.jks'
 ```
 
-## Secrets in Development
+Never commit `mobile/budget_mobile/android/key.properties` or `*.jks`.
 
-- Copy `config.yaml.example` to `config.yaml` (gitignored).
-- Never commit `config.yaml`, `.env`, keystores, or API keys.
-- Use environment variables (`SECRET_KEY`) in production.
-- Budget PDF emails use **per-user** Resend credentials saved in Profile → Edit Profile.
+## Production checklist
+
+- Set `app.debug: false` and a 50+ character `app.secret_key` (or `SECRET_KEY` env var)
+- Set `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` for your HTTPS origin
+- Use HTTPS in production (`DEBUG=false` enables secure cookies in settings)
+- Run `python manage.py collectstatic` behind a proper WSGI server (e.g. gunicorn)

@@ -1,8 +1,0 @@
-{
-  "appId": "com.monai.budgettracker",
-  "appName": "monAI",
-  "webDir": "www",
-  "android": {
-    "allowMixedContent": true
-  }
-}

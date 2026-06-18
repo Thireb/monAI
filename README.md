@@ -1,154 +1,144 @@
 # monAI — Django Budget Tracker
 
-A personal budget tracking application built with Django (monAI). This app helps you manage monthly expenses, track spending by categories and tags, and maintain a clear view of your financial health.
+A self-hosted personal budget tracker built with Django. Manage monthly budgets, categorize expenses, track tags and debts, set savings goals, and optionally sync with a Flutter mobile companion.
 
-For maintainers, **full documentation** lives in **[docs/README.md](docs/README.md)** (configuration, deployment, APIs, and tooling).
+**Full documentation:** [docs/README.md](docs/README.md) (configuration, APIs, mobile sync, scripts).
 
 ## Features
 
-- Monthly budget management
-- Expense categorization and tag breakdown
-- Income tracking with history
-- Category-wise and tag-wise expense statistics
-- Archive functionality for old budgets
-- Recurring expense support
-- Minimal theme UI (Alpine.js, Bootstrap)
+- Monthly budgets with income, expenses, sub-expenses, and returns
+- Categories, tags, debts, bill reminders, and savings goals
+- Minimal web UI (Bootstrap, Alpine.js, Anime.js)
+- Budget PDF export and email (via your own [Resend](https://resend.com) account)
+- Flutter Android app with offline-first sync (`mobile/budget_mobile/`)
 
-## Prerequisites
+## Quick start (personal use)
 
-- Python 3.11+ (see `requirements.txt` / `docs/README.md` for version notes)
-- pip (Python package manager)
-- virtualenv or pyenv (recommended)
+### 1. Clone and install
 
-## Installation
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/Thireb/monAI.git
-cd monAI
-```
+git clone https://github.com/Thireb/django_budget_tracker.git
+cd django_budget_tracker
 
-2. Create and activate a virtual environment:
-```bash
 python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
-```
+source venv/bin/activate   # Windows: venv\Scripts\activate
 
-3. Install required packages:
-```bash
 pip install -r requirements.txt
+# or: uv sync
 ```
 
-4. Configuration — copy the template and edit (see [docs/README.md](docs/README.md)):
+### 2. Configure
+
 ```bash
 cp config.yaml.example config.yaml
 ```
 
-5. Apply database migrations:
+Edit `config.yaml` for local use:
+
+- `app.debug: true` — required for comfortable local development
+- `app.secret_key` — any string while `debug` is true; use a long random string for production
+- `email.backend: console` — prints system mail (password reset, etc.) to the terminal
+
+`config.yaml` is **gitignored**. Never commit it.
+
+### 3. Database and admin user
+
 ```bash
 python manage.py migrate
-```
-
-6. Create an admin user (project uses `setup_superuser`; see docs):
-```bash
 python manage.py setup_superuser
 ```
 
-7. Run the development server:
+### 4. Run the web app
+
 ```bash
 python manage.py runserver
 ```
 
-The application will be available at `http://127.0.0.1:8000/` (minimal UI under `/minimal/`).
+Open **http://127.0.0.1:8000/** — log in, then use **/minimal/** for the dashboard.
+
+For phone access on your LAN:
+
+```bash
+python manage.py runserver 0.0.0.0:8000
+```
+
+Optional: set `urls.local` in `config.yaml` to your machine’s LAN URL for CSRF (e.g. `http://192.168.1.10:8000`).
+
+### 5. Email budget PDFs (optional)
+
+Each user configures their **own** Resend credentials:
+
+1. Create a [Resend](https://resend.com) account and verify a sender domain or address.
+2. In the app: **Profile → Edit Profile** → set **Resend API key** and **from email**.
+3. On a budget page, use **Email PDF**.
+
+Without Resend on your profile, PDF email is disabled (system mail still uses `console` or SMTP from `config.yaml`).
+
+### 6. Flutter mobile app (optional)
+
+See [mobile/budget_mobile/README.md](mobile/budget_mobile/README.md).
+
+**Build APK without installing Flutter** (Docker only):
+
+```bash
+chmod +x scripts/build_flutter_apk.sh
+./scripts/build_flutter_apk.sh
+```
+
+APK output: `mobile/budget_mobile/build/app/outputs/flutter-apk/app-release.apk`
 
 ## Docker (optional)
 
-You can run the project in a container with **Arch Linux**:
+With `config.yaml` in the project root:
 
-1. Ensure you have `config.yaml` in the project root (copy from `config.yaml.example` and adjust).
-2. From the project root:
-   ```bash
-   docker compose up --build
-   ```
-3. Open **http://localhost:8000**. The container runs `migrate` then `runserver 0.0.0.0:8000`.
-
-- **Dockerfile**: base image Arch Linux, system deps (Python, Cairo/Pango for WeasyPrint), virtualenv, `pip install`, then run the server.
-- **docker-compose.yml**: builds the image and maps host port 8000 to container port 8000.
-- **.dockerignore**: keeps the build context small (excludes venv, `.git`, etc.).
-
-To run in the background: `docker compose up -d`. To stop: `docker compose down`.
-
-## Code Formatting with Pre-commit
-
-This project uses [pre-commit](https://pre-commit.com/) hooks to automatically format and check code before committing. This ensures consistent code style and quality across the project.
-
-### Setup
-
-1. Install pre-commit:
-   ```bash
-   pip install pre-commit
-   ```
-
-2. Install the git hooks:
-   ```bash
-   pre-commit install
-   ```
-
-### Usage
-
-Pre-commit will automatically run on `git commit`. If any checks fail, the commit will be aborted and the issues will be fixed or reported. After the issues are fixed, you can add the changes and try committing again.
-
-To manually run pre-commit on all files:
 ```bash
+docker compose up --build
+```
+
+App at **http://localhost:8000**. Redis is started for calendar cache; SQLite is mounted from the host by default.
+
+## Project layout
+
+```
+django_budget_tracker/
+├── accounts/           # User model and profile (incl. per-user Resend)
+├── budgetapp/          # Models, minimal UI, REST + mobile APIs
+├── budget_tracker/     # Django settings and config loader
+├── mobile/budget_mobile/   # Flutter companion app
+├── script_runner/      # Versioned management scripts
+├── static/ templates/  # Web assets
+├── config.yaml.example # Copy to config.yaml (gitignored)
+├── docs/               # Detailed documentation
+└── manage.py
+```
+
+## Security (public / self-hosted)
+
+- Do **not** commit `config.yaml`, `.env`, keystores (`.jks`), or API keys.
+- Budget PDF email uses **per-user** Resend keys stored in the database — not shared in `config.yaml`.
+- See [SECURITY.md](SECURITY.md) for reporting vulnerabilities and keystore rotation notes.
+
+## Development
+
+```bash
+pre-commit install
 pre-commit run --all-files
+
+python -m mypy budgetapp budget_tracker accounts script_runner
+python manage.py test budgetapp.tests.test_goals \
+  budgetapp.tests.test_debt_tag_and_pdf_context \
+  budgetapp.tests.test_mobile_sync
 ```
 
-### Features
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-The pre-commit configuration includes:
-- Python formatting with Black
-- Import sorting with isort
-- Python code quality with flake8
-- Django HTML template formatting with djLint
-- JavaScript and CSS formatting with prettier
-- Trailing whitespace and end-of-file fixing
-- Security checking with bandit
+## Optional deploy files
 
-## Usage
-
-1. Log in with your user credentials
-2. Create categories for your expenses (e.g., Groceries, Rent, Utilities)
-3. Create a new budget for the current month
-4. Add your monthly income
-5. Start tracking expenses by category and tag
-
-## Project Structure
-
-```
-monAI/
-├── accounts/              # Custom user and profile
-├── budgetapp/           # Main application (models, views, minimal theme)
-│   ├── minimal/         # Minimal theme views and templates
-│   └── migrations/
-├── budget_tracker/      # Django project (settings, config loader)
-├── mobile/budget_mobile/  # Flutter Android companion app
-├── script_runner/       # Script registry and deploy helpers
-├── static/              # Static files (CSS, JS, images)
-├── docs/                # Project documentation
-├── manage.py
-├── config.yaml.example  # Copy to config.yaml (gitignored)
-└── requirements.txt
-```
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, linting, type checking, and pull request guidelines.
+| File | Purpose |
+|------|---------|
+| `Dockerfile` / `docker-compose.yml` | Containerized local or server run |
+| `Procfile` | Generic Heroku-style `gunicorn` start command |
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Built with Django web framework
-- Inspired by the need for a simple, focused budget tracking solution
+MIT — see [LICENSE](LICENSE).

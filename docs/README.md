@@ -93,7 +93,7 @@ Primary configuration lives in **`config.yaml`** at the project root (gitignored
 cp config.yaml.example config.yaml
 ```
 
-`budget_tracker/config.py` loads `config.yaml` at import time and exposes `CONFIG` plus helpers (`get_app_config`, `get_server_config`, etc.). If **`config.yaml` is missing**, Django still starts using **environment-variable defaults** (used on hosts like Render where secrets are injected without committing a file):
+`budget_tracker/config.py` loads `config.yaml` at import time and exposes `CONFIG` plus helpers (`get_app_config`, `get_server_config`, etc.). If **`config.yaml` is missing**, Django still starts using **environment-variable defaults** (useful when secrets are injected via the host environment without committing a file):
 
 | Purpose | Environment variables | Notes |
 |---------|----------------------|--------|
@@ -560,17 +560,17 @@ Debt
 
 ## Deployment
 
-### Render (blueprint)
+Self-hosted deployment is supported via **Docker** (`Dockerfile`, `docker-compose.yml`) or any WSGI host.
 
-The repo includes `render.yaml` for a **Python web service** that runs:
+Typical production steps:
 
 1. `pip install -r requirements.txt`
-2. `python manage.py collectstatic --noinput`
-3. Start: `python manage.py migrate --noinput && gunicorn budget_tracker.wsgi:application`
+2. Copy `config.yaml.example` → `config.yaml` (or use env vars — see `budget_tracker/config.py`)
+3. `python manage.py migrate`
+4. `python manage.py collectstatic --noinput`
+5. Run with gunicorn: `gunicorn budget_tracker.wsgi:application` (see `Procfile` for a minimal example)
 
-Set **`SECRET_KEY`** in the Render dashboard (`sync: false` in the blueprint). Typical env vars also include **`ALLOWED_HOSTS`**, **`CSRF_TRUSTED_ORIGINS`**, and **`DEBUG=False`**.
-
-Without `config.yaml` on the host, **`budget_tracker/config.py`** falls back to environment defaults so migrations and the app can boot.
+Set **`SECRET_KEY`**, **`ALLOWED_HOSTS`**, and **`CSRF_TRUSTED_ORIGINS`** for your domain. Without `config.yaml`, env-var defaults in `budget_tracker/config.py` allow the app to boot.
 
 ### Production Checklist
 
@@ -587,13 +587,14 @@ Without `config.yaml` on the host, **`budget_tracker/config.py`** falls back to 
    - [ ] Run `python manage.py migrate`
 
 3. **Static Files**
-   - [ ] Run `python manage.py collectstatic` (included in Render build)
+   - [ ] Run `python manage.py collectstatic`
 
 4. **Scripts**
    - [ ] Run `python manage.py run_scripts`
 
 5. **Security**
    - [ ] Enable HTTPS
+   - [ ] Review [SECURITY.md](../SECURITY.md)
    - [ ] Review cookie and CSRF settings in `budget_tracker/settings.py` for your domain
 
 ### Running Deploy Scripts
