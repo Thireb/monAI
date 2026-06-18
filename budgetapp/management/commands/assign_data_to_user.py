@@ -1,11 +1,14 @@
-"""
-Management command to assign orphaned data to a specific user.
+"""Management command to assign orphaned data to a specific user.
 
-This command is useful when:
+Useful when:
 1. Migrating from single-user to multi-user setup
 2. Reassigning data after user deletion
 3. Fixing orphaned records
 """
+from __future__ import annotations
+
+import argparse
+from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
@@ -16,9 +19,16 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
+    """Assign orphaned records (null user) to a specific user account."""
+
     help = "Assign orphaned data (null user) to a specific user"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Register command-line arguments.
+
+        Args:
+            parser: Argument parser provided by Django's command framework.
+        """
         parser.add_argument(
             "--email",
             required=True,
@@ -30,7 +40,13 @@ class Command(BaseCommand):
             help="Show what would be changed without making changes",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Assign orphaned model rows to the target user.
+
+        Args:
+            *args: Positional arguments from the management command runner.
+            **options: Parsed command-line options.
+        """
         email = options["email"]
         dry_run = options.get("dry_run", False)
 
@@ -79,4 +95,3 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS(f"\nDone! Assigned {total_updated} record(s) to {user.email}")
             )
-

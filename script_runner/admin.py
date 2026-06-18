@@ -1,10 +1,16 @@
+"""Django admin configuration for script_runner models."""
+from __future__ import annotations
+
 from django.contrib import admin
+from django.http import HttpRequest
 
 from .models import ScriptExecution
 
 
 @admin.register(ScriptExecution)
 class ScriptExecutionAdmin(admin.ModelAdmin):
+    """Read-only admin for script execution audit records."""
+
     list_display = (
         "script_name",
         "status",
@@ -30,10 +36,12 @@ class ScriptExecutionAdmin(admin.ModelAdmin):
         "batch_id",
     )
 
-    def has_add_permission(self, request):
-        """Prevent manual creation - only created by script commands."""
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        """Prevent manual creation; records are created by script commands only."""
         return False
 
-    def has_change_permission(self, request, obj=None):
+    def has_change_permission(
+        self, request: HttpRequest, obj: ScriptExecution | None = None
+    ) -> bool:
         """Prevent editing execution records."""
         return False

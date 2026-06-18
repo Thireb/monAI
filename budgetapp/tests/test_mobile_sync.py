@@ -1,3 +1,6 @@
+"""Tests for mobile budget and catalog sync API endpoints."""
+from __future__ import annotations
+
 from datetime import date
 from decimal import Decimal
 
@@ -15,7 +18,9 @@ User = get_user_model()
 
 
 class MobileBudgetSyncApiTests(TestCase):
-    def setUp(self):
+    """Tests for mobile budget pull/push and authentication endpoints."""
+
+    def setUp(self) -> None:
         self.user = User.objects.create_user(
             username="syncuser",
             email="sync@example.com",
@@ -30,7 +35,7 @@ class MobileBudgetSyncApiTests(TestCase):
         self.client = APIClient()
         self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
 
-    def test_mobile_token_returns_token(self):
+    def test_mobile_token_returns_token(self) -> None:
         anon = APIClient()
         url = reverse("api-mobile-token")
         response = anon.post(
@@ -42,7 +47,7 @@ class MobileBudgetSyncApiTests(TestCase):
         self.assertIn("token", response.data)
         self.assertEqual(response.data["token"], self.token.key)
 
-    def test_mobile_token_rejects_invalid_credentials(self):
+    def test_mobile_token_rejects_invalid_credentials(self) -> None:
         anon = APIClient()
         url = reverse("api-mobile-token")
         response = anon.post(
@@ -52,7 +57,7 @@ class MobileBudgetSyncApiTests(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_pull_returns_only_own_budgets(self):
+    def test_pull_returns_only_own_budgets(self) -> None:
         b1 = Budget.objects.create(
             user=self.user,
             month=date(2025, 3, 1),
@@ -71,7 +76,7 @@ class MobileBudgetSyncApiTests(TestCase):
         self.assertEqual(len(response.data["budgets"]), 1)
         self.assertEqual(response.data["budgets"][0]["id"], b1.id)
 
-    def test_pull_filtered_by_updated_after(self):
+    def test_pull_filtered_by_updated_after(self) -> None:
         b_old = Budget.objects.create(
             user=self.user,
             month=date(2025, 1, 1),
@@ -92,7 +97,7 @@ class MobileBudgetSyncApiTests(TestCase):
         self.assertIn(b_new.id, ids)
         self.assertNotIn(b_old.id, ids)
 
-    def test_pull_invalid_updated_after_returns_all_budgets(self):
+    def test_pull_invalid_updated_after_returns_all_budgets(self) -> None:
         """Malformed cursor must not 500; treat as no filter (full sync)."""
         Budget.objects.create(
             user=self.user,
@@ -105,25 +110,25 @@ class MobileBudgetSyncApiTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["budgets"]), 1)
 
-    def test_pull_requires_authentication(self):
+    def test_pull_requires_authentication(self) -> None:
         anon = APIClient()
         url = reverse("api-mobile-budget-pull")
         response = anon.get(url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_push_requires_authentication(self):
+    def test_push_requires_authentication(self) -> None:
         anon = APIClient()
         url = reverse("api-mobile-budget-push")
         response = anon.post(url, {"budgets": []}, format="json")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_push_rejects_non_list_budgets(self):
+    def test_push_rejects_non_list_budgets(self) -> None:
         url = reverse("api-mobile-budget-push")
         response = self.client.post(url, {"budgets": {}}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("detail", response.data)
 
-    def test_push_rejects_negative_income(self):
+    def test_push_rejects_negative_income(self) -> None:
         url = reverse("api-mobile-budget-push")
         response = self.client.post(
             url,
@@ -140,7 +145,7 @@ class MobileBudgetSyncApiTests(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_push_creates_and_updates(self):
+    def test_push_creates_and_updates(self) -> None:
         existing = Budget.objects.create(
             user=self.user,
             month=date(2025, 5, 1),
@@ -176,7 +181,7 @@ class MobileBudgetSyncApiTests(TestCase):
         created = Budget.objects.get(pk=new_id)
         self.assertEqual(created.income, Decimal("300.00"))
 
-    def test_push_rejects_unknown_id(self):
+    def test_push_rejects_unknown_id(self) -> None:
         url = reverse("api-mobile-budget-push")
         payload = {
             "budgets": [
@@ -193,7 +198,9 @@ class MobileBudgetSyncApiTests(TestCase):
 
 
 class MobileCatalogSyncApiTests(TestCase):
-    def setUp(self):
+    """Tests for mobile category, expense, tag, and bill reminder sync APIs."""
+
+    def setUp(self) -> None:
         self.user = User.objects.create_user(
             username="catuser",
             email="cat@example.com",
@@ -214,7 +221,7 @@ class MobileCatalogSyncApiTests(TestCase):
             currency="PKR",
         )
 
-    def test_category_push_create_and_pull_cursor(self):
+    def test_category_push_create_and_pull_cursor(self) -> None:
         url_push = reverse("api-mobile-category-push")
         resp = self.client.post(
             url_push,
@@ -255,7 +262,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertIn("Later", names)
         self.assertNotIn("Groceries", names)
 
-    def test_expense_push_requires_budget_and_foreign_keys(self):
+    def test_expense_push_requires_budget_and_foreign_keys(self) -> None:
         cat = Category.objects.create(user=self.user, name="C", slug="c")
         tag = Tag.objects.create(user=self.user, name="T", slug="t")
         url = reverse("api-mobile-expense-push")
@@ -285,7 +292,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.status_code, status.HTTP_200_OK)
         self.assertEqual(len(r2.data["expenses"]), 1)
 
-    def test_expense_push_delete(self):
+    def test_expense_push_delete(self) -> None:
         cat = Category.objects.create(user=self.user, name="C", slug="c")
         tag = Tag.objects.create(user=self.user, name="T", slug="t")
         url = reverse("api-mobile-expense-push")
@@ -315,7 +322,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.data["server_ids"], [eid])
         self.assertFalse(Expense.objects.filter(pk=eid).exists())
 
-    def test_expense_push_delete_is_idempotent_for_already_deleted_id(self):
+    def test_expense_push_delete_is_idempotent_for_already_deleted_id(self) -> None:
         url = reverse("api-mobile-expense-push")
         r = self.client.post(
             url,
@@ -325,7 +332,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r.status_code, status.HTTP_200_OK)
         self.assertEqual(r.data["server_ids"], [999999])
 
-    def test_expense_push_delete_removes_sub_expenses(self):
+    def test_expense_push_delete_removes_sub_expenses(self) -> None:
         """Deleting an expense must remove child sub-expenses (CASCADE on the model)."""
         exp = Expense.objects.create(
             budget=self.budget,
@@ -347,7 +354,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertFalse(Expense.objects.filter(pk=exp.id).exists())
         self.assertFalse(SubExpense.objects.filter(pk=sub.id).exists())
 
-    def test_expense_push_delete_rejects_other_users_expense_id(self):
+    def test_expense_push_delete_rejects_other_users_expense_id(self) -> None:
         other_budget = Budget.objects.create(
             user=self.other,
             month=date(2025, 10, 1),
@@ -370,7 +377,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertIn(other_exp.id, r.data["unknown_ids"])
         self.assertTrue(Expense.objects.filter(pk=other_exp.id).exists())
 
-    def test_expense_push_delete_requires_id(self):
+    def test_expense_push_delete_requires_id(self) -> None:
         url = reverse("api-mobile-expense-push")
         r = self.client.post(
             url,
@@ -379,7 +386,7 @@ class MobileCatalogSyncApiTests(TestCase):
         )
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_sub_expense_push_and_pull(self):
+    def test_sub_expense_push_and_pull(self) -> None:
         exp = Expense.objects.create(
             budget=self.budget,
             name="Rent",
@@ -410,7 +417,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(len(r2.data["sub_expenses"]), 1)
         self.assertEqual(r2.data["sub_expenses"][0]["expense_id"], exp.id)
 
-    def test_sub_expense_push_delete(self):
+    def test_sub_expense_push_delete(self) -> None:
         exp = Expense.objects.create(
             budget=self.budget,
             name="Rent",
@@ -442,7 +449,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.data["server_ids"], [sid])
         self.assertFalse(SubExpense.objects.filter(pk=sid).exists())
 
-    def test_sub_expense_push_delete_is_idempotent_for_already_deleted_id(self):
+    def test_sub_expense_push_delete_is_idempotent_for_already_deleted_id(self) -> None:
         url_push = reverse("api-mobile-subexpense-push")
         r = self.client.post(
             url_push,
@@ -452,7 +459,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r.status_code, status.HTTP_200_OK)
         self.assertEqual(r.data["server_ids"], [999999])
 
-    def test_sub_expense_push_delete_rejects_other_users_sub_expense_id(self):
+    def test_sub_expense_push_delete_rejects_other_users_sub_expense_id(self) -> None:
         other_budget = Budget.objects.create(
             user=self.other,
             month=date(2025, 11, 1),
@@ -480,7 +487,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertIn(other_sub.id, r.data["unknown_ids"])
         self.assertTrue(SubExpense.objects.filter(pk=other_sub.id).exists())
 
-    def test_sub_expense_push_delete_requires_id(self):
+    def test_sub_expense_push_delete_requires_id(self) -> None:
         url_push = reverse("api-mobile-subexpense-push")
         r = self.client.post(
             url_push,
@@ -489,7 +496,7 @@ class MobileCatalogSyncApiTests(TestCase):
         )
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_tag_push_create_update_and_pull_cursor(self):
+    def test_tag_push_create_update_and_pull_cursor(self) -> None:
         url_push = reverse("api-mobile-tag-push")
         resp = self.client.post(
             url_push,
@@ -529,7 +536,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertIn("Later tag", names)
         self.assertNotIn("Travel & transit", names)
 
-    def test_tag_push_rejects_unknown_id(self):
+    def test_tag_push_rejects_unknown_id(self) -> None:
         url = reverse("api-mobile-tag-push")
         response = self.client.post(
             url,
@@ -539,7 +546,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("unknown_ids", response.data)
 
-    def test_expense_push_rejects_other_users_budget(self):
+    def test_expense_push_rejects_other_users_budget(self) -> None:
         other_budget = Budget.objects.create(
             user=self.other,
             month=date(2025, 9, 1),
@@ -563,7 +570,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(r.data.get("budget_id"), other_budget.id)
 
-    def test_expense_push_rejects_unknown_category_id(self):
+    def test_expense_push_rejects_unknown_category_id(self) -> None:
         url = reverse("api-mobile-expense-push")
         r = self.client.post(
             url,
@@ -582,13 +589,13 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(r.data.get("category_id"), 999999)
 
-    def test_expense_push_rejects_non_list_payload(self):
+    def test_expense_push_rejects_non_list_payload(self) -> None:
         url = reverse("api-mobile-expense-push")
         r = self.client.post(url, {"expenses": {}}, format="json")
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("detail", r.data)
 
-    def test_expense_push_rejects_unknown_tag_id(self):
+    def test_expense_push_rejects_unknown_tag_id(self) -> None:
         url = reverse("api-mobile-expense-push")
         r = self.client.post(
             url,
@@ -607,7 +614,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(r.data.get("tag_id"), 999999)
 
-    def test_sub_expense_push_rejects_unknown_expense_id(self):
+    def test_sub_expense_push_rejects_unknown_expense_id(self) -> None:
         url = reverse("api-mobile-subexpense-push")
         r = self.client.post(
             url,
@@ -625,19 +632,19 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(r.data.get("expense_id"), 999999)
 
-    def test_category_push_rejects_non_list_payload(self):
+    def test_category_push_rejects_non_list_payload(self) -> None:
         url = reverse("api-mobile-category-push")
         r = self.client.post(url, {"categories": "x"}, format="json")
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("detail", r.data)
 
-    def test_tag_push_rejects_non_list_payload(self):
+    def test_tag_push_rejects_non_list_payload(self) -> None:
         url = reverse("api-mobile-tag-push")
         r = self.client.post(url, {"tags": {}}, format="json")
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("detail", r.data)
 
-    def test_bill_reminder_pull_returns_own(self):
+    def test_bill_reminder_pull_returns_own(self) -> None:
         from budgetapp.models import BillReminder
 
         BillReminder.objects.create(
@@ -651,7 +658,7 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r.status_code, status.HTTP_200_OK)
         self.assertEqual(len(r.data["bill_reminders"]), 1)
 
-    def test_bill_reminder_push_create_and_expense_link(self):
+    def test_bill_reminder_push_create_and_expense_link(self) -> None:
         from budgetapp.models import BillReminder, Budget, Expense
 
         b = Budget.objects.create(

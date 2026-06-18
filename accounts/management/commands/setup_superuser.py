@@ -1,25 +1,35 @@
 """
 Management command to create an initial superuser.
 
-This command can create a superuser from:
-1. config.yaml settings (if superuser credentials are configured)
-2. Environment variables (DJANGO_SUPERUSER_*)
-3. Interactive prompts (if neither above is configured)
+Credentials are resolved from (in order):
+1. Command-line arguments
+2. config.yaml superuser block
+3. DJANGO_SUPERUSER_* environment variables
+4. Interactive prompts (unless --no-input)
 """
 
+from __future__ import annotations
+
+import getpass
 import os
 import sys
+from argparse import ArgumentParser
+from typing import Any
 
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
+from django.contrib.auth.models import AbstractBaseUser
+from django.core.management.base import BaseCommand, CommandError
 
 User = get_user_model()
 
 
 class Command(BaseCommand):
+    """Create an initial superuser from config, environment, or interactively."""
+
     help = "Create an initial superuser from config, environment, or interactively"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: ArgumentParser) -> None:
+        """Register CLI flags for superuser credentials."""
         parser.add_argument(
             "--email",
             help="Email address for the superuser",
@@ -38,13 +48,12 @@ class Command(BaseCommand):
             help="Do not prompt for input (requires config, env vars, or command args)",
         )
 
-    def handle(self, *args, **options):
-        # Try to get credentials from various sources
-        email = options.get("email")
-        username = options.get("username")
-        password = options.get("password")
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Resolve credentials and create the superuser if it does not exist."""
+        email: str | None = options.get("email")
+        username: str | None = options.get("username")
+        password: str | None = options.get("password")
 
-        # 1. Try config.yaml
         if not email or not username or not password:
             try:
                 from budget_tracker.config import get_superuser_config
@@ -56,47 +65,36 @@ class Command(BaseCommand):
             except ImportError:
                 pass
 
-        # 2. Try environment variables
         email = email or os.getenv("DJANGO_SUPERUSER_EMAIL")
         username = username or os.getenv("DJANGO_SUPERUSER_USERNAME")
         password = password or os.getenv("DJANGO_SUPERUSER_PASSWORD")
 
-        # 3. Check if user already exists
         if email and User.objects.filter(email=email).exists():
             self.stdout.write(
                 self.style.WARNING(f"User with email {email} already exists. Skipping creation.")
             )
             return
 
-        # 4. Interactive mode if not all credentials available
         if not options.get("no_input"):
             if not email:
                 email = input("Email: ")
             if not username:
                 username = input("Username: ")
             if not password:
-                import getpass
-
                 password = getpass.getpass("Password: ")
                 password2 = getpass.getpass("Password (again): ")
                 if password != password2:
-                    self.stderr.write(self.style.ERROR("Passwords do not match."))
-                    sys.exit(1)
+                    raise CommandError("Passwords do not match.")
 
-        # Validate required fields
         if not email or not username or not password:
-            self.stderr.write(
-                self.style.ERROR(
-                    "Email, username, and password are required. "
-                    "Provide them via config.yaml, environment variables, "
-                    "command arguments, or interactively."
-                )
+            raise CommandError(
+                "Email, username, and password are required. "
+                "Provide them via config.yaml, environment variables, "
+                "command arguments, or interactively."
             )
-            sys.exit(1)
 
-        # Create the superuser
         try:
-            user = User.objects.create_superuser(
+            user: AbstractBaseUser = User.objects.create_superuser(
                 email=email,
                 username=username,
                 password=password,
@@ -104,7 +102,5 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS(f"Successfully created superuser: {user.email}")
             )
-        except Exception as e:
-            self.stderr.write(self.style.ERROR(f"Error creating superuser: {e}"))
-            sys.exit(1)
-
+        except Exception as exc:
+            raise CommandError(f"Error creating superuser: {exc}") from exc

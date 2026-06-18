@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""
-Generate PWA icon files from SVG sources.
+"""Generate PWA icon files from SVG sources.
 
-This script converts SVG logo files to the required PNG sizes for PWA icons.
+Converts SVG logo files to the required PNG sizes for PWA icons.
+
 Requires: cairosvg or svglib + reportlab
 
 Install dependencies:
@@ -13,6 +13,8 @@ Install dependencies:
 Usage:
     python scripts/generate_pwa_icons.py
 """
+from __future__ import annotations
+
 # flake8: noqa: E601
 import sys
 from pathlib import Path
@@ -42,7 +44,7 @@ except ImportError:
         sys.exit(1)
 
 # Icon sizes required for PWA
-ICON_SIZES = [
+ICON_SIZES: list[tuple[int, int, str]] = [
     (192, 192, "android-chrome-192x192.png"),
     (512, 512, "android-chrome-512x512.png"),
     (180, 180, "apple-touch-icon.png"),
@@ -60,8 +62,18 @@ SVG_SOURCES = {
 }
 
 
-def convert_svg_to_png(svg_path, png_path, width, height):
-    """Convert SVG to PNG at specified size."""
+def convert_svg_to_png(svg_path: Path, png_path: Path, width: int, height: int) -> None:
+    """Convert an SVG file to a PNG at the requested dimensions.
+
+    Args:
+        svg_path: Source SVG file path.
+        png_path: Destination PNG file path.
+        width: Output width in pixels.
+        height: Output height in pixels.
+
+    Raises:
+        ValueError: When svglib cannot parse the source SVG.
+    """
     if USE_CAIROSVG:
         cairosvg.svg2png(
             url=str(svg_path), write_to=str(png_path), output_width=width, output_height=height
@@ -77,8 +89,12 @@ def convert_svg_to_png(svg_path, png_path, width, height):
             raise ValueError(f"Could not parse SVG: {svg_path}")
 
 
-def generate_icons():
-    """Generate all required PWA icon files."""
+def generate_icons() -> bool:
+    """Generate all required PWA icon files.
+
+    Returns:
+        True when every icon was created without errors.
+    """
     favicon_dir = BASE_DIR / "budgetapp" / "static" / "material" / "favicon"
 
     if not favicon_dir.exists():
@@ -86,7 +102,7 @@ def generate_icons():
         return False
 
     # Source mapping for different sizes
-    source_mapping = {
+    source_mapping: dict[tuple[int, int], str] = {
         (192, 192): "monai-icon.svg",
         (512, 512): "monai-icon.svg",
         (180, 180): "monai-icon.svg",

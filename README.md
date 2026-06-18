@@ -131,7 +131,7 @@ monAI/
 │   ├── minimal/         # Minimal theme views and templates
 │   └── migrations/
 ├── budget_tracker/      # Django project (settings, config loader)
-├── capacitor-app/       # Capacitor Android wrapper
+├── mobile/budget_mobile/  # Flutter Android companion app
 ├── script_runner/       # Script registry and deploy helpers
 ├── static/              # Static files (CSS, JS, images)
 ├── docs/                # Project documentation
@@ -142,11 +142,7 @@ monAI/
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, linting, type checking, and pull request guidelines.
 
 ## License
 

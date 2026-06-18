@@ -1,15 +1,16 @@
-"""
-Bill reminder management (minimal UI) and AJAX defaults for expense modal.
-"""
+"""Bill reminder management and AJAX defaults for the expense modal."""
 
-from datetime import datetime
+from __future__ import annotations
+
+from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
-from django.http import JsonResponse
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 
 from budgetapp.bill_reminder_utils import reminder_defaults_for_expense
-from budgetapp.models import BillReminder, Category, Tag
+from budgetapp.models import BillReminder, Category, Expense, Tag
 
 from .base import LoginRequiredTemplateView, LoginRequiredView
 
@@ -19,7 +20,8 @@ class BillReminderListView(LoginRequiredTemplateView):
 
     template_name = "minimal/bill_reminders/bill_reminder_list.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Return bill reminders with categories, tags, and severity choices."""
         context = super().get_context_data(**kwargs)
         user = self.request.user
         context["bill_reminders"] = BillReminder.objects.filter(user=user).order_by(
@@ -34,7 +36,13 @@ class BillReminderListView(LoginRequiredTemplateView):
 class BillReminderSaveView(LoginRequiredView):
     """Create or update a bill reminder via POST."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Create or update a bill reminder from POST data."""
         rid = request.POST.get("reminder_id")
         name = (request.POST.get("name") or "").strip()
         amount_raw = request.POST.get("amount", "0")
@@ -127,7 +135,13 @@ class BillReminderSaveView(LoginRequiredView):
 class BillReminderDeleteView(LoginRequiredView):
     """Delete a bill reminder."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Delete a bill reminder by ID."""
         rid = request.POST.get("reminder_id")
         if not rid:
             return JsonResponse({"status": "error", "message": "reminder_id required"}, status=400)
@@ -137,21 +151,25 @@ class BillReminderDeleteView(LoginRequiredView):
 
 
 class BillReminderDefaultsView(LoginRequiredView):
-    """GET JSON for expense modal when next due date changes (live defaults)."""
+    """GET JSON for expense modal when next due date changes."""
 
-    def get(self, request, *args, **kwargs):
+    def get(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Return live bill reminder defaults for the expense modal."""
         expense_id = request.GET.get("expense_id")
         next_raw = request.GET.get("next_bill_date")
         expense = None
         if expense_id:
-            from budgetapp.models import Expense
-
             expense = (
                 Expense.objects.filter(pk=expense_id, budget__user=request.user)
                 .select_related("bill_reminder")
                 .first()
             )
-        next_date = None
+        next_date: date | None = None
         if next_raw:
             try:
                 next_date = datetime.strptime(next_raw, "%Y-%m-%d").date()

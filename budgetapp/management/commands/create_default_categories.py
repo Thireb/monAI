@@ -1,11 +1,15 @@
-"""
-Management command to create default expense categories.
+"""Management command to create default expense categories.
 
-This command creates a set of default categories for expense tracking.
+Creates a set of default categories for expense tracking.
 Supports creating categories for a specific user or all users.
 """
+from __future__ import annotations
+
+import argparse
+from typing import Any
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractBaseUser
 from django.core.management.base import BaseCommand
 
 from budgetapp.models import Category
@@ -13,7 +17,7 @@ from budgetapp.models import Category
 User = get_user_model()
 
 # Default categories with icons and colors
-DEFAULT_CATEGORIES = [
+DEFAULT_CATEGORIES: list[dict[str, str]] = [
     {
         "name": "Housing",
         "icon": "fa-home",
@@ -78,9 +82,16 @@ DEFAULT_CATEGORIES = [
 
 
 class Command(BaseCommand):
+    """Create default expense categories for one or more users."""
+
     help = "Creates default expense categories for users"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Register command-line arguments.
+
+        Args:
+            parser: Argument parser provided by Django's command framework.
+        """
         parser.add_argument(
             "--user-email",
             help="Create categories for a specific user (by email)",
@@ -96,8 +107,18 @@ class Command(BaseCommand):
             help="Show what would be created without making changes",
         )
 
-    def create_categories_for_user(self, user, dry_run=False):
-        """Create default categories for a specific user."""
+    def create_categories_for_user(
+        self, user: AbstractBaseUser, dry_run: bool = False
+    ) -> tuple[int, int]:
+        """Create default categories for a specific user.
+
+        Args:
+            user: Target user who will own the new categories.
+            dry_run: When True, report actions without writing to the database.
+
+        Returns:
+            Tuple of ``(created_count, skipped_count)``.
+        """
         created_count = 0
         skipped_count = 0
 
@@ -124,14 +145,20 @@ class Command(BaseCommand):
 
         return created_count, skipped_count
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Create default categories for the selected users.
+
+        Args:
+            *args: Positional arguments from the management command runner.
+            **options: Parsed command-line options.
+        """
         dry_run = options.get("dry_run", False)
 
         if dry_run:
             self.stdout.write(self.style.WARNING("DRY RUN - no changes will be made\n"))
 
         # Determine which users to process
-        users = []
+        users: list[AbstractBaseUser] = []
 
         if options.get("user_email"):
             try:
@@ -144,7 +171,7 @@ class Command(BaseCommand):
                 return
 
         elif options.get("all_users"):
-            users = User.objects.all()
+            users = list(User.objects.all())
 
         else:
             self.stderr.write(

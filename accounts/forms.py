@@ -1,3 +1,7 @@
+"""Forms for user registration, admin edits, and profile updates."""
+
+from __future__ import annotations
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
@@ -6,7 +10,7 @@ User = get_user_model()
 
 
 class CustomUserCreationForm(UserCreationForm):
-    """Form for creating new users."""
+    """Form for creating new users via the admin or signup flows."""
 
     class Meta:
         model = User
@@ -14,7 +18,7 @@ class CustomUserCreationForm(UserCreationForm):
 
 
 class CustomUserChangeForm(UserChangeForm):
-    """Form for updating users."""
+    """Form for updating users in the admin interface."""
 
     class Meta:
         model = User
@@ -42,9 +46,11 @@ class ProfileUpdateForm(forms.ModelForm):
             ),
         }
 
-    def clean_email(self):
+    def clean_email(self) -> str:
+        """Ensure the email is unique among all users except the current one."""
         email = self.cleaned_data.get("email")
+        if not email:
+            raise forms.ValidationError("Email is required.")
         if User.objects.exclude(pk=self.instance.pk).filter(email=email).exists():
             raise forms.ValidationError("This email is already in use.")
         return email
-

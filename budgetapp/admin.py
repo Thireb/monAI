@@ -1,3 +1,7 @@
+"""Django admin registrations for budgetapp models."""
+
+from __future__ import annotations
+
 from django.contrib import admin
 
 from .models import (
@@ -13,12 +17,16 @@ from .models import (
 
 @admin.register(Budget)
 class BudgetAdmin(admin.ModelAdmin):
+    """Admin interface for monthly budgets."""
+
     list_display = ("month", "created_at")
     list_filter = ("month",)
 
 
 @admin.register(Expense)
 class ExpenseAdmin(admin.ModelAdmin):
+    """Admin interface for budget expense line items."""
+
     list_display = ("name", "amount", "budget", "is_recurring")
     list_filter = ("is_recurring", "budget__month")
     search_fields = ("name",)
@@ -26,6 +34,8 @@ class ExpenseAdmin(admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
+    """Admin interface for user-defined expense tags."""
+
     list_display = ("name", "description", "color", "is_active", "created_at")
     list_filter = ("is_active", "created_at")
     search_fields = ("name", "description")
@@ -34,6 +44,8 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(Goal)
 class GoalAdmin(admin.ModelAdmin):
+    """Admin interface for savings goals."""
+
     list_display = (
         "name",
         "target_amount",
@@ -49,6 +61,8 @@ class GoalAdmin(admin.ModelAdmin):
 
 @admin.register(GoalContribution)
 class GoalContributionAdmin(admin.ModelAdmin):
+    """Admin interface for individual goal contributions."""
+
     list_display = ("goal", "amount", "date", "source")
     list_filter = ("source", "date")
     search_fields = ("goal__name", "notes")
@@ -57,6 +71,8 @@ class GoalContributionAdmin(admin.ModelAdmin):
 
 @admin.register(Debt)
 class DebtAdmin(admin.ModelAdmin):
+    """Admin interface for tracked debts and repayment progress."""
+
     list_display = (
         "name",
         "total_amount",
@@ -77,9 +93,9 @@ class DebtAdmin(admin.ModelAdmin):
 
 @admin.register(DebtTransaction)
 class DebtTransactionAdmin(admin.ModelAdmin):
+    """Admin interface for individual debt borrowing transactions."""
+
     list_display = ("debt", "amount", "date", "created_at")
     list_filter = ("date", "created_at")
     search_fields = ("debt__name", "notes")
     date_hierarchy = "date"
-
-

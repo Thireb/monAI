@@ -1,5 +1,8 @@
 # Copy to config.yaml and customize. config.yaml is gitignored.
 # See docs/README.md for full configuration documentation.
+#
+# Production: set app.debug to false and use a long random app.secret_key.
+# Prefer SECRET_KEY and RESEND_API_KEY environment variables on hosted platforms.
 
 app:
   name: "monAI"
@@ -13,6 +16,7 @@ server:
     - "127.0.0.1"
   timezone: "Asia/Karachi"
 
+# CSRF trusted origins for ngrok tunnels and LAN development (optional).
 urls:
   local: "http://127.0.0.1:8000"
   ngrok: ""
@@ -48,8 +52,3 @@ superuser:
   email: ""
   username: ""
   password: ""
-
-# Optional: simulate slow dashboard/calendar queries for load-testing lessons.
-# Set calendar_query_delay_seconds to 0 (or remove this block) for normal speed.
-learning_demo:
-  calendar_query_delay_seconds: 0

@@ -1,15 +1,17 @@
-"""
-Budget CRUD views.
-"""
+"""Budget CRUD views."""
+
+from __future__ import annotations
 
 import logging
+from datetime import date, timedelta
 from decimal import Decimal
 from io import BytesIO
+from typing import Any
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.http import JsonResponse
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -24,23 +26,24 @@ logger = logging.getLogger(__name__)
 
 
 class BudgetDetailView(LoginRequiredTemplateView):
+    """Display budget detail page with expenses, stats, and bill reminders."""
+
     template_name = "minimal/budget_detail_pages/budget_detail.html"
 
     def _format_currency(self, val: float) -> str:
-        """
-        Format a float value as a string with comma as thousands separator
-        and two decimal places.
-        """
+        """Format a float value with comma separator and two decimal places."""
         return intcomma(f"{val:,.2f}")
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Build budget detail context with expenses and category/tag breakdowns."""
         context = super().get_context_data(**kwargs)
         year = self.kwargs.get("year")
         month = self.kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
+        budget = get_object_or_404(
+            Budget, month=budget_date, is_archived=False, user=self.request.user
+        )
 
-        # Get all expenses for this budget
         expenses_qs = (
             budget.expenses.all()
             .select_related("category", "tag_foreign_key", "bill_reminder")
@@ -51,7 +54,6 @@ class BudgetDetailView(LoginRequiredTemplateView):
 
         displays = budget.get_summary_display_strings(self._format_currency)
 
-        # Prepare expenses with amount_display and sub_expenses with amount_display
         expenses = []
         for expense in expenses_qs:
             sub_expenses = [
@@ -106,7 +108,6 @@ class BudgetDetailView(LoginRequiredTemplateView):
                 }
             )
 
-        # Prepare category stats for display
         expenses_by_category = {}
         if expenses_qs.exists():
             category_totals = {}
@@ -129,7 +130,6 @@ class BudgetDetailView(LoginRequiredTemplateView):
                     "percentage_display": f"{percent:.1f}",
                 }
 
-        # Calculate tag totals for display using tag_foreign_key
         tag_totals = {}
         tag_labels = {}
         for expense in expenses_qs:
@@ -161,7 +161,12 @@ class BudgetDetailView(LoginRequiredTemplateView):
 class BudgetCreateView(LoginRequiredView):
     """Class-based view for creating a new budget."""
 
-    def get(self, request, *args, **kwargs):
+    def get(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
         """Show modal to choose between blank budget or copy from previous."""
         return JsonResponse(
             {
@@ -173,31 +178,35 @@ class BudgetCreateView(LoginRequiredView):
             }
         )
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Create a budget, optionally copying recurring expenses."""
         copy_recurring_param = request.POST.get("copy_recurring", "true")
         copy_recurring = copy_recurring_param.lower() == "true"
 
         target_year = request.POST.get("target_year")
         target_month = request.POST.get("target_month")
 
-        # Determine the target month for budget creation
         if target_year and target_month:
-            # Use the specified year and month
             target_month_date = timezone.datetime(
                 year=int(target_year), month=int(target_month), day=1
             ).date()
         else:
-            # Fallback to the original logic (next month after last budget)
             last_budget = Budget.objects.filter(user=request.user).order_by("-month").first()
             if last_budget:
                 target_month_date = (
-                    last_budget.month.replace(day=1) + timezone.timedelta(days=32)
+                    last_budget.month.replace(day=1) + timedelta(days=32)
                 ).replace(day=1)
             else:
                 target_month_date = timezone.now().date().replace(day=1)
 
-        # Check if budget already exists for this month
-        if Budget.objects.filter(user=request.user, month=target_month_date, is_archived=False).exists():
+        if Budget.objects.filter(
+            user=request.user, month=target_month_date, is_archived=False
+        ).exists():
             return JsonResponse(
                 {
                     "status": "error",
@@ -206,23 +215,18 @@ class BudgetCreateView(LoginRequiredView):
                 status=400,
             )
 
-        # Create new budget
         budget = Budget.objects.create(user=request.user, month=target_month_date)
 
-        # Copy recurring expenses and income from previous budget if requested
         if copy_recurring:
-            # Get the budget before the one we just created
             previous_budget = (
                 Budget.objects.filter(user=request.user, month__lt=target_month_date)
                 .order_by("-month")
                 .first()
             )
             if previous_budget:
-                # Copy income from previous budget
                 budget.income = previous_budget.income
                 budget.save()
 
-                # Copy recurring expenses
                 recurring_expenses = previous_budget.expenses.filter(is_recurring=True)
                 for expense in recurring_expenses:
                     Expense.objects.create(
@@ -233,7 +237,6 @@ class BudgetCreateView(LoginRequiredView):
                         category=expense.category,
                         tag_foreign_key=expense.tag_foreign_key,
                     )
-                # Add success message about copied expenses and income
                 if recurring_expenses.exists():
                     messages.success(
                         request,
@@ -256,7 +259,6 @@ class BudgetCreateView(LoginRequiredView):
                 f"Added {added} scheduled bill line item(s) from your bill reminders.",
             )
 
-        # Return JSON response with redirect URL
         redirect_url = reverse(
             "minimal:budget_detail",
             kwargs={"year": target_month_date.year, "month": target_month_date.month},
@@ -273,7 +275,13 @@ class BudgetCreateView(LoginRequiredView):
 class BudgetDeleteView(LoginRequiredView):
     """Class-based view for deleting a budget."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Delete the budget for the given year/month."""
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
@@ -289,10 +297,7 @@ class BudgetDeleteView(LoginRequiredView):
                 status=404,
             )
 
-        # Store budget info for the message
         budget_month_str = budget.month.strftime("%B %Y")
-
-        # Delete the budget (this will cascade delete all related data)
         budget.delete()
 
         messages.success(request, f"Budget for {budget_month_str} has been deleted")
@@ -308,11 +313,19 @@ class BudgetDeleteView(LoginRequiredView):
 class IncomeUpdateView(LoginRequiredView):
     """Class-based view for updating budget income."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Update budget income, currency, and log the change."""
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
+        budget = get_object_or_404(
+            Budget, month=budget_date, is_archived=False, user=self.request.user
+        )
 
         income = request.POST.get("income")
         currency = request.POST.get("currency")
@@ -326,7 +339,6 @@ class IncomeUpdateView(LoginRequiredView):
             budget.currency = currency
             budget.save()
 
-            # Log income change
             IncomeHistory.objects.create(
                 budget=budget,
                 old_amount=old_income,
@@ -336,7 +348,6 @@ class IncomeUpdateView(LoginRequiredView):
                 reason=reason,
             )
 
-            # Format for display
             income_display = intcomma(f"{float(budget.income):,.2f}")
             displays = budget.get_summary_display_strings(lambda v: intcomma(f"{float(v):,.2f}"))
             remaining_budget = budget.get_remaining_budget()
@@ -363,17 +374,25 @@ class SummaryCardsView(LoginRequiredView):
     """View for getting summary cards."""
 
     def _format_currency(self, val: float) -> str:
+        """Format a float value with comma separator and two decimal places."""
         return intcomma(f"{val:,.2f}")
 
-    def get(self, request, *args, **kwargs):
+    def get(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Return rendered summary cards HTML for the budget month."""
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
+        budget = get_object_or_404(
+            Budget, month=budget_date, is_archived=False, user=self.request.user
+        )
 
         displays = budget.get_summary_display_strings(self._format_currency)
 
-        # Render the summary cards section
         html = render_to_string(
             "minimal/budget_detail_pages/summary_cards.html",
             {
@@ -386,25 +405,18 @@ class SummaryCardsView(LoginRequiredView):
 
 
 class BudgetEmailPDFView(LoginRequiredView):
-    """
-    View to generate a PDF of the budget and email it to the user.
-    Uses WeasyPrint for PDF generation and Resend for email delivery.
-    """
+    """Generate a budget PDF and email it to the user via Resend."""
 
     def _format_currency(self, val: float) -> str:
         """Format a float value with comma separator and two decimal places."""
         return intcomma(f"{val:,.2f}")
 
-    def _get_budget_context(self, budget):
-        """
-        Get the budget context data for PDF rendering.
-        Reuses logic from BudgetDetailView.
-        """
+    def _get_budget_context(self, budget: Budget) -> dict[str, Any]:
+        """Build context data for PDF rendering."""
         expenses_qs = budget.expenses.all().order_by("created_at")
         displays = budget.get_summary_display_strings(self._format_currency)
         gross_budgeted = displays["gross_budgeted_expenses"]
 
-        # Prepare expenses with formatted amounts and sub_expenses
         expenses = []
         for expense in expenses_qs:
             sub_expenses = [
@@ -433,7 +445,6 @@ class BudgetEmailPDFView(LoginRequiredView):
                 }
             )
 
-        # Prepare category stats
         expenses_by_category = {}
         if expenses_qs.exists():
             category_totals = {}
@@ -456,7 +467,6 @@ class BudgetEmailPDFView(LoginRequiredView):
                     "percentage_display": f"{percent:.1f}",
                 }
 
-        # Prepare tag breakdown (Account Breakdown) for PDF
         tag_totals = {}
         tag_colors = {}
         for expense in expenses_qs:
@@ -467,7 +477,6 @@ class BudgetEmailPDFView(LoginRequiredView):
                     tag_colors[tag_name] = expense.tag_foreign_key.color
                 tag_totals[tag_name] += float(expense.amount)
 
-        # Format tag breakdown similar to expenses_by_category
         tag_breakdown = {}
         for tag_name, amount in tag_totals.items():
             denom = float(gross_budgeted)
@@ -489,8 +498,8 @@ class BudgetEmailPDFView(LoginRequiredView):
             "generated_date": timezone.now(),
         }
 
-    def _generate_pdf(self, context):
-        """Generate PDF from template using WeasyPrint."""
+    def _generate_pdf(self, context: dict[str, Any]) -> bytes:
+        """Generate PDF bytes from the budget report template."""
         try:
             from weasyprint import HTML
         except ImportError:
@@ -507,7 +516,12 @@ class BudgetEmailPDFView(LoginRequiredView):
         pdf_buffer.seek(0)
         return pdf_buffer.getvalue()
 
-    def _send_email_with_resend(self, user_email, pdf_bytes, budget_month):
+    def _send_email_with_resend(
+        self,
+        user_email: str,
+        pdf_bytes: bytes,
+        budget_month: date,
+    ) -> Any:
         """Send email with PDF attachment using Resend API."""
         try:
             import resend
@@ -529,7 +543,6 @@ class BudgetEmailPDFView(LoginRequiredView):
 
         filename = f"budget_report_{budget_month.strftime('%Y_%m')}.pdf"
 
-        # Resend Python SDK expects content as list of bytes
         params: resend.Emails.SendParams = {
             "from": from_email,
             "to": [user_email],
@@ -559,14 +572,21 @@ class BudgetEmailPDFView(LoginRequiredView):
         response = resend.Emails.send(params)
         return response
 
-    def post(self, request, *args, **kwargs):
-        """Handle POST request to generate and email PDF."""
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Generate and email a PDF budget report."""
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
 
         try:
-            budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
+            budget = get_object_or_404(
+                Budget, month=budget_date, is_archived=False, user=self.request.user
+            )
         except Exception:
             return JsonResponse(
                 {"status": "error", "message": "Budget not found."},
@@ -574,13 +594,9 @@ class BudgetEmailPDFView(LoginRequiredView):
             )
 
         try:
-            # Get context for PDF
             context = self._get_budget_context(budget)
-
-            # Generate PDF
             pdf_bytes = self._generate_pdf(context)
 
-            # Send email
             user_email = request.user.email
             if not user_email:
                 return JsonResponse(

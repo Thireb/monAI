@@ -1,3 +1,6 @@
+"""Tests for savings goals models and minimal UI endpoints."""
+from __future__ import annotations
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -12,7 +15,9 @@ User = get_user_model()
 
 
 class GoalModelTests(TestCase):
-    def setUp(self):
+    """Tests for Goal model properties and progress helpers."""
+
+    def setUp(self) -> None:
         self.user = User.objects.create_user(
             username="testuser", email="test@example.com", password="testpassword"
         )
@@ -29,7 +34,7 @@ class GoalModelTests(TestCase):
             is_active=True,
         )
 
-    def test_goal_creation(self):
+    def test_goal_creation(self) -> None:
         """Test that a goal can be created with the correct fields"""
         self.assertEqual(self.goal.name, "Vacation Fund")
         self.assertEqual(self.goal.target_amount, Decimal("1000.00"))
@@ -38,7 +43,7 @@ class GoalModelTests(TestCase):
         self.assertEqual(self.goal.category, self.category)
         self.assertTrue(self.goal.is_active)
 
-    def test_progress_percentage(self):
+    def test_progress_percentage(self) -> None:
         """Test that progress_percentage returns the correct value"""
         self.assertEqual(self.goal.progress_percentage, 25)
 
@@ -54,7 +59,7 @@ class GoalModelTests(TestCase):
         )
         self.assertEqual(goal_zero_target.progress_percentage, 100)
 
-    def test_is_on_track(self):
+    def test_is_on_track(self) -> None:
         """Test the is_on_track method"""
         GoalContribution.objects.create(
             goal=self.goal,
@@ -86,7 +91,7 @@ class GoalModelTests(TestCase):
 class GoalMinimalViewTests(TestCase):
     """Minimal UI routes for goals."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client = Client()
         self.user = User.objects.create_user(
             username="testuser", email="test@example.com", password="testpassword"
@@ -103,7 +108,7 @@ class GoalMinimalViewTests(TestCase):
             is_active=True,
         )
 
-    def test_goal_list_view(self):
+    def test_goal_list_view(self) -> None:
         Goal.objects.create(
             user=self.user,
             name="Completed Goal",
@@ -127,7 +132,7 @@ class GoalMinimalViewTests(TestCase):
         self.assertContains(response, "Completed Goal")
         self.assertContains(response, "Inactive Goal")
 
-    def test_goal_detail_view(self):
+    def test_goal_detail_view(self) -> None:
         GoalContribution.objects.create(
             goal=self.goal, amount=Decimal("250.00"), date=timezone.now().date(), source="Savings"
         )
@@ -141,7 +146,7 @@ class GoalMinimalViewTests(TestCase):
         self.assertContains(response, "250.00")
         self.assertContains(response, "Savings")
 
-    def test_add_contribution_json(self):
+    def test_add_contribution_json(self) -> None:
         self.assertEqual(self.goal.current_amount, Decimal("0.00"))
 
         response = self.client.post(
@@ -166,7 +171,7 @@ class GoalMinimalViewTests(TestCase):
             GoalContribution.objects.filter(goal=self.goal, amount=Decimal("100.00")).exists()
         )
 
-    def test_update_contribution_resyncs_goal_current_amount(self):
+    def test_update_contribution_resyncs_goal_current_amount(self) -> None:
         contrib = GoalContribution.objects.create(
             goal=self.goal,
             amount=Decimal("50.00"),
@@ -195,7 +200,7 @@ class GoalMinimalViewTests(TestCase):
         self.goal.refresh_from_db()
         self.assertEqual(self.goal.current_amount, Decimal("75.00"))
 
-    def test_delete_contribution_resyncs_goal_current_amount(self):
+    def test_delete_contribution_resyncs_goal_current_amount(self) -> None:
         c1 = GoalContribution.objects.create(
             goal=self.goal,
             amount=Decimal("40.00"),
@@ -222,7 +227,7 @@ class GoalMinimalViewTests(TestCase):
         self.goal.refresh_from_db()
         self.assertEqual(self.goal.current_amount, Decimal("60.00"))
 
-    def test_cannot_update_contribution_for_other_users_goal(self):
+    def test_cannot_update_contribution_for_other_users_goal(self) -> None:
         other = User.objects.create_user(
             username="othergoal",
             email="othergoal@example.com",

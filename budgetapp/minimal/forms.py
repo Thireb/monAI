@@ -1,3 +1,9 @@
+"""Forms for debt management in the minimal theme."""
+
+from __future__ import annotations
+
+from decimal import Decimal
+
 from django import forms
 
 from budgetapp.models import Debt, DebtTransaction
@@ -17,7 +23,9 @@ class DebtForm(forms.ModelForm):
                 attrs={
                     "class": "form-control",
                     "rows": 3,
-                    "placeholder": "Describe the debt (e.g., borrowed from friend for motherboard)",
+                    "placeholder": (
+                        "Describe the debt (e.g., borrowed from friend for motherboard)"
+                    ),
                 }
             ),
             "total_amount": forms.NumberInput(
@@ -30,7 +38,15 @@ class DebtForm(forms.ModelForm):
             ),
         }
 
-    def clean_total_amount(self):
+    def clean_total_amount(self) -> Decimal | None:
+        """Validate that total amount is greater than zero.
+
+        Returns:
+            The cleaned total amount, or None if not provided.
+
+        Raises:
+            ValidationError: If total amount is zero or negative.
+        """
         total_amount = self.cleaned_data.get("total_amount")
         if total_amount and total_amount <= 0:
             raise forms.ValidationError("Total amount must be greater than zero.")
@@ -67,7 +83,15 @@ class DebtTransactionForm(forms.ModelForm):
             ),
         }
 
-    def clean_amount(self):
+    def clean_amount(self) -> Decimal | None:
+        """Validate that amount is greater than zero.
+
+        Returns:
+            The cleaned amount, or None if not provided.
+
+        Raises:
+            ValidationError: If amount is zero or negative.
+        """
         amount = self.cleaned_data.get("amount")
         if amount and amount <= 0:
             raise forms.ValidationError("Amount must be greater than zero.")

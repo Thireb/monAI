@@ -1,19 +1,28 @@
-"""
-SubExpense CRUD views.
-"""
+"""SubExpense CRUD views."""
+
+from __future__ import annotations
 
 from decimal import Decimal
+from typing import Any
 
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.http import JsonResponse
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 
-from budgetapp.models import Expense, SubExpense
+from budgetapp.models import Budget, Expense, SubExpense
 
 from .base import LoginRequiredView
 
 
-def _budget_summary_for_json(budget):
+def _budget_summary_for_json(budget: Budget) -> dict[str, str]:
+    """Return formatted budget summary strings for JSON responses.
+
+    Args:
+        budget: The budget to summarize.
+
+    Returns:
+        Dict of display-formatted summary fields.
+    """
     return budget.get_summary_display_strings(lambda v: intcomma(f"{float(v):,.2f}"))
 
 
@@ -21,9 +30,16 @@ class SubExpenseCreateView(LoginRequiredView):
     """Class-based view for creating a new sub-expense."""
 
     def _format_currency(self, val: float) -> str:
+        """Format a float as a comma-separated currency string."""
         return intcomma(f"{val:,.2f}")
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Create a sub-expense and return updated summaries."""
         expense_id = request.POST.get("expense_id")
         name = request.POST.get("name")
         amount = Decimal(request.POST.get("amount"))
@@ -36,7 +52,6 @@ class SubExpenseCreateView(LoginRequiredView):
                 amount=amount,
                 is_return=is_return,
             )
-            # Calculate summary
             total_returns = expense.get_total_returns()
             remaining_amount = expense.get_remaining_amount()
             budget_summary = _budget_summary_for_json(expense.budget)
@@ -69,9 +84,16 @@ class SubExpenseUpdateView(LoginRequiredView):
     """Class-based view for updating a sub-expense."""
 
     def _format_currency(self, val: float) -> str:
+        """Format a float as a comma-separated currency string."""
         return intcomma(f"{val:,.2f}")
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Update a sub-expense and return updated summaries."""
         subexpense_id = request.POST.get("subexpense_id")
         name = request.POST.get("name")
         amount = Decimal(request.POST.get("amount"))
@@ -85,7 +107,6 @@ class SubExpenseUpdateView(LoginRequiredView):
             sub.is_return = is_return
             sub.save()
             expense = sub.expense
-            # Calculate summary
             total_returns = expense.get_total_returns()
             remaining_amount = expense.get_remaining_amount()
             budget_summary = _budget_summary_for_json(expense.budget)
@@ -117,7 +138,13 @@ class SubExpenseUpdateView(LoginRequiredView):
 class SubExpenseDeleteView(LoginRequiredView):
     """Class-based view for deleting a sub-expense."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Delete a sub-expense and return updated summaries."""
         subexpense_id = request.POST.get("subexpense_id")
         try:
             sub = get_object_or_404(
@@ -125,7 +152,6 @@ class SubExpenseDeleteView(LoginRequiredView):
             )
             expense = sub.expense
             sub.delete()
-            # Calculate summary
             total_returns = expense.get_total_returns()
             remaining_amount = expense.get_remaining_amount()
             budget_summary = _budget_summary_for_json(expense.budget)

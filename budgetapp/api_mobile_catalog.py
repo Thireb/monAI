@@ -1,8 +1,17 @@
+"""Mobile sync pull/push API views for catalog entities."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any
+
+from django.contrib.auth.models import AbstractBaseUser
 from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -25,7 +34,8 @@ from .serializers_mobile import (
 )
 
 
-def _parse_updated_after(raw):
+def _parse_updated_after(raw: str | None) -> datetime | None:
+    """Parse an ISO-8601 ``updated_after`` query parameter into an aware datetime."""
     if not raw:
         return None
     parsed = parse_datetime(raw)
@@ -36,8 +46,12 @@ def _parse_updated_after(raw):
     return parsed
 
 
-def _collect_unknown_category_ids(user, validated_items):
-    unknown = []
+def _collect_unknown_category_ids(
+    user: AbstractBaseUser,
+    validated_items: list[dict[str, Any]],
+) -> list[int]:
+    """Return category ids referenced in push data that do not belong to the user."""
+    unknown: list[int] = []
     for item in validated_items:
         cid = item.get("id")
         if cid is None:
@@ -47,8 +61,12 @@ def _collect_unknown_category_ids(user, validated_items):
     return unknown
 
 
-def _collect_unknown_tag_ids(user, validated_items):
-    unknown = []
+def _collect_unknown_tag_ids(
+    user: AbstractBaseUser,
+    validated_items: list[dict[str, Any]],
+) -> list[int]:
+    """Return tag ids referenced in push data that do not belong to the user."""
+    unknown: list[int] = []
     for item in validated_items:
         tid = item.get("id")
         if tid is None:
@@ -58,8 +76,12 @@ def _collect_unknown_tag_ids(user, validated_items):
     return unknown
 
 
-def _collect_unknown_expense_ids(user, validated_items):
-    unknown = []
+def _collect_unknown_expense_ids(
+    user: AbstractBaseUser,
+    validated_items: list[dict[str, Any]],
+) -> list[int]:
+    """Return expense ids referenced in push data that do not belong to the user."""
+    unknown: list[int] = []
     for item in validated_items:
         eid = item.get("id")
         if eid is None:
@@ -71,8 +93,12 @@ def _collect_unknown_expense_ids(user, validated_items):
     return unknown
 
 
-def _collect_unknown_subexpense_ids(user, validated_items):
-    unknown = []
+def _collect_unknown_subexpense_ids(
+    user: AbstractBaseUser,
+    validated_items: list[dict[str, Any]],
+) -> list[int]:
+    """Return sub-expense ids referenced in push data that do not belong to the user."""
+    unknown: list[int] = []
     for item in validated_items:
         sid = item.get("id")
         if sid is None:
@@ -84,8 +110,12 @@ def _collect_unknown_subexpense_ids(user, validated_items):
     return unknown
 
 
-def _collect_unknown_bill_reminder_ids(user, validated_items):
-    unknown = []
+def _collect_unknown_bill_reminder_ids(
+    user: AbstractBaseUser,
+    validated_items: list[dict[str, Any]],
+) -> list[int]:
+    """Return bill reminder ids referenced in push data that do not belong to the user."""
+    unknown: list[int] = []
     for item in validated_items:
         rid = item.get("id")
         if rid is None:
@@ -98,9 +128,12 @@ def _collect_unknown_bill_reminder_ids(user, validated_items):
 
 
 class MobileCategoryPullView(APIView):
+    """GET categories changed after optional ``?updated_after=`` timestamp."""
+
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        """Return categories for the authenticated user."""
         user = request.user
         qs = Category.objects.filter(user=user).order_by("updated_at", "id")
         updated_after = _parse_updated_after(request.query_params.get("updated_after"))
@@ -111,9 +144,12 @@ class MobileCategoryPullView(APIView):
 
 
 class MobileCategoryPushView(APIView):
+    """Apply category upserts from the mobile client."""
+
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
+        """Create or update categories from a JSON list under the ``categories`` key."""
         user = request.user
         raw_list = request.data.get("categories")
         if not isinstance(raw_list, list):
@@ -129,8 +165,8 @@ class MobileCategoryPushView(APIView):
                 {"detail": "Unknown category id(s).", "unknown_ids": unknown},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        created_ids = []
-        server_ids = []
+        created_ids: list[int] = []
+        server_ids: list[int] = []
         with transaction.atomic():
             for item in ser.validated_data:
                 obj, created = save_category_for_user(user, item)
@@ -146,9 +182,12 @@ class MobileCategoryPushView(APIView):
 
 
 class MobileTagPullView(APIView):
+    """GET tags changed after optional ``?updated_after=`` timestamp."""
+
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        """Return tags for the authenticated user."""
         user = request.user
         qs = Tag.objects.filter(user=user).order_by("updated_at", "id")
         updated_after = _parse_updated_after(request.query_params.get("updated_after"))
@@ -159,9 +198,12 @@ class MobileTagPullView(APIView):
 
 
 class MobileTagPushView(APIView):
+    """Apply tag upserts from the mobile client."""
+
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
+        """Create or update tags from a JSON list under the ``tags`` key."""
         user = request.user
         raw_list = request.data.get("tags")
         if not isinstance(raw_list, list):
@@ -177,8 +219,8 @@ class MobileTagPushView(APIView):
                 {"detail": "Unknown tag id(s).", "unknown_ids": unknown},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        created_ids = []
-        server_ids = []
+        created_ids: list[int] = []
+        server_ids: list[int] = []
         with transaction.atomic():
             for item in ser.validated_data:
                 obj, created = save_tag_for_user(user, item)
@@ -194,9 +236,12 @@ class MobileTagPushView(APIView):
 
 
 class MobileExpensePullView(APIView):
+    """GET expenses changed after optional ``?updated_after=`` timestamp."""
+
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        """Return expenses for budgets owned by the authenticated user."""
         user = request.user
         qs = (
             Expense.objects.filter(budget__user=user)
@@ -211,9 +256,12 @@ class MobileExpensePullView(APIView):
 
 
 class MobileExpensePushView(APIView):
+    """Apply expense upserts and deletions from the mobile client."""
+
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
+        """Create, update, or delete expenses from a JSON list under ``expenses``."""
         user = request.user
         raw_list = request.data.get("expenses")
         if not isinstance(raw_list, list):
@@ -259,8 +307,8 @@ class MobileExpensePushView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        created_ids = []
-        server_ids = []
+        created_ids: list[int] = []
+        server_ids: list[int] = []
         with transaction.atomic():
             for item in ser.validated_data:
                 if item.get("deleted"):
@@ -311,9 +359,12 @@ class MobileExpensePushView(APIView):
 
 
 class MobileSubExpensePullView(APIView):
+    """GET sub-expenses changed after optional ``?updated_after=`` timestamp."""
+
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        """Return sub-expenses for expenses owned by the authenticated user."""
         user = request.user
         qs = SubExpense.objects.filter(expense__budget__user=user).order_by("updated_at", "id")
         updated_after = _parse_updated_after(request.query_params.get("updated_after"))
@@ -324,9 +375,12 @@ class MobileSubExpensePullView(APIView):
 
 
 class MobileSubExpensePushView(APIView):
+    """Apply sub-expense upserts and deletions from the mobile client."""
+
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
+        """Create, update, or delete sub-expenses from a JSON list under ``sub_expenses``."""
         user = request.user
         raw_list = request.data.get("sub_expenses")
         if not isinstance(raw_list, list):
@@ -357,8 +411,8 @@ class MobileSubExpensePushView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        created_ids = []
-        server_ids = []
+        created_ids: list[int] = []
+        server_ids: list[int] = []
         with transaction.atomic():
             for item in ser.validated_data:
                 if item.get("deleted"):
@@ -400,9 +454,12 @@ class MobileSubExpensePushView(APIView):
 
 
 class MobileBillReminderPullView(APIView):
+    """GET bill reminders changed after optional ``?updated_after=`` timestamp."""
+
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        """Return bill reminders for the authenticated user."""
         user = request.user
         qs = BillReminder.objects.filter(user=user).order_by("updated_at", "id")
         updated_after = _parse_updated_after(request.query_params.get("updated_after"))
@@ -413,9 +470,12 @@ class MobileBillReminderPullView(APIView):
 
 
 class MobileBillReminderPushView(APIView):
+    """Apply bill reminder upserts and deletions from the mobile client."""
+
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
+        """Create, update, or delete bill reminders from a JSON list under ``bill_reminders``."""
         user = request.user
         raw_list = request.data.get("bill_reminders")
         if not isinstance(raw_list, list):
@@ -447,8 +507,8 @@ class MobileBillReminderPushView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        created_ids = []
-        server_ids = []
+        created_ids: list[int] = []
+        server_ids: list[int] = []
         with transaction.atomic():
             for item in ser.validated_data:
                 if item.get("deleted"):

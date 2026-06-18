@@ -38,13 +38,6 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 
-# Capacitor / Node (not needed to run Django)
-capacitor-app/node_modules/
-capacitor-app/android/.gradle/
-capacitor-app/android/app/build/
-capacitor-app/android/build/
-capacitor-app/output/
-
 # Docs and scripts (optional: remove these lines if you want them in the image)
 # docs/
 # scripts/

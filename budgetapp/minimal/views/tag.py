@@ -1,8 +1,10 @@
-"""
-Tag management views.
-"""
+"""Tag management views."""
 
-from django.http import JsonResponse
+from __future__ import annotations
+
+from typing import Any
+
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 
 from budgetapp.models import Tag
@@ -15,7 +17,8 @@ class TagManagementView(LoginRequiredTemplateView):
 
     template_name = "minimal/tag_management.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Return tags ordered by name for the management page."""
         context = super().get_context_data(**kwargs)
         context["tags"] = Tag.objects.filter(user=self.request.user).order_by("name")
         return context
@@ -24,7 +27,13 @@ class TagManagementView(LoginRequiredTemplateView):
 class TagCreateView(LoginRequiredView):
     """View for creating new tags via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Create a tag from POST data and return JSON."""
         name = request.POST.get("name")
         description = request.POST.get("description", "")
         color = request.POST.get("color", "#2196f3")
@@ -58,7 +67,13 @@ class TagCreateView(LoginRequiredView):
 class TagUpdateView(LoginRequiredView):
     """View for updating tags via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Update a tag from POST data and return JSON."""
         tag_id = request.POST.get("tag_id")
         name = request.POST.get("name")
         description = request.POST.get("description", "")
@@ -98,7 +113,13 @@ class TagUpdateView(LoginRequiredView):
 class TagDeleteView(LoginRequiredView):
     """View for deleting tags via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Delete a tag and cascade cleanup associated debts."""
         tag_id = request.POST.get("tag_id")
 
         if not tag_id:
@@ -108,10 +129,8 @@ class TagDeleteView(LoginRequiredView):
             tag = get_object_or_404(Tag, id=tag_id, user=request.user)
             tag_name = tag.name
 
-            # Count affected expenses for informational message
             affected_expenses = tag.expenses.count()
 
-            # Check if this is a debt tag (has associated debts)
             associated_debts = tag.debts.all()
             deleted_debts_count = 0
             deleted_transactions_count = 0
@@ -121,8 +140,6 @@ class TagDeleteView(LoginRequiredView):
                 deleted_debts_count = associated_debts.count()
                 associated_debts.delete()
 
-            # Delete the tag - Django's on_delete=SET_NULL will automatically
-            # set tag_foreign_key to null on any expenses using this tag
             tag.delete()
 
             message = f'Tag "{tag_name}" deleted successfully!'
@@ -145,4 +162,3 @@ class TagDeleteView(LoginRequiredView):
             return JsonResponse(
                 {"status": "error", "message": f"Error deleting tag: {str(e)}"}, status=400
             )
-

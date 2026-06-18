@@ -1,84 +1,91 @@
-from django.db.models import Sum
-from django.utils import timezone
+"""REST API viewsets for financial goals and contributions."""
 
+from __future__ import annotations
+
+from decimal import Decimal
+from typing import Any
+
+from django.db.models import QuerySet, Sum
+from datetime import timedelta
+
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 
 from .models import Goal, GoalContribution
 from .serializers import GoalContributionSerializer, GoalDetailSerializer, GoalSerializer
 
 
 class GoalViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing financial goals.
+    """ViewSet for managing financial goals.
+
     Only returns goals belonging to the authenticated user.
     """
 
     serializer_class = GoalSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Goal]:
         """Return goals for the authenticated user only."""
         return Goal.objects.filter(user=self.request.user)
 
-    def get_serializer_class(self):
+    def get_serializer_class(self) -> type[BaseSerializer[Any]]:
+        """Use the detail serializer for retrieve/detail actions."""
         if self.action in ["retrieve", "detail"]:
             return GoalDetailSerializer
         return GoalSerializer
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer: BaseSerializer[Goal]) -> None:
         """Set the user when creating a new goal."""
         serializer.save(user=self.request.user)
 
     @action(detail=True, methods=["get"])
-    def statistics(self, request, pk=None):
-        """
-        Get detailed statistics about a goal's progress.
+    def statistics(self, request: Request, pk: int | None = None) -> Response:
+        """Return detailed progress statistics for a single goal.
+
+        Args:
+            request: Incoming HTTP request.
+            pk: Primary key of the goal (provided by the router).
+
+        Returns:
+            JSON payload with averages, consistency, and progress-by-month data.
         """
         goal = self.get_object()
 
-        # Calculate average monthly contribution
         contributions = goal.contributions.all()
         total_contributions = contributions.aggregate(total=Sum("amount"))["total"] or 0
 
-        # Get first contribution date or start date
         first_contribution = contributions.order_by("date").first()
         start_date = first_contribution.date if first_contribution else goal.start_date
 
-        # Calculate months passed (approximate)
         today = timezone.now().date()
         months_passed = (today.year - start_date.year) * 12 + today.month - start_date.month
-        months_passed = max(1, months_passed)  # Avoid division by zero
+        months_passed = max(1, months_passed)
 
-        # Calculate average monthly
         average_monthly = total_contributions / months_passed
 
-        # Calculate contribution consistency (percentage of months with contributions)
-        month_count = {}
+        month_count: dict[str, int] = {}
         for contrib in contributions:
             key = f"{contrib.date.year}-{contrib.date.month}"
             month_count[key] = month_count.get(key, 0) + 1
 
         consistency = (len(month_count) / months_passed) * 100 if months_passed > 0 else 0
 
-        # Get contributions by month for progress chart
-        progress_by_month = []
-        running_total = 0
+        progress_by_month: list[dict[str, str]] = []
+        running_total = Decimal("0")
 
-        # Group contributions by month and calculate running total
         for year in range(start_date.year, today.year + 1):
             for month in range(1, 13):
-                # Skip months before start date
                 if year == start_date.year and month < start_date.month:
                     continue
-
-                # Skip months after current date
                 if year == today.year and month > today.month:
                     continue
 
-                # Get contributions for this month
                 month_contribs = sum(
                     c.amount for c in contributions if c.date.year == year and c.date.month == month
                 )
@@ -91,25 +98,22 @@ class GoalViewSet(viewsets.ModelViewSet):
                     }
                 )
 
-        # Calculate if goal is on track
         is_on_track = goal.is_on_track()
 
-        # Calculate projected completion date based on average monthly contribution
-        projected_days = None
-        days_behind_schedule = None
+        projected_days: int | None = None
+        days_behind_schedule: int | None = None
 
         if average_monthly > 0 and goal.target_amount > goal.current_amount:
             amount_remaining = goal.target_amount - goal.current_amount
             months_remaining = amount_remaining / average_monthly
-            projected_days = int(months_remaining * 30)  # Approximate
+            projected_days = int(months_remaining * 30)
 
-            # Calculate days behind schedule if target date exists
             if goal.target_date:
                 days_to_target = (goal.target_date - today).days
                 if days_to_target < projected_days:
                     days_behind_schedule = projected_days - days_to_target
 
-        response_data = {
+        response_data: dict[str, Any] = {
             "goal_id": goal.id,
             "goal_name": goal.name,
             "average_monthly_contribution": str(round(average_monthly, 2)),
@@ -119,9 +123,8 @@ class GoalViewSet(viewsets.ModelViewSet):
             "progress_by_month": progress_by_month,
         }
 
-        # Add projected completion data if available
         if projected_days is not None:
-            projected_date = today + timezone.timedelta(days=projected_days)
+            projected_date = today + timedelta(days=projected_days)
             response_data["projected_completion_date"] = projected_date.isoformat()
 
             if days_behind_schedule is not None:
@@ -130,19 +133,22 @@ class GoalViewSet(viewsets.ModelViewSet):
         return Response(response_data)
 
     @action(detail=True, methods=["post"])
-    def add_contribution(self, request, pk=None):
-        """
-        Add a contribution to a goal.
+    def add_contribution(self, request: Request, pk: int | None = None) -> Response:
+        """Add a contribution to a goal and update its current amount.
+
+        Args:
+            request: Request body with contribution fields.
+            pk: Primary key of the goal (provided by the router).
+
+        Returns:
+            Serialized contribution on success, or validation errors.
         """
         goal = self.get_object()
 
-        # Create the serializer with goal already set
         serializer = GoalContributionSerializer(data=request.data)
         if serializer.is_valid():
-            # Set goal and save
             contribution = serializer.save(goal=goal)
 
-            # Update current amount on the goal
             goal.current_amount += contribution.amount
             goal.save(update_fields=["current_amount"])
 
@@ -152,68 +158,50 @@ class GoalViewSet(viewsets.ModelViewSet):
 
 
 class GoalContributionViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing goal contributions.
+    """ViewSet for managing goal contributions.
+
     Only returns contributions for goals belonging to the authenticated user.
     """
 
     serializer_class = GoalContributionSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        """
-        Return contributions for the authenticated user's goals.
-        Optionally filter by goal if specified.
-        """
+    def get_queryset(self) -> QuerySet[GoalContribution]:
+        """Return contributions for the user's goals, optionally filtered by goal."""
         goal_id = self.request.query_params.get("goal", None)
         queryset = GoalContribution.objects.filter(goal__user=self.request.user)
         if goal_id:
             queryset = queryset.filter(goal_id=goal_id)
         return queryset
 
-    def perform_create(self, serializer):
-        """
-        Save the contribution and update the goal's current amount.
-        Validates that the goal belongs to the current user.
-        """
+    def perform_create(self, serializer: BaseSerializer[GoalContribution]) -> None:
+        """Save a contribution and update the parent goal's current amount."""
         goal = serializer.validated_data.get("goal")
         if goal.user != self.request.user:
-            from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("You can only add contributions to your own goals.")
 
         contribution = serializer.save()
 
-        # Update the goal's current amount
         goal = contribution.goal
         goal.current_amount += contribution.amount
         goal.save(update_fields=["current_amount"])
 
-    def perform_update(self, serializer):
-        """
-        When updating a contribution, adjust the goal's current amount.
-        """
-        # Get the old amount
+    def perform_update(self, serializer: BaseSerializer[GoalContribution]) -> None:
+        """Adjust the goal's current amount when a contribution is edited."""
         old_amount = self.get_object().amount
 
-        # Save the updated contribution
         contribution = serializer.save()
 
-        # Update the goal's current amount (subtract old, add new)
         goal = contribution.goal
         goal.current_amount = goal.current_amount - old_amount + contribution.amount
         goal.save(update_fields=["current_amount"])
 
-    def perform_destroy(self, instance):
-        """
-        When deleting a contribution, reduce the goal's current amount.
-        """
-        # Get the goal and amount before deletion
+    def perform_destroy(self, instance: GoalContribution) -> None:
+        """Reduce the goal's current amount when a contribution is deleted."""
         goal = instance.goal
         amount = instance.amount
 
-        # Delete the contribution
         instance.delete()
 
-        # Update the goal's current amount
         goal.current_amount -= amount
         goal.save(update_fields=["current_amount"])

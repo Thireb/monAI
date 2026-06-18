@@ -1,24 +1,31 @@
 #!/usr/bin/env python3
+"""Automatically fix common Python lint issues, especially unused imports.
+
+Designed to work with flake8 output from pre-commit hooks.
 """
-Script to automatically fix common issues in Python files, particularly unused imports.
-Designed to work with the output of flake8.
-"""
+from __future__ import annotations
 
 import re
+import subprocess  # nosec B404 - Required for running flake8
 import sys
 from pathlib import Path
 
 
-def find_unused_imports(file_path):
-    """Find unused imports in a file using flake8."""
-    import subprocess  # nosec B404 - Required for running pre-commit
+def find_unused_imports(file_path: str) -> list[str]:
+    """Find unused imports in a file using flake8.
 
+    Args:
+        file_path: Path to the Python source file to inspect.
+
+    Returns:
+        Import names reported as unused by flake8 F401.
+    """
     cmd = ["flake8", "--select=F401", file_path]
     result = subprocess.run(
         cmd, capture_output=True, text=True
     )  # nosec B603 - Command args are controlled by the script
 
-    unused_imports = []
+    unused_imports: list[str] = []
     for line in result.stdout.splitlines():
         match = re.search(r"F401 '([^']+)' imported but unused", line)
         if match:
@@ -27,15 +34,23 @@ def find_unused_imports(file_path):
     return unused_imports
 
 
-def remove_unused_imports(file_path, unused_imports):
-    """Remove unused imports from a file."""
+def remove_unused_imports(file_path: str, unused_imports: list[str]) -> bool:
+    """Remove unused imports from a file.
+
+    Args:
+        file_path: Path to the Python source file to edit.
+        unused_imports: Import names to remove.
+
+    Returns:
+        True when the file was modified, otherwise False.
+    """
     if not unused_imports:
         return False
 
     with open(file_path, "r") as f:
         lines = f.readlines()
 
-    modified_lines = []
+    modified_lines: list[str] = []
     changes_made = False
 
     for line in lines:
@@ -83,10 +98,15 @@ def remove_unused_imports(file_path, unused_imports):
     return False
 
 
-def fix_long_lines(file_path):
-    """Fix long lines by breaking strings using parentheses where possible."""
-    import subprocess  # nosec B404 - Required for running pre-commit
+def fix_long_lines(file_path: str) -> bool:
+    """Fix long lines by reformatting with black where possible.
 
+    Args:
+        file_path: Path to the Python source file to edit.
+
+    Returns:
+        True when formatting changed the file or cleared E501 issues.
+    """
     from black import FileMode, format_str
 
     # Find long lines using flake8
@@ -122,7 +142,12 @@ def fix_long_lines(file_path):
     return False
 
 
-def main():
+def main() -> int:
+    """Process one or more files for unused imports and long lines.
+
+    Returns:
+        Process exit code (0 for success).
+    """
     if len(sys.argv) < 2:
         print("Usage: python autofix_imports.py <file_path> [file_path2 ...]")
         return 1

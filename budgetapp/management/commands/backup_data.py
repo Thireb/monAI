@@ -1,15 +1,20 @@
-"""
-Management command to backup all budget-related data to a JSON file.
+"""Management command to backup all budget-related data to a JSON file.
 
-This command exports all models to a JSON file for backup purposes.
+Exports all models to a JSON file for backup purposes.
 The backup includes user associations for multi-tenant data.
 """
+from __future__ import annotations
 
+import argparse
 import json
+from collections.abc import Callable
 from datetime import datetime
+from typing import Any
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractBaseUser
 from django.core.management.base import BaseCommand
+from django.db import models
 from django.db.utils import OperationalError
 
 from budgetapp.models import (
@@ -31,9 +36,16 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
+    """Export budgetapp data to a JSON backup file."""
+
     help = "Backup all budget-related data to a JSON file"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Register command-line arguments.
+
+        Args:
+            parser: Argument parser provided by Django's command framework.
+        """
         parser.add_argument(
             "--output",
             "-o",
@@ -44,8 +56,23 @@ class Command(BaseCommand):
             help="Only backup data for a specific user (by email)",
         )
 
-    def backup_model(self, model, data_key, transform_func, data, user_filter=None):
-        """Backup a single model's data."""
+    def backup_model(
+        self,
+        model: type[models.Model],
+        data_key: str,
+        transform_func: Callable[[models.Model], dict[str, Any]],
+        data: dict[str, Any],
+        user_filter: AbstractBaseUser | None = None,
+    ) -> None:
+        """Backup a single model's data into the shared export dictionary.
+
+        Args:
+            model: Django model class to export.
+            data_key: Key in ``data`` where serialized rows are appended.
+            transform_func: Callable that converts a model instance to a dict.
+            data: Mutable export payload being built.
+            user_filter: Optional user used to filter models with a user field.
+        """
         try:
             self.stdout.write(f"Backing up {model.__name__}...")
             queryset = model.objects.all()
@@ -62,7 +89,13 @@ class Command(BaseCommand):
         except OperationalError as e:
             self.stdout.write(self.style.WARNING(f"Skipping {model.__name__}: {str(e)}"))
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Serialize models and write the backup JSON file.
+
+        Args:
+            *args: Positional arguments from the management command runner.
+            **options: Parsed command-line options.
+        """
         # Handle user filter
         user_filter = None
         if options.get("user"):
@@ -75,7 +108,7 @@ class Command(BaseCommand):
                 )
                 return
 
-        data = {
+        data: dict[str, Any] = {
             "metadata": {
                 "exported_at": datetime.now().isoformat(),
                 "user_filter": options.get("user"),
@@ -95,7 +128,7 @@ class Command(BaseCommand):
         }
 
         # Define transform functions for each model
-        transforms = {
+        transforms: dict[type[models.Model], Callable[[models.Model], dict[str, Any]]] = {
             Budget: lambda b: {
                 "id": b.id,
                 "user_email": b.user.email if b.user else None,
@@ -212,7 +245,7 @@ class Command(BaseCommand):
         }
 
         # Model-to-key mapping
-        model_keys = {
+        model_keys: dict[type[models.Model], str] = {
             Budget: "budgets",
             Expense: "expenses",
             SubExpense: "sub_expenses",

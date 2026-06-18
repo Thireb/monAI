@@ -1,4 +1,10 @@
+"""Django ORM models for budgets, expenses, goals, debts, and related entities."""
+
+from __future__ import annotations
+
+from datetime import date, timedelta
 from decimal import Decimal
+from typing import Any, Callable
 
 from django.conf import settings
 from django.db import models
@@ -34,30 +40,30 @@ class Budget(models.Model):
             models.Index(fields=["-month"]),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.month.strftime("%B %Y")
 
-    def was_edited(self):
-        """Return True if the budget was edited after creation"""
+    def was_edited(self) -> bool:
+        """Return True if the budget was edited after creation."""
         return self.updated_at > self.created_at
 
-    def get_gross_budgeted_expenses(self):
+    def get_gross_budgeted_expenses(self) -> Decimal:
         """Sum of expense line amounts (budgeted allocations), before returns."""
         return self.expenses.aggregate(
             total=Coalesce(Sum("amount"), Value(0), output_field=DecimalField())
         )["total"]
 
-    def get_net_budgeted_expenses(self):
+    def get_net_budgeted_expenses(self) -> Decimal:
         """Gross budgeted expenses minus returns (equals income − remaining)."""
         return self.get_gross_budgeted_expenses() - self.get_total_returns()
 
-    def get_remaining_budget(self):
+    def get_remaining_budget(self) -> Decimal:
         """Remaining after budgeted expenses, with returns credited back."""
         gross = self.get_gross_budgeted_expenses()
         total_returns = self.get_total_returns()
         return self.income - gross + total_returns
 
-    def get_total_returns(self):
+    def get_total_returns(self) -> Decimal:
         """Calculate total returns from all expenses"""
         total_returns = Decimal("0")
         for expense in self.expenses.all():
@@ -65,8 +71,8 @@ class Budget(models.Model):
         return total_returns
 
     @staticmethod
-    def get_currency_choices():
-        # Common currencies with their names
+    def get_currency_choices() -> list[tuple[str, str]]:
+        """Return common currency code/display pairs for form choices."""
         currencies = [
             ("PKR", "PKR - Pakistani Rupee"),
             ("USD", "USD - US Dollar"),
@@ -82,10 +88,15 @@ class Budget(models.Model):
         ]
         return currencies
 
-    def get_summary_display_strings(self, fmt):
+    def get_summary_display_strings(
+        self,
+        fmt: Callable[[float | Decimal], str],
+    ) -> dict[str, Any]:
         """
         Human-readable summary numbers for UI and PDF.
-        fmt: callable taking a numeric value, returning a formatted string.
+
+        Args:
+            fmt: Callable taking a numeric value and returning a formatted string.
         """
         gross = self.get_gross_budgeted_expenses()
         total_ret = self.get_total_returns()
@@ -103,6 +114,8 @@ class Budget(models.Model):
 
 
 class Category(models.Model):
+    """User-defined expense category with icon and color styling."""
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -132,10 +145,10 @@ class Category(models.Model):
             ),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
@@ -175,16 +188,18 @@ class Tag(models.Model):
             ),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
 
 class Expense(models.Model):
+    """Budget expense line item; may have sub-expenses and an optional bill reminder."""
+
     budget = models.ForeignKey(Budget, on_delete=models.CASCADE, related_name="expenses")
     name = models.CharField(max_length=200)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -216,34 +231,29 @@ class Expense(models.Model):
         help_text="Optional scheduled bill used for reminders and dashboard banner",
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} - {self.amount}"
 
-    def get_remaining_amount(self):
-        # Get all sub expenses
+    def get_remaining_amount(self) -> Decimal:
+        """Return unspent amount after all sub-expenses (including returns)."""
         sub_expenses = self.sub_expenses.all()
-
-        # Calculate total spent (all sub-expenses, including returns)
         total_spent = sub_expenses.aggregate(total=models.Sum("amount"))["total"] or Decimal("0")
-
-        # Remaining is simply: original amount - all spent (including returns)
-        # Returns don't increase the remaining amount of the expense itself
         return self.amount - total_spent
 
-    def get_total_returns(self):
-        # Calculate total returns (sub-expenses marked as returns)
+    def get_total_returns(self) -> Decimal:
+        """Sum sub-expenses marked as returns/refunds."""
         total_returns = self.sub_expenses.filter(is_return=True).aggregate(
             total=models.Sum("amount")
         )["total"] or Decimal("0")
         return total_returns
 
-    def get_net_amount(self):
+    def get_net_amount(self) -> Decimal:
         """Return the net amount (amount minus returns) for this expense."""
         return self.amount - self.get_remaining_amount()
 
     @property
-    def subexpense_total(self):
-        # Sum of all sub-expenses (excluding returns)
+    def subexpense_total(self) -> Decimal | int:
+        """Sum of non-return sub-expenses."""
         return (
             self.sub_expenses.filter(is_return=False).aggregate(total=models.Sum("amount"))["total"]
             or 0
@@ -309,11 +319,13 @@ class BillReminder(models.Model):
             models.Index(fields=["user", "is_active", "next_bill_date"]),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.next_bill_date})"
 
 
 class SubExpense(models.Model):
+    """Partial spend or return/refund against a parent expense line item."""
+
     expense = models.ForeignKey(Expense, on_delete=models.CASCADE, related_name="sub_expenses")
     name = models.CharField(max_length=200)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -324,12 +336,14 @@ class SubExpense(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         prefix = "Return: " if self.is_return else ""
         return f"{prefix}{self.name} - {self.amount}"
 
 
 class BudgetLog(models.Model):
+    """Audit log entry for budget create/update/delete actions."""
+
     ACTIONS = (
         ("create", "Created"),
         ("update", "Updated"),
@@ -344,22 +358,26 @@ class BudgetLog(models.Model):
     class Meta:
         ordering = ["-timestamp"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.get_action_display()} - {self.month.strftime('%B %Y')}"
 
 
 class ArchivedBudget(models.Model):
+    """Link table marking a budget as archived with a timestamp."""
+
     budget = models.OneToOneField("Budget", on_delete=models.CASCADE)
     archived_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-budget__month"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Archive: {self.budget.month.strftime('%Y-%m')}"
 
 
 class BudgetDeletionLog(models.Model):
+    """Soft-delete audit record with expiry for budget recovery windows."""
+
     month = models.DateField()
     deleted_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
@@ -367,7 +385,7 @@ class BudgetDeletionLog(models.Model):
     class Meta:
         ordering = ["-deleted_at"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"Budget for {self.month.strftime('%B %Y')} "
             f"deleted on {self.deleted_at.strftime('%Y-%m-%d %H:%M')}"
@@ -375,6 +393,8 @@ class BudgetDeletionLog(models.Model):
 
 
 class IncomeHistory(models.Model):
+    """Historical record of income or currency changes on a budget."""
+
     budget = models.ForeignKey(Budget, on_delete=models.CASCADE, related_name="income_history")
     old_amount = models.DecimalField(max_digits=10, decimal_places=2)
     new_amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -387,11 +407,13 @@ class IncomeHistory(models.Model):
         ordering = ["-changed_at"]
         verbose_name_plural = "Income histories"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Income change for {self.budget.month.strftime('%B %Y')}"
 
 
 class RecentUpdate(models.Model):
+    """Activity feed entry for recent budget changes."""
+
     budget = models.ForeignKey("Budget", on_delete=models.CASCADE, related_name="recent_updates")
     action_type = models.CharField(max_length=50)  # e.g., 'expense_added', 'income_updated'
     description = models.TextField()
@@ -402,7 +424,7 @@ class RecentUpdate(models.Model):
     class Meta:
         ordering = ["-timestamp"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.action_type} - {self.description}"
 
 
@@ -421,21 +443,18 @@ class Goal(models.Model):
     category = models.ForeignKey("Category", on_delete=models.SET_NULL, null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     @property
-    def progress_percentage(self):
+    def progress_percentage(self) -> int:
         """Return the percentage of progress towards the goal."""
         if self.target_amount == 0:
             return 100
         return min(100, int((self.current_amount / self.target_amount) * 100))
 
-    def get_average_contribution(self):
-        """
-        Calculate the average contribution amount based on contribution history.
-        Returns tuple of (amount, frequency_in_days)
-        """
+    def get_average_contribution(self) -> tuple[Decimal | float, float | int | None]:
+        """Calculate average contribution amount and frequency in days."""
         contributions = self.contributions.all().order_by("date")
         if not contributions:
             return Decimal("0"), None
@@ -462,11 +481,8 @@ class Goal(models.Model):
 
         return avg_amount, avg_frequency
 
-    def get_projected_completion(self):
-        """
-        Calculate projected completion date and final amount based on contribution patterns.
-        Returns tuple of (projected_date, monthly_rate, is_on_target)
-        """
+    def get_projected_completion(self) -> tuple[date | None, Decimal | float, bool]:
+        """Project completion date, monthly rate, and on-target status."""
         if self.current_amount >= self.target_amount:
             return None, Decimal("0"), True
 
@@ -485,7 +501,7 @@ class Goal(models.Model):
         days_needed = (remaining / avg_amount) * avg_frequency
 
         # Calculate projected completion date
-        projected_date = timezone.now().date() + timezone.timedelta(days=int(days_needed))
+        projected_date = timezone.now().date() + timedelta(days=int(days_needed))
 
         # Determine if we're on target (if target date exists)
         is_on_target = True
@@ -494,11 +510,8 @@ class Goal(models.Model):
 
         return projected_date, monthly_rate, is_on_target
 
-    def is_on_track(self):
-        """
-        Determine if the goal is on track to be completed by the target date.
-        Returns True if on track, False if behind, None if no target date.
-        """
+    def is_on_track(self) -> bool | None:
+        """Return whether the goal is on pace to meet its target date."""
         if not self.target_date:
             return None
 
@@ -545,11 +558,8 @@ class Goal(models.Model):
         # At least 90% of expected progress is considered on track
         return self.current_amount >= expected_progress * Decimal("0.9")
 
-    def monthly_contribution_needed(self):
-        """
-        Calculate the monthly contribution needed to reach the goal by the target date.
-        Returns None if target date is not set or has passed.
-        """
+    def monthly_contribution_needed(self) -> Decimal | None:
+        """Return monthly savings needed to reach the goal by the target date."""
         if not self.target_date:
             return None
 
@@ -586,7 +596,7 @@ class GoalContribution(models.Model):
     source = models.CharField(max_length=100, blank=True)
     notes = models.TextField(blank=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.amount} contribution to {self.goal.name}"
 
 
@@ -615,30 +625,26 @@ class Debt(models.Model):
         ordering = ["-created_at"]
         verbose_name_plural = "Debts"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} - {self.borrowed_amount}"
 
-    def save(self, *args, **kwargs):
-        # Check if this is a new instance (no pk yet)
+    def save(self, *args: Any, **kwargs: Any) -> None:
         is_new = self.pk is None  # noqa: F841
 
-        # Save first to get the pk
         super().save(*args, **kwargs)
 
-        # Auto-generate tag if not provided and we have a name
         if not self.debt_tag and self.name:
             tag_name = self.generate_debt_tag_name()
             self.debt_tag = Tag.objects.create(
                 user=self.user,
                 name=tag_name,
                 description=f"Tracking tag for debt: {self.name}",
-                color="#ff5722",  # Orange-red for debt tags
+                color="#ff5722",
             )
-            # Save again to update the debt_tag field
             super().save(update_fields=["debt_tag"])
 
-    def generate_debt_tag_name(self):
-        """Generate unique tag name for debt tracking"""
+    def generate_debt_tag_name(self) -> str:
+        """Generate a unique tag name for debt expense tracking."""
         base_name = f"Debt: {self.name}"
         counter = 1
 
@@ -657,41 +663,44 @@ class Debt(models.Model):
         return base_name
 
     @property
-    def repaid_amount(self):
-        """Calculate total repaid from expenses with this tag"""
+    def repaid_amount(self) -> Decimal:
+        """Calculate total repaid from expenses tagged with this debt."""
         return self.debt_tag.expenses.aggregate(total=models.Sum("amount"))["total"] or Decimal("0")
 
     @property
-    def remaining_to_repay(self):
+    def remaining_to_repay(self) -> Decimal:
+        """Amount still owed after repayments recorded via tagged expenses."""
         return self.borrowed_amount - self.repaid_amount
 
     @property
-    def repayment_progress_percentage(self):
+    def repayment_progress_percentage(self) -> int:
+        """Repayment progress as a percentage of borrowed amount."""
         if self.borrowed_amount == 0:
             return 0
         return min(100, int((self.repaid_amount / self.borrowed_amount) * 100))
 
     @property
-    def progress_percentage(self):
-        """Calculate borrowing progress as percentage of total amount"""
+    def progress_percentage(self) -> int:
+        """Borrowing progress as a percentage of the total credit line."""
         if self.total_amount == 0:
             return 0
         return min(100, int((self.borrowed_amount / self.total_amount) * 100))
 
     @property
-    def is_fully_repaid(self):
+    def is_fully_repaid(self) -> bool:
+        """Return True when repayments meet or exceed the borrowed amount."""
         return self.repaid_amount >= self.borrowed_amount
 
-    def check_and_update_status(self):
-        """Check if debt is fully repaid and disable tag if so"""
+    def check_and_update_status(self) -> bool:
+        """Deactivate the debt tag when the debt is fully repaid."""
         if self.is_fully_repaid and self.debt_tag.is_active:
             self.debt_tag.is_active = False
             self.debt_tag.save()
             return True
         return False
 
-    def recalculate_borrowed_amount(self):
-        """Recalculate borrowed_amount from transactions"""
+    def recalculate_borrowed_amount(self) -> Decimal:
+        """Recalculate ``borrowed_amount`` from related transactions."""
         total = self.transactions.aggregate(total=models.Sum("amount"))["total"] or Decimal("0")
         if self.borrowed_amount != total:
             self.borrowed_amount = total
@@ -712,12 +721,11 @@ class DebtTransaction(models.Model):
         ordering = ["-date"]
         verbose_name_plural = "Debt transactions"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.amount} borrowed for {self.debt.name} on {self.date}"
 
-    def save(self, *args, **kwargs):
-        # Update debt's borrowed_amount when transaction is saved
-        if not self.pk:  # Only on creation
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        if not self.pk:
             self.debt.borrowed_amount += self.amount
             self.debt.save(update_fields=["borrowed_amount"])
         super().save(*args, **kwargs)

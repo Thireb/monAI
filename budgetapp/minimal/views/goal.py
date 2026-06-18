@@ -1,11 +1,12 @@
-"""
-Savings goal views for the minimal UI.
-"""
+"""Savings goal views for the minimal UI."""
+
+from __future__ import annotations
 
 from decimal import Decimal
+from typing import Any
 
 from django.db.models import Sum
-from django.http import JsonResponse
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 
 from budgetapp.forms import GoalContributionForm, GoalForm
@@ -15,7 +16,11 @@ from .base import LoginRequiredTemplateView, LoginRequiredView
 
 
 def _sync_goal_current_amount(goal: Goal) -> None:
-    """Align stored current_amount with sum of contributions."""
+    """Align stored current_amount with sum of contributions.
+
+    Args:
+        goal: The goal to synchronize.
+    """
     total = goal.contributions.aggregate(t=Sum("amount"))["t"] or Decimal("0")
     if goal.current_amount != total:
         goal.current_amount = total
@@ -27,7 +32,8 @@ class GoalListView(LoginRequiredTemplateView):
 
     template_name = "minimal/goals/goal_list.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Return active and completed goals with create form."""
         context = super().get_context_data(**kwargs)
         user = self.request.user
         all_goals = Goal.objects.filter(user=user).select_related("category")
@@ -60,7 +66,8 @@ class GoalDetailView(LoginRequiredTemplateView):
 
     template_name = "minimal/goals/goal_detail.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Return goal detail with contributions and edit forms."""
         context = super().get_context_data(**kwargs)
         goal_id = self.kwargs.get("goal_id")
         goal = get_object_or_404(
@@ -90,7 +97,13 @@ class GoalDetailView(LoginRequiredTemplateView):
 class GoalCreateView(LoginRequiredView):
     """Create a goal via POST (AJAX or form)."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Create a savings goal from POST data."""
         form = GoalForm(request.POST, user=request.user)
         if not form.is_valid():
             errors = [f"{k}: {v[0]}" for k, v in form.errors.items()]
@@ -129,7 +142,13 @@ class GoalCreateView(LoginRequiredView):
 class GoalUpdateView(LoginRequiredView):
     """Update a goal via POST."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Update a savings goal from POST data."""
         goal_id = request.POST.get("goal_id")
         if not goal_id:
             return JsonResponse({"success": False, "error": "Goal ID is required"}, status=400)
@@ -172,7 +191,13 @@ class GoalUpdateView(LoginRequiredView):
 class GoalDeleteView(LoginRequiredView):
     """Delete a goal."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Delete a savings goal."""
         goal_id = request.POST.get("goal_id")
         if not goal_id:
             return JsonResponse({"success": False, "error": "Goal ID is required"}, status=400)
@@ -189,7 +214,13 @@ class GoalDeleteView(LoginRequiredView):
 class GoalContributionCreateView(LoginRequiredView):
     """Add a contribution to a goal."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Create a contribution for the given goal."""
         goal_id = request.POST.get("goal_id")
         if not goal_id:
             return JsonResponse({"success": False, "error": "Goal ID is required"}, status=400)
@@ -233,7 +264,13 @@ class GoalContributionCreateView(LoginRequiredView):
 class GoalContributionUpdateView(LoginRequiredView):
     """Update a contribution."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Update an existing goal contribution."""
         cid = request.POST.get("contribution_id")
         goal_id = request.POST.get("goal_id")
         if not cid or not goal_id:
@@ -284,7 +321,13 @@ class GoalContributionUpdateView(LoginRequiredView):
 class GoalContributionDeleteView(LoginRequiredView):
     """Delete a contribution."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Delete a goal contribution."""
         cid = request.POST.get("contribution_id")
         if not cid:
             return JsonResponse(

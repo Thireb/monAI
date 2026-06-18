@@ -1,24 +1,31 @@
+"""Miscellaneous HTTP views for the budgetapp package."""
+
+from __future__ import annotations
+
+import logging
 from pathlib import Path
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
+
+logger = logging.getLogger("budgetapp")
 
 
-def service_worker(request):
-    """Serve the service worker file with correct content type."""
-    import logging
+def service_worker(request: HttpRequest) -> HttpResponse:
+    """Serve the PWA service worker with correct content type and cache headers.
 
-    logger = logging.getLogger("budgetapp")
+    Args:
+        request: Incoming HTTP request (unused).
 
-    # __file__ is budgetapp/views.py, so:
-    # .parent = budgetapp/
-    # .parent.parent = django_budget_tracker/ (project root)
+    Returns:
+        Service worker JavaScript or an error response.
+    """
     BASE_DIR = Path(__file__).resolve().parent.parent
     sw_path = BASE_DIR / "static" / "js" / "service-worker.js"
 
-    logger.info(f"Service worker requested. Path: {sw_path}, Exists: {sw_path.exists()}")
+    logger.info("Service worker requested. Path: %s, Exists: %s", sw_path, sw_path.exists())
 
     if not sw_path.exists():
-        logger.error(f"Service worker file not found at: {sw_path}")
+        logger.error("Service worker file not found at: %s", sw_path)
         return HttpResponse("Service worker not found", status=404, content_type="text/plain")
 
     try:
@@ -32,5 +39,5 @@ def service_worker(request):
         logger.info("Service worker served successfully")
         return response
     except Exception as e:
-        logger.error(f"Error serving service worker: {e}")
+        logger.error("Error serving service worker: %s", e)
         return HttpResponse(f"Error: {str(e)}", status=500, content_type="text/plain")

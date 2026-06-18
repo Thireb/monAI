@@ -1,3 +1,7 @@
+"""Django admin registration for user accounts."""
+
+from __future__ import annotations
+
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
@@ -6,7 +10,7 @@ from .models import CustomUser
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    """Admin configuration for CustomUser model."""
+    """Admin configuration for the CustomUser model."""
 
     model = CustomUser
     list_display = (
@@ -64,4 +68,3 @@ class CustomUserAdmin(UserAdmin):
             },
         ),
     )
-

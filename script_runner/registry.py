@@ -1,5 +1,4 @@
-"""
-Script Registry - Central configuration for all runnable scripts.
+"""Central registry of runnable management scripts.
 
 Each script has:
 - name: The Django management command name
@@ -10,9 +9,9 @@ Each script has:
 - run_on_deploy: Whether to run this script during run_scripts (version-based run)
 - dangerous: Whether the script requires extra confirmation
 """
+from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 
 @dataclass
@@ -23,14 +22,21 @@ class Script:
     description: str
     category: str
     example: str = ""
-    min_version: Optional[str] = None
-    max_version: Optional[str] = None
+    min_version: str | None = None
+    max_version: str | None = None
     run_on_deploy: bool = False
     dangerous: bool = False
     order: int = 100  # Lower number = runs first
 
     def matches_version(self, version: str) -> bool:
-        """Check if this script applies to the given version."""
+        """Check if this script applies to the given version.
+
+        Args:
+            version: Application version string to compare.
+
+        Returns:
+            True when the version falls within configured min/max bounds.
+        """
         if not self.min_version and not self.max_version:
             return True
 
@@ -48,22 +54,45 @@ SCRIPT_REGISTRY: dict[str, Script] = {}
 
 
 def register_script(script: Script) -> None:
-    """Register a script in the registry."""
+    """Register a script in the registry.
+
+    Args:
+        script: Script definition to add or replace by name.
+    """
     SCRIPT_REGISTRY[script.name] = script
 
 
-def get_script(name: str) -> Optional[Script]:
-    """Get a script by name."""
+def get_script(name: str) -> Script | None:
+    """Get a script by name.
+
+    Args:
+        name: Django management command name.
+
+    Returns:
+        Matching script definition, or None when not registered.
+    """
     return SCRIPT_REGISTRY.get(name)
 
 
 def get_all_scripts() -> list[Script]:
-    """Get all registered scripts."""
+    """Get all registered scripts.
+
+    Returns:
+        List of every script in the registry.
+    """
     return list(SCRIPT_REGISTRY.values())
 
 
 def get_scripts_for_version(version: str, deploy_only: bool = True) -> list[Script]:
-    """Get all scripts that match a version, sorted by order."""
+    """Get all scripts that match a version, sorted by order.
+
+    Args:
+        version: Application version string to match against script bounds.
+        deploy_only: When True, include only scripts marked ``run_on_deploy``.
+
+    Returns:
+        Matching scripts sorted by ascending ``order``.
+    """
     scripts = [
         s for s in SCRIPT_REGISTRY.values()
         if s.matches_version(version) and (not deploy_only or s.run_on_deploy)
@@ -72,7 +101,11 @@ def get_scripts_for_version(version: str, deploy_only: bool = True) -> list[Scri
 
 
 def get_scripts_by_category() -> dict[str, list[Script]]:
-    """Get all scripts grouped by category."""
+    """Get all scripts grouped by category.
+
+    Returns:
+        Mapping of category name to scripts in that category.
+    """
     by_category: dict[str, list[Script]] = {}
     for script in SCRIPT_REGISTRY.values():
         if script.category not in by_category:
@@ -86,13 +119,7 @@ def get_scripts_by_category() -> dict[str, list[Script]]:
 # =============================================================================
 
 # Build & Deploy
-register_script(Script(
-    name="build_apk",
-    description="Build Android APKs for the Capacitor app",
-    category="Build & Deploy",
-    example="build_apk --local",
-    run_on_deploy=False,  # Manual only
-))
+# (no build scripts registered — use Flutter mobile for Android builds)
 
 # Data Management
 register_script(Script(

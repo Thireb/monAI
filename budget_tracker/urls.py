@@ -1,35 +1,28 @@
 """
 URL configuration for budget_tracker project.
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+The ``urlpatterns`` list routes URLs to views. See:
+https://docs.djangoproject.com/en/5.1/topics/http/urls/
 """
 
+from __future__ import annotations
+
 from django.contrib import admin
+from django.http import HttpRequest, HttpResponseRedirect
 from django.shortcuts import redirect
-from django.urls import include, path, re_path
+from django.urls import URLPattern, URLResolver, include, path, re_path
 
 from rest_framework.authtoken.views import obtain_auth_token
 
 from budgetapp.views import service_worker
 
 
-def redirect_to_minimal(request):
-    """Redirect root URL to minimal theme."""
+def redirect_to_minimal(request: HttpRequest) -> HttpResponseRedirect:
+    """Redirect root URL to the minimal theme home page."""
     return redirect("minimal:home")
 
 
-urlpatterns = [
+urlpatterns: list[URLPattern | URLResolver] = [
     path("admin/", admin.site.urls),
     path("api/", include("budgetapp.api_urls")),
     path("api-token-auth/", obtain_auth_token, name="api_token_auth"),

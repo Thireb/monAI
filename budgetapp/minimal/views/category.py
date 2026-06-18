@@ -1,8 +1,10 @@
-"""
-Category management views.
-"""
+"""Category management views."""
 
-from django.http import JsonResponse
+from __future__ import annotations
+
+from typing import Any
+
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 
 from budgetapp.models import Category
@@ -15,7 +17,8 @@ class CategoryManagementView(LoginRequiredTemplateView):
 
     template_name = "minimal/category_management.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Return categories ordered by name for the management page."""
         context = super().get_context_data(**kwargs)
         context["categories"] = Category.objects.filter(user=self.request.user).order_by("name")
         return context
@@ -24,11 +27,16 @@ class CategoryManagementView(LoginRequiredTemplateView):
 class CategoryListView(LoginRequiredView):
     """View for listing categories via AJAX."""
 
-    def get(self, request, *args, **kwargs):
+    def get(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Return one category or all categories as JSON."""
         category_id = request.GET.get("category_id")
 
         if category_id:
-            # Return specific category for editing
             try:
                 category = Category.objects.get(id=category_id, user=request.user)
                 return JsonResponse(
@@ -45,7 +53,6 @@ class CategoryListView(LoginRequiredView):
             except Category.DoesNotExist:
                 return JsonResponse({"success": False, "error": "Category not found"}, status=404)
         else:
-            # Return all categories for this user
             categories = Category.objects.filter(user=request.user).order_by("name")
             return JsonResponse(
                 {
@@ -66,7 +73,13 @@ class CategoryListView(LoginRequiredView):
 class CategoryCreateView(LoginRequiredView):
     """View for creating new categories via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Create a category from POST data and return JSON."""
         name = request.POST.get("name")
         description = request.POST.get("description", "")
         color = request.POST.get("color", "#2196f3")
@@ -101,7 +114,13 @@ class CategoryCreateView(LoginRequiredView):
 class CategoryUpdateView(LoginRequiredView):
     """View for updating categories via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Update a category from POST data and return JSON."""
         category_id = request.POST.get("category_id")
         name = request.POST.get("name")
         description = request.POST.get("description", "")
@@ -140,7 +159,13 @@ class CategoryUpdateView(LoginRequiredView):
 class CategoryDeleteView(LoginRequiredView):
     """View for deleting categories via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Delete a category and report affected expenses."""
         category_id = request.POST.get("category_id")
 
         if not category_id:
@@ -150,11 +175,8 @@ class CategoryDeleteView(LoginRequiredView):
             category = get_object_or_404(Category, id=category_id, user=request.user)
             category_name = category.name
 
-            # Count affected expenses for informational message
             affected_expenses = category.expenses.count()
 
-            # Delete the category - Django's on_delete=SET_NULL will automatically
-            # set category to null on any expenses using this category
             category.delete()
 
             message = f'Category "{category_name}" deleted successfully!'
@@ -172,4 +194,3 @@ class CategoryDeleteView(LoginRequiredView):
             return JsonResponse(
                 {"success": False, "error": f"Error deleting category: {str(e)}"}, status=400
             )
-

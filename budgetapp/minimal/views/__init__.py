@@ -5,6 +5,8 @@ This package splits views into logical modules for better organization.
 All views are re-exported here for backwards compatibility.
 """
 
+from __future__ import annotations
+
 # Base views and utilities
 from .base import (
     LoginRequiredTemplateView,

@@ -1,4 +1,5 @@
 """Tests for bill reminders, dashboard window, and budget auto-lines."""
+from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
@@ -17,12 +18,14 @@ User = get_user_model()
 
 
 class BillReminderUtilsTests(TestCase):
-    def setUp(self):
+    """Unit tests for bill reminder utility helpers."""
+
+    def setUp(self) -> None:
         self.user = User.objects.create_user(
             username="bruser", email="br@example.com", password="pw-test-12"
         )
 
-    def test_dashboard_banner_visible_before_billing_month(self):
+    def test_dashboard_banner_visible_before_billing_month(self) -> None:
         br = BillReminder(
             user=self.user,
             name="Tax",
@@ -34,7 +37,7 @@ class BillReminderUtilsTests(TestCase):
         today = date(2026, 2, 25)
         self.assertTrue(should_show_dashboard_banner(br, today))
 
-    def test_dashboard_banner_hidden_in_billing_month(self):
+    def test_dashboard_banner_hidden_in_billing_month(self) -> None:
         br = BillReminder(
             user=self.user,
             name="Tax",
@@ -46,7 +49,7 @@ class BillReminderUtilsTests(TestCase):
         today = date(2026, 3, 1)
         self.assertFalse(should_show_dashboard_banner(br, today))
 
-    def test_apply_bill_reminder_creates_expense_and_advances(self):
+    def test_apply_bill_reminder_creates_expense_and_advances(self) -> None:
         br = BillReminder.objects.create(
             user=self.user,
             name="Annual fee",
@@ -69,7 +72,7 @@ class BillReminderUtilsTests(TestCase):
         br.refresh_from_db()
         self.assertEqual(br.next_bill_date, date(2028, 5, 10))
 
-    def test_apply_skips_when_linked_expense_exists(self):
+    def test_apply_skips_when_linked_expense_exists(self) -> None:
         br = BillReminder.objects.create(
             user=self.user,
             name="Fee",
@@ -93,26 +96,28 @@ class BillReminderUtilsTests(TestCase):
 
 
 class BillReminderViewTests(TestCase):
-    def setUp(self):
+    """Integration tests for bill reminder minimal UI views."""
+
+    def setUp(self) -> None:
         self.client = Client()
         self.user = User.objects.create_user(
             username="vuser", email="v@example.com", password="pw-test-12"
         )
         self.client.login(email="v@example.com", password="pw-test-12")
 
-    def test_bill_reminder_list_renders(self):
+    def test_bill_reminder_list_renders(self) -> None:
         url = reverse("minimal:bill_reminder_list")
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "Bill reminders")
 
-    def test_defaults_view_returns_json(self):
+    def test_defaults_view_returns_json(self) -> None:
         url = reverse("minimal:bill_reminder_defaults")
         r = self.client.get(url, {"next_bill_date": "2029-06-01"})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["remind_days_before"], 30)
 
-    def test_budget_create_applies_reminder(self):
+    def test_budget_create_applies_reminder(self) -> None:
         BillReminder.objects.create(
             user=self.user,
             name="Property tax",
@@ -136,7 +141,9 @@ class BillReminderViewTests(TestCase):
 
 
 class BillReminderExpenseSyncTests(TestCase):
-    def setUp(self):
+    """Tests for expense form sync with bill reminder records."""
+
+    def setUp(self) -> None:
         self.client = Client()
         self.user = User.objects.create_user(
             username="euser", email="e@example.com", password="pw-test-12"
@@ -152,7 +159,7 @@ class BillReminderExpenseSyncTests(TestCase):
         )
         self.tag = Tag.objects.create(user=self.user, name="Home", slug="home", color="#2196f3")
 
-    def test_expense_post_creates_reminder(self):
+    def test_expense_post_creates_reminder(self) -> None:
         url = reverse(
             "minimal:expense_create_update",
             kwargs={"year": 2031, "month": 2},

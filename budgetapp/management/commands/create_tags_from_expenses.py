@@ -1,4 +1,9 @@
+"""Management command to create Tag objects from legacy expense tag values."""
+from __future__ import annotations
+
+import argparse
 import random
+from typing import Any
 
 from django.core.management.base import BaseCommand
 
@@ -6,16 +11,29 @@ from budgetapp.models import Expense, Tag
 
 
 class Command(BaseCommand):
+    """Create Tag rows for each distinct legacy expense tag string."""
+
     help = "Create Tag objects from existing manual tags in Expense model"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Register command-line arguments.
+
+        Args:
+            parser: Argument parser provided by Django's command framework.
+        """
         parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Show what would be created without actually creating tags",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Create Tag records for unique non-empty expense tag values.
+
+        Args:
+            *args: Positional arguments from the management command runner.
+            **options: Parsed command-line options.
+        """
         dry_run = options["dry_run"]
 
         # Get all unique tag values from expenses

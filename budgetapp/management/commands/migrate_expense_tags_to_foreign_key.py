@@ -1,19 +1,38 @@
+"""Management command to migrate expense tags from CharField to ForeignKey."""
+from __future__ import annotations
+
+import argparse
+from typing import Any
+
 from django.core.management.base import BaseCommand
 
 from budgetapp.models import Expense, Tag
 
 
 class Command(BaseCommand):
+    """Link legacy expense tag strings to Tag foreign keys."""
+
     help = "Migrate existing expense tags from CharField to ForeignKey relationship"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Register command-line arguments.
+
+        Args:
+            parser: Argument parser provided by Django's command framework.
+        """
         parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Show what would be migrated without actually updating expenses",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Update expenses to reference Tag rows instead of raw tag strings.
+
+        Args:
+            *args: Positional arguments from the management command runner.
+            **options: Parsed command-line options.
+        """
         dry_run = options["dry_run"]
 
         # Get all expenses that have a tag value and no tag_foreign_key

@@ -1,31 +1,32 @@
-"""
-Bill reminder scheduling: dashboard banner window and budget auto-line items.
-"""
+"""Bill reminder scheduling: dashboard banner window and budget auto-line items."""
 
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
 from dateutil.relativedelta import relativedelta
+from django.contrib.auth.models import AbstractBaseUser
 
 from budgetapp.models import BillReminder, Budget, Expense
 
 
 def reminder_start_date(reminder: BillReminder) -> date:
-    """First calendar day the user should start seeing the reminder."""
+    """Return the first calendar day the user should start seeing the reminder."""
     return reminder.next_bill_date - relativedelta(days=reminder.remind_days_before)
 
 
 def billing_month_start(reminder: BillReminder) -> date:
-    """First day of the month that contains the due date."""
+    """Return the first day of the month that contains the due date."""
     d = reminder.next_bill_date
     return date(d.year, d.month, 1)
 
 
 def should_show_dashboard_banner(reminder: BillReminder, today: date) -> bool:
-    """
-    Banner is visible from remind_days_before through the day before the billing
-    month begins (first day of due month hides it).
+    """Return whether the reminder banner should appear on the dashboard today.
+
+    The banner is visible from ``remind_days_before`` through the day before
+    the billing month begins.
     """
     if not reminder.is_active:
         return False
@@ -34,8 +35,11 @@ def should_show_dashboard_banner(reminder: BillReminder, today: date) -> bool:
     return start <= today < bill_month
 
 
-def dashboard_banner_reminders_for_user(user, today: date) -> list[BillReminder]:
-    """Active reminders that should show on the minimal home dashboard."""
+def dashboard_banner_reminders_for_user(
+    user: AbstractBaseUser,
+    today: date,
+) -> list[BillReminder]:
+    """Return active reminders that should show on the minimal home dashboard."""
     qs = BillReminder.objects.filter(user=user, is_active=True).order_by(
         "next_bill_date", "name"
     )
@@ -43,22 +47,25 @@ def dashboard_banner_reminders_for_user(user, today: date) -> list[BillReminder]
 
 
 def reminder_matches_budget_month(reminder: BillReminder, budget_month: date) -> bool:
-    """True if the due date falls in the same calendar month as the budget."""
+    """Return True when the due date falls in the same calendar month as the budget."""
     due = reminder.next_bill_date
     return due.year == budget_month.year and due.month == budget_month.month
 
 
 def advance_next_bill_date(reminder: BillReminder) -> None:
-    """Roll the due date forward by recurrence_months (typically 12 for annual)."""
+    """Roll the due date forward by ``recurrence_months`` (typically 12 for annual bills)."""
     reminder.next_bill_date += relativedelta(months=reminder.recurrence_months)
     reminder.save(update_fields=["next_bill_date", "updated_at"])
 
 
 def apply_bill_reminders_to_budget(budget: Budget) -> int:
-    """
+    """Create linked expenses for reminders due in the budget month.
+
     For each active reminder due in this budget month, create a linked expense
     if none exists yet, then advance the reminder's next due date.
-    Returns the number of expenses created.
+
+    Returns:
+        Number of expenses created.
     """
     user = budget.user
     if user is None:
@@ -88,7 +95,7 @@ def apply_bill_reminders_to_budget(budget: Budget) -> int:
 
 def sync_expense_bill_reminder(
     *,
-    user,
+    user: AbstractBaseUser,
     expense: Expense,
     enabled: bool,
     next_bill_date: date | None,
@@ -96,9 +103,7 @@ def sync_expense_bill_reminder(
     severity: str,
     recurrence_months: int,
 ) -> None:
-    """
-    Attach, update, or detach a BillReminder from an expense based on optional form data.
-    """
+    """Attach, update, or detach a BillReminder from an expense based on form data."""
     if not enabled:
         expense.bill_reminder = None
         expense.save(update_fields=["bill_reminder", "updated_at"])
@@ -125,11 +130,11 @@ def sync_expense_bill_reminder(
 
 def reminder_defaults_for_expense(
     *,
-    user,
+    user: AbstractBaseUser,
     expense: Expense | None,
     next_bill_date: date | None,
-) -> dict:
-    """JSON-friendly defaults for the expense modal (live refresh)."""
+) -> dict[str, Any]:
+    """Return JSON-friendly defaults for the expense modal live refresh."""
     if expense and expense.bill_reminder_id:
         br = BillReminder.objects.filter(pk=expense.bill_reminder_id, user=user).first()
         if br:

@@ -1,5 +1,10 @@
+"""Management command to restore budget data from a JSON backup file."""
+from __future__ import annotations
+
+import argparse
 import json
 from decimal import Decimal
+from typing import Any
 
 from django.core.management.base import BaseCommand
 from django.utils.dateparse import parse_date, parse_datetime
@@ -8,12 +13,25 @@ from budgetapp.models import ArchivedBudget, Budget, BudgetLog, Expense, SubExpe
 
 
 class Command(BaseCommand):
+    """Import budgets and related records from a backup JSON file."""
+
     help = "Restore data from a backup JSON file"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Register command-line arguments.
+
+        Args:
+            parser: Argument parser provided by Django's command framework.
+        """
         parser.add_argument("backup_file", type=str, help="Path to the backup JSON file")
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Load backup JSON and recreate database records.
+
+        Args:
+            *args: Positional arguments from the management command runner.
+            **options: Parsed command-line options.
+        """
         backup_file = options["backup_file"]
 
         try:

@@ -1,34 +1,40 @@
-"""
-Home and calendar views.
-"""
+"""Home and calendar views."""
+
+from __future__ import annotations
 
 import calendar
 import json
-import time
 from datetime import date
+from typing import Any
 
-from django.http import JsonResponse
+from django.contrib.auth.models import AbstractBaseUser
+from django.db.models import QuerySet
+from django.http import HttpRequest, JsonResponse
 from django.template.loader import render_to_string
 
 from budgetapp.bill_reminder_utils import dashboard_banner_reminders_for_user
 from budgetapp.calendar_cache import get_cached_calendar_year, set_cached_calendar_year
 from budgetapp.models import Budget
-from budget_tracker.config import get_learning_demo_config
 
 from .base import LoginRequiredTemplateView, LoginRequiredView
 
 
-def _apply_learning_demo_calendar_delay() -> None:
-    """Sleep to simulate a slow DB query (toggle via config.yaml learning_demo)."""
-    delay_seconds = get_learning_demo_config().get("calendar_query_delay_seconds", 0) or 0
-    if delay_seconds > 0:
-        time.sleep(float(delay_seconds))
+def get_calendar_context_for_year(
+    selected_year: int,
+    budgets_by_year_month: dict[int, dict[int, Budget]],
+    today: date,
+) -> dict[str, Any]:
+    """Generate calendar context data for a single year.
 
-
-def get_calendar_context_for_year(selected_year, budgets_by_year_month, today):
-    """
-    Generate calendar context data for a single year.
     Uses pre-fetched budget data to avoid extra queries.
+
+    Args:
+        selected_year: The year to build the calendar for.
+        budgets_by_year_month: Nested dict of year -> month -> Budget.
+        today: Current date for status calculations.
+
+    Returns:
+        Context dict with months_grid, year, prev_year, and next_year.
     """
     months = [calendar.month_name[i] for i in range(1, 13)]
     abbrs = [calendar.month_abbr[i] for i in range(1, 13)]
@@ -71,7 +77,17 @@ def get_calendar_context_for_year(selected_year, budgets_by_year_month, today):
     }
 
 
-def _organize_budgets_by_year_month(budgets) -> dict[int, dict[int, Budget]]:
+def _organize_budgets_by_year_month(
+    budgets: QuerySet[Budget],
+) -> dict[int, dict[int, Budget]]:
+    """Group budgets by year and month for calendar rendering.
+
+    Args:
+        budgets: QuerySet of Budget instances.
+
+    Returns:
+        Nested dict mapping year -> month -> Budget.
+    """
     budgets_by_year_month: dict[int, dict[int, Budget]] = {}
     for budget in budgets:
         year = budget.month.year
@@ -82,8 +98,21 @@ def _organize_budgets_by_year_month(budgets) -> dict[int, dict[int, Budget]]:
     return budgets_by_year_month
 
 
-def _fetch_budgets_for_year_range(user, min_year: int, max_year: int):
-    _apply_learning_demo_calendar_delay()
+def _fetch_budgets_for_year_range(
+    user: AbstractBaseUser,
+    min_year: int,
+    max_year: int,
+) -> QuerySet[Budget]:
+    """Fetch non-archived budgets for a user within a year range.
+
+    Args:
+        user: The authenticated user.
+        min_year: Inclusive lower year bound.
+        max_year: Inclusive upper year bound.
+
+    Returns:
+        QuerySet of matching Budget instances.
+    """
     return Budget.objects.filter(
         user=user,
         is_archived=False,
@@ -92,7 +121,23 @@ def _fetch_budgets_for_year_range(user, min_year: int, max_year: int):
     )
 
 
-def _build_calendar_year_payload(request, year: int, budgets_by_year_month, today):
+def _build_calendar_year_payload(
+    request: HttpRequest,
+    year: int,
+    budgets_by_year_month: dict[int, dict[int, Budget]],
+    today: date,
+) -> dict[str, Any]:
+    """Build rendered HTML and context for a calendar year.
+
+    Args:
+        request: The HTTP request (for template rendering).
+        year: The calendar year.
+        budgets_by_year_month: Pre-fetched budget lookup.
+        today: Current date.
+
+    Returns:
+        Dict with ``html`` and ``context`` keys.
+    """
     context = get_calendar_context_for_year(year, budgets_by_year_month, today)
     html = render_to_string(
         "minimal/components/calendar_content.html",
@@ -103,9 +148,12 @@ def _build_calendar_year_payload(request, year: int, budgets_by_year_month, toda
 
 
 class HomeView(LoginRequiredTemplateView):
+    """Dashboard home page with year calendar and bill reminder banners."""
+
     template_name = "minimal/home.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Build calendar cache, bill reminders, and year navigation context."""
         context = super().get_context_data(**kwargs)
         today = date.today()
         selected_year = self.kwargs.get("year", today.year)
@@ -165,9 +213,15 @@ class HomeView(LoginRequiredTemplateView):
 
 
 class CalendarContentView(LoginRequiredView):
-    """AJAX view to return calendar content HTML for a given year (fallback for uncached years)."""
+    """AJAX view to return calendar content HTML for a given year."""
 
-    def get(self, request, *args, **kwargs):
+    def get(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Return rendered calendar HTML, using cache when available."""
         selected_year = kwargs.get("year", date.today().year)
         today = date.today()
 
@@ -175,7 +229,6 @@ class CalendarContentView(LoginRequiredView):
         if cached is not None:
             return JsonResponse({"html": cached["html"], "year": selected_year})
 
-        _apply_learning_demo_calendar_delay()
         budgets_by_year_month = {
             selected_year: {
                 b.month.month: b

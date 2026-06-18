@@ -1,13 +1,24 @@
+"""Health-check endpoints for mobile and monitoring clients."""
+
+from __future__ import annotations
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
-def mobile_health(request):
-    """
-    Lightweight endpoint for the Flutter app to detect when the dev server is up.
-    No sensitive data; LAN use only is still recommended.
+def mobile_health(request: Request) -> Response:
+    """Lightweight liveness probe for the Flutter dev client.
+
+    No sensitive data is returned; LAN-only use is still recommended.
+
+    Args:
+        request: Incoming HTTP request (unused).
+
+    Returns:
+        JSON payload with ``status: ok``.
     """
     return Response({"status": "ok"})

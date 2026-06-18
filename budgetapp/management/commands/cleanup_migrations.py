@@ -1,20 +1,29 @@
-"""
-Management command to cleanup problematic database tables and indexes.
+"""Management command to cleanup problematic database tables and indexes.
 
 WARNING: This is a DESTRUCTIVE command that directly drops database tables.
 It should only be used during development or when explicitly required.
 """
+from __future__ import annotations
 
+import argparse
 import sys
+from typing import Any
 
 from django.core.management.base import BaseCommand
 from django.db import connection
 
 
 class Command(BaseCommand):
+    """Drop budgetapp tables and indexes for a clean development reset."""
+
     help = "Cleanup problematic database tables and indexes (DESTRUCTIVE - use with caution!)"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Register command-line arguments.
+
+        Args:
+            parser: Argument parser provided by Django's command framework.
+        """
         parser.add_argument(
             "--force",
             action="store_true",
@@ -26,7 +35,13 @@ class Command(BaseCommand):
             help="Show what would be deleted without making changes",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Drop configured tables and indexes after optional confirmation.
+
+        Args:
+            *args: Positional arguments from the management command runner.
+            **options: Parsed command-line options.
+        """
         dry_run = options.get("dry_run", False)
         force = options.get("force", False)
 

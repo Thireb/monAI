@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 
 from django.contrib.messages import constants as messages
@@ -41,18 +42,23 @@ email_config = get_email_config()
 redis_config = get_redis_config()
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = app_config.get("secret_key", "django-insecure-fallback-key")
+SECRET_KEY = app_config.get("secret_key") or os.environ.get("SECRET_KEY", "")
+if not SECRET_KEY:
+    raise ValueError(
+        "SECRET_KEY must be set in config.yaml (app.secret_key) or the SECRET_KEY "
+        "environment variable."
+    )
 
 # Code version for script management
 CODE_VERSION = app_config.get("version", "1.0.0")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = app_config.get("debug", True)
+DEBUG = app_config.get("debug", False)
 
 # Validate SECRET_KEY in production
-if not DEBUG and (not SECRET_KEY or len(SECRET_KEY) < 50):
+if not DEBUG and len(SECRET_KEY) < 50:
     raise ValueError(
-        "SECRET_KEY must be set and at least 50 characters in production. "
+        "SECRET_KEY must be at least 50 characters in production. "
         "Update config.yaml with a secure key."
     )
 
@@ -70,7 +76,6 @@ local_url = urls_config.get("local", "")
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "https://monai-42qk.onrender.com",
 ]
 
 # Add ngrok URL if configured
@@ -90,30 +95,23 @@ if _csrf_env:
             CSRF_TRUSTED_ORIGINS.append(origin)
 
 # =============================================================================
-# Security Settings for Capacitor/APK iframe embedding
+# Cookie and HTTPS security
 # =============================================================================
-# These permissive settings are required for the Android APK to work
-# (it embeds the web app in an iframe)
-SECURE_CROSS_ORIGIN_OPENER_POLICY = None
-X_FRAME_OPTIONS = "ALLOWALL"
-# Capacitor APK embeds the app in a cross-site iframe (ngrok HTTPS). Enable only for that:
-#   CAPACITOR_SECURE_COOKIES=1 uv run gunicorn ...
-_use_capacitor_cookies = os.environ.get("CAPACITOR_SECURE_COOKIES", "").lower() in (
-    "1",
-    "true",
-    "yes",
-)
-if _use_capacitor_cookies:
-    CSRF_COOKIE_SAMESITE = "None"
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 else:
-    # Local http://127.0.0.1:8000 and Locust: browsers ignore Secure cookies without HTTPS.
-    CSRF_COOKIE_SAMESITE = "Lax"
-    CSRF_COOKIE_SECURE = False
-    SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+
 # =============================================================================
 # Application definition
 # =============================================================================
@@ -170,8 +168,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    # Disabled for Capacitor app iframe embedding
-    # "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "budgetapp.middleware.RequestLoggingMiddleware",
 ]
@@ -368,6 +365,15 @@ CACHES = {
         "TIMEOUT": redis_config.get("cache_timeout_seconds", 3600),
     }
 }
+
+# Unit tests should not require a running Redis instance.
+if "test" in sys.argv:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "KEY_PREFIX": "monai",
+        }
+    }
 
 # =============================================================================
 # Django-allauth Configuration

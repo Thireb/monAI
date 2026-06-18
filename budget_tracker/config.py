@@ -4,8 +4,11 @@ Configuration loader for monAI Budget Tracker.
 This module loads settings from config.yaml and provides them to the rest of the application.
 """
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -13,7 +16,26 @@ import yaml
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def load_config():
+def _env_bool(name: str, default: bool = False) -> bool:
+    """Parse a boolean environment variable."""
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.lower() in ("true", "1", "yes")
+
+
+def _require_secret_key() -> str:
+    """Return SECRET_KEY from the environment or raise a clear error."""
+    secret_key = os.getenv("SECRET_KEY", "").strip()
+    if not secret_key:
+        raise ValueError(
+            "SECRET_KEY is required. Set it in config.yaml (app.secret_key) or the "
+            "SECRET_KEY environment variable."
+        )
+    return secret_key
+
+
+def load_config() -> dict[str, Any]:
     """
     Load configuration from config.yaml file.
 
@@ -38,7 +60,11 @@ def load_config():
     return config
 
 
-def get_config_value(config, *keys, default=None):
+def get_config_value(
+    config: dict[str, Any],
+    *keys: str,
+    default: Any = None,
+) -> Any:
     """
     Safely get a nested configuration value.
 
@@ -50,7 +76,7 @@ def get_config_value(config, *keys, default=None):
     Returns:
         The configuration value or default
     """
-    value = config
+    value: Any = config
     for key in keys:
         if isinstance(value, dict) and key in value:
             value = value[key]
@@ -59,25 +85,36 @@ def get_config_value(config, *keys, default=None):
     return value
 
 
+def _validate_app_secret(app_config: dict[str, Any]) -> None:
+    """Ensure secret_key is set when running in production mode."""
+    debug = app_config.get("debug", False)
+    if debug:
+        return
+    secret_key = app_config.get("secret_key", "")
+    if not secret_key or secret_key == "change-me-use-a-long-random-string-in-production":
+        raise ValueError(
+            "app.secret_key in config.yaml must be set to a unique random string "
+            "before running with debug: false."
+        )
+
+
 # Load configuration at module import time
 try:
     CONFIG = load_config()
+    _validate_app_secret(CONFIG.get("app", {}))
 except FileNotFoundError:
     # Provide defaults for initial setup / migrations (e.g. Render without config.yaml)
     _allowed = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
     _hosts = [h.strip() for h in _allowed.split(",") if h.strip()]
     if not _hosts:
         _hosts = ["localhost", "127.0.0.1"]
-    _debug = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
+    _debug = _env_bool("DEBUG", default=False)
     _resend_api_key = os.getenv("RESEND_API_KEY", "")
     CONFIG = {
         "app": {
             "name": "monAI",
             "debug": _debug,
-            "secret_key": os.getenv(
-                "SECRET_KEY",
-                "django-insecure-fallback-key-for-development-only"
-            ),
+            "secret_key": _require_secret_key(),
         },
         "server": {
             "allowed_hosts": _hosts,
@@ -115,47 +152,41 @@ except FileNotFoundError:
 
 
 # Convenience accessors
-def get_app_config():
+def get_app_config() -> dict[str, Any]:
     """Get application configuration."""
     return CONFIG.get("app", {})
 
 
-def get_server_config():
+def get_server_config() -> dict[str, Any]:
     """Get server configuration."""
     return CONFIG.get("server", {})
 
 
-def get_urls_config():
-    """Get URLs configuration for APK builds."""
+def get_urls_config() -> dict[str, Any]:
+    """Get URLs configuration for CSRF trusted origins (ngrok / LAN dev)."""
     return CONFIG.get("urls", {})
 
 
-def get_database_config():
+def get_database_config() -> dict[str, Any]:
     """Get database configuration."""
     return CONFIG.get("database", {})
 
 
-def get_celery_config():
+def get_celery_config() -> dict[str, Any]:
     """Get Celery configuration."""
     return CONFIG.get("celery", {})
 
 
-def get_redis_config():
+def get_redis_config() -> dict[str, Any]:
     """Get Redis configuration (Django cache backend)."""
     return CONFIG.get("redis", {})
 
 
-def get_email_config():
+def get_email_config() -> dict[str, Any]:
     """Get email configuration."""
     return CONFIG.get("email", {})
 
 
-def get_superuser_config():
+def get_superuser_config() -> dict[str, Any]:
     """Get initial superuser configuration."""
     return CONFIG.get("superuser", {})
-
-
-def get_learning_demo_config():
-    """Get optional settings for Redis/performance learning exercises."""
-    return CONFIG.get("learning_demo", {})
-

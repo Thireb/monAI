@@ -1,12 +1,13 @@
-"""
-Expense CRUD views.
-"""
+"""Expense CRUD views."""
 
-from datetime import datetime
+from __future__ import annotations
+
+from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.http import JsonResponse
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -20,18 +21,19 @@ class ExpenseCreateUpdateView(LoginRequiredView):
     """Class-based view for creating or updating expenses."""
 
     def _format_currency(self, val: float) -> str:
-        """Format a float value as a string with comma
-        as thousands separator and two decimal places."""
+        """Format a float as a comma-separated currency string."""
         return intcomma(f"{val:,.2f}")
 
-    def _expense_tag_json(self, expense: Expense) -> dict:
+    def _expense_tag_json(self, expense: Expense) -> dict[str, Any]:
+        """Serialize the expense tag for JSON responses."""
         return {
             "id": expense.tag_foreign_key.id if expense.tag_foreign_key else None,
             "name": expense.tag_foreign_key.name if expense.tag_foreign_key else None,
             "color": expense.tag_foreign_key.color if expense.tag_foreign_key else None,
         }
 
-    def _bill_reminder_json(self, expense: Expense) -> dict | None:
+    def _bill_reminder_json(self, expense: Expense) -> dict[str, Any] | None:
+        """Serialize the linked bill reminder for JSON responses."""
         if not expense.bill_reminder_id:
             return None
         br = expense.bill_reminder
@@ -43,10 +45,11 @@ class ExpenseCreateUpdateView(LoginRequiredView):
             "recurrence_months": br.recurrence_months,
         }
 
-    def _expense_response_dict(self, expense: Expense) -> dict:
+    def _expense_response_dict(self, expense: Expense) -> dict[str, Any]:
+        """Build a JSON-serializable expense dict for AJAX responses."""
         category_name = expense.category.name if expense.category else "Uncategorized"
         category_color = expense.category.color if expense.category else "#e0e0e0"
-        sub_expenses = []
+        sub_expenses: list[dict[str, Any]] = []
         return {
             "id": expense.id,
             "name": expense.name,
@@ -64,7 +67,15 @@ class ExpenseCreateUpdateView(LoginRequiredView):
             "bill_reminder_id": expense.bill_reminder_id,
         }
 
-    def _parse_reminder_from_post(self, request):
+    def _parse_reminder_from_post(
+        self,
+        request: HttpRequest,
+    ) -> tuple[bool, date | None, int, str, int]:
+        """Parse bill reminder fields from POST data.
+
+        Returns:
+            Tuple of enabled, next_date, days_before, severity, recurrence.
+        """
         enabled = request.POST.get("bill_reminder_enabled") == "on"
         next_raw = request.POST.get("bill_reminder_next_date", "").strip()
         next_date = None
@@ -87,11 +98,19 @@ class ExpenseCreateUpdateView(LoginRequiredView):
             recurrence = 12
         return enabled, next_date, days_before, severity, recurrence
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> UnicodeJsonResponse:
+        """Create or update an expense for the budget month."""
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
+        budget = get_object_or_404(
+            Budget, month=budget_date, is_archived=False, user=self.request.user
+        )
 
         expense_id = request.POST.get("expense_id")
         name = request.POST.get("name")
@@ -181,11 +200,19 @@ class ExpenseCreateUpdateView(LoginRequiredView):
 class ExpenseDeleteView(LoginRequiredView):
     """Class-based view for deleting expenses."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Delete an expense and return updated budget summaries."""
         year = kwargs.get("year")
         month = kwargs.get("month")
         budget_date = timezone.datetime(year=year, month=month, day=1).date()
-        budget = get_object_or_404(Budget, month=budget_date, is_archived=False, user=self.request.user)
+        budget = get_object_or_404(
+            Budget, month=budget_date, is_archived=False, user=self.request.user
+        )
 
         expense_id = request.POST.get("expense_id")
         if expense_id:

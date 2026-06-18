@@ -32,7 +32,7 @@ monAI is a personal budget tracking application built with Django. It features:
 - **Expense Tracking** - Categorize expenses with tags, sub-expenses, and recurring markers
 - **Debt Tracking** - Track borrowings and repayments
 - **Goal Setting** - Set and track financial goals
-- **Android App** - Capacitor-based Android wrapper
+- **Android App** - Flutter offline-first mobile companion (`mobile/budget_mobile/`)
 - **Script Runner** - Centralized script management with version tracking
 
 ### Tech Stack
@@ -42,7 +42,7 @@ monAI is a personal budget tracking application built with Django. It features:
 | Backend | Django 5.1, Python 3.13 |
 | Database | SQLite (development), PostgreSQL (production) |
 | Frontend | Django Templates, Alpine.js, Anime.js, Bootstrap 5 |
-| Mobile | Capacitor (Android) |
+| Mobile | Flutter (Android) |
 | Task Queue | Celery + Redis |
 | Authentication | Django Allauth |
 
@@ -54,8 +54,7 @@ monAI is a personal budget tracking application built with Django. It features:
 
 - Python 3.11+
 - pyenv (recommended)
-- Redis (for Celery)
-- Android SDK (for APK building)
+- Redis (for Celery and production calendar cache; optional for local dev tests)
 
 ### Setup
 
@@ -205,9 +204,10 @@ monAI/
 │   └── management/commands/
 │       ├── backup_data.py
 │       ├── restore_data.py
-│       ├── build_apk.py
 │       ├── create_default_categories.py
 │       └── ...
+│
+├── mobile/budget_mobile/    # Flutter Android companion app
 │
 ├── script_runner/           # Script management app
 │   ├── models.py            # ScriptExecution model
@@ -221,13 +221,8 @@ monAI/
 │   ├── config.py            # Config loader
 │   └── urls.py
 │
-├── capacitor-app/           # Android app wrapper
-│   ├── www/index.html
-│   ├── android/
-│   └── package.json
-│
-├── scripts/                 # Build scripts
-│   └── build_apks.py        # APK builder
+├── scripts/                 # Dev utility scripts
+│   └── autofix_imports.py
 │
 ├── config.yaml              # Local configuration (gitignored)
 ├── config.yaml.example      # Template — copy to config.yaml
@@ -366,7 +361,6 @@ python manage.py list_scripts --history
 # Run a specific script
 python manage.py <script_name> [args]
 python manage.py backup_data --output backup.json
-python manage.py build_apk --check
 
 # Run all deploy scripts for current version
 python manage.py run_scripts
@@ -382,7 +376,6 @@ python manage.py run_scripts --list
 
 | Script | Category | Deploy | Description |
 |--------|----------|--------|-------------|
-| `build_apk` | Build & Deploy | No | Build Android APKs |
 | `backup_data` | Data Management | No | Backup to JSON |
 | `restore_data` | Data Management | No | Restore from JSON |
 | `setup_superuser` | User Management | No | Create superuser |
@@ -453,39 +446,21 @@ Mobile clients typically use `POST /api/mobile/auth/token/` with JSON `email` an
 
 ---
 
-## Android APK Building
+## Flutter Android App
 
-### Prerequisites
-
-1. Android SDK installed
-2. `ANDROID_HOME` environment variable set
-3. Capacitor initialized (`npx cap add android`)
-
-### Build Commands
+The mobile companion lives in `mobile/budget_mobile/`. See that directory's README for
+local setup. CI builds a release APK via `.github/workflows/flutter-apk.yml`.
 
 ```bash
-# Check configuration
-python manage.py build_apk --check
-
-# Build both APKs
-python manage.py build_apk
-
-# Build specific variant
-python manage.py build_apk --local   # Localhost APK
-python manage.py build_apk --ngrok   # Ngrok APK
-
-# Or use npm scripts
-cd capacitor-app
-npm run build          # Both
-npm run build:local    # Localhost only
-npm run build:ngrok    # Ngrok only
+cd mobile/budget_mobile
+flutter pub get
+flutter analyze
+flutter test
+flutter build apk --release
 ```
 
-### Output
-
-APKs are saved to `capacitor-app/output/`:
-- `monai-local.apk` - Connects to local server
-- `monai-ngrok.apk` - Connects to ngrok URL
+Keystore material must stay in GitHub Actions secrets or local untracked files — never
+commit `.jks` or `key.properties`. See [SECURITY.md](../SECURITY.md).
 
 ---
 

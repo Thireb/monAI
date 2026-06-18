@@ -1,11 +1,12 @@
-"""
-Debt management views.
-"""
+"""Debt management views."""
+
+from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
-from django.http import JsonResponse
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 
 from budgetapp.models import Debt, DebtTransaction
@@ -18,7 +19,8 @@ class DebtListView(LoginRequiredTemplateView):
 
     template_name = "minimal/debts/debt_list.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Return active and completed debts, updating status as needed."""
         context = super().get_context_data(**kwargs)
         active_debts = Debt.objects.filter(
             user=self.request.user, is_active=True
@@ -27,7 +29,6 @@ class DebtListView(LoginRequiredTemplateView):
             user=self.request.user, is_active=False
         ).order_by("-created_at")
 
-        # Check and update debt status (disable tags if fully repaid)
         for debt in active_debts:
             debt.check_and_update_status()
 
@@ -45,22 +46,21 @@ class DebtDetailView(LoginRequiredTemplateView):
 
     template_name = "minimal/debts/debt_detail.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Return debt detail with transactions and totals."""
         context = super().get_context_data(**kwargs)
         debt_id = self.kwargs.get("debt_id")
         debt = get_object_or_404(Debt, id=debt_id, user=self.request.user)
         transactions = debt.transactions.all().order_by("-date")
 
-        # Check and update debt status
         debt.check_and_update_status()
 
-        # Calculate additional statistics
         total_borrowed = sum(t.amount for t in transactions)
 
         context.update(
             {
                 "debt": debt,
-                "transactions_page": transactions,  # Match template variable name
+                "transactions_page": transactions,
                 "total_borrowed": total_borrowed,
             }
         )
@@ -70,7 +70,13 @@ class DebtDetailView(LoginRequiredTemplateView):
 class DebtCreateView(LoginRequiredView):
     """View for creating new debts via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Create a debt from POST data and return JSON."""
         name = request.POST.get("name")
         description = request.POST.get("description", "")
         total_amount = request.POST.get("total_amount")
@@ -118,7 +124,13 @@ class DebtCreateView(LoginRequiredView):
 class DebtUpdateView(LoginRequiredView):
     """View for updating debts via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Update a debt from POST data and return JSON."""
         debt_id = request.POST.get("debt_id")
         name = request.POST.get("name")
         description = request.POST.get("description", "")
@@ -170,7 +182,13 @@ class DebtUpdateView(LoginRequiredView):
 class DebtDeleteView(LoginRequiredView):
     """View for deleting debts via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Delete a debt and its auto-generated tag when unused."""
         debt_id = request.POST.get("debt_id")
 
         if not debt_id:
@@ -179,13 +197,11 @@ class DebtDeleteView(LoginRequiredView):
         try:
             debt = get_object_or_404(Debt, id=debt_id, user=request.user)
             debt_name = debt.name
-            debt_tag = debt.debt_tag  # Store reference before deletion
+            debt_tag = debt.debt_tag
             transaction_count = debt.transactions.count()
 
-            # Delete debt (transactions cascade automatically via on_delete=CASCADE)
             debt.delete()
 
-            # Delete the auto-generated debt tag if it exists and has no other debts
             tag_deleted = False
             if debt_tag and not debt_tag.debts.exists():
                 debt_tag.delete()
@@ -213,13 +229,19 @@ class DebtDeleteView(LoginRequiredView):
 class DebtBorrowingView(LoginRequiredView):
     """View for adding borrowing transactions via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Add a borrowing transaction to a debt."""
         debt_id = request.POST.get("debt_id")
         amount = request.POST.get("amount")
-        date = request.POST.get("date")
+        date_str = request.POST.get("date")
         notes = request.POST.get("notes", "")
 
-        if not debt_id or not amount or not date:
+        if not debt_id or not amount or not date_str:
             return JsonResponse(
                 {"success": False, "error": "Debt ID, amount, and date are required"}, status=400
             )
@@ -231,9 +253,8 @@ class DebtBorrowingView(LoginRequiredView):
                     {"success": False, "error": "Amount must be greater than zero"}, status=400
                 )
 
-            # Parse the date string to a date object
             try:
-                parsed_date = datetime.strptime(date, "%Y-%m-%d").date()
+                parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             except ValueError:
                 return JsonResponse(
                     {"success": False, "error": "Invalid date format. Use YYYY-MM-DD"}, status=400
@@ -241,7 +262,6 @@ class DebtBorrowingView(LoginRequiredView):
 
             debt = get_object_or_404(Debt, id=debt_id, user=request.user)
 
-            # Check if this would exceed total amount
             current_borrowed = debt.borrowed_amount
             if current_borrowed + amount > debt.total_amount:
                 return JsonResponse(
@@ -259,7 +279,6 @@ class DebtBorrowingView(LoginRequiredView):
                 debt=debt, amount=amount, date=parsed_date, notes=notes
             )
 
-            # Recalculate borrowed amount from transactions
             debt.recalculate_borrowed_amount()
 
             return JsonResponse(
@@ -297,14 +316,20 @@ class DebtBorrowingView(LoginRequiredView):
 class DebtTransactionUpdateView(LoginRequiredView):
     """View for updating borrowing transactions via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Update a borrowing transaction."""
         transaction_id = request.POST.get("transaction_id")
         debt_id = request.POST.get("debt_id")
         amount = request.POST.get("amount")
-        date = request.POST.get("date")
+        date_str = request.POST.get("date")
         notes = request.POST.get("notes", "")
 
-        if not transaction_id or not debt_id or not amount or not date:
+        if not transaction_id or not debt_id or not amount or not date_str:
             return JsonResponse(
                 {
                     "success": False,
@@ -320,9 +345,8 @@ class DebtTransactionUpdateView(LoginRequiredView):
                     {"success": False, "error": "Amount must be greater than zero"}, status=400
                 )
 
-            # Parse the date string to a date object
             try:
-                parsed_date = datetime.strptime(date, "%Y-%m-%d").date()
+                parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             except ValueError:
                 return JsonResponse(
                     {"success": False, "error": "Invalid date format. Use YYYY-MM-DD"}, status=400
@@ -333,13 +357,11 @@ class DebtTransactionUpdateView(LoginRequiredView):
             )
             debt = transaction.debt
 
-            # Update transaction
             transaction.amount = amount
             transaction.date = parsed_date
             transaction.notes = notes
             transaction.save()
 
-            # Recalculate borrowed amount from transactions
             debt.recalculate_borrowed_amount()
 
             return JsonResponse(
@@ -377,7 +399,13 @@ class DebtTransactionUpdateView(LoginRequiredView):
 class DebtTransactionDeleteView(LoginRequiredView):
     """View for deleting borrowing transactions via AJAX."""
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args: Any,
+        **kwargs: Any,
+    ) -> JsonResponse:
+        """Delete a borrowing transaction."""
         transaction_id = request.POST.get("transaction_id")
 
         if not transaction_id:
@@ -392,10 +420,8 @@ class DebtTransactionDeleteView(LoginRequiredView):
             debt = transaction.debt
             transaction_amount = transaction.amount
 
-            # Delete the transaction
             transaction.delete()
 
-            # Recalculate borrowed amount from transactions
             debt.recalculate_borrowed_amount()
 
             return JsonResponse(
@@ -420,4 +446,3 @@ class DebtTransactionDeleteView(LoginRequiredView):
             return JsonResponse(
                 {"success": False, "error": f"Error deleting transaction: {str(e)}"}, status=400
             )
-

@@ -1,11 +1,23 @@
+"""User account models with email as the primary login identifier."""
+
+from __future__ import annotations
+
+from typing import Any
+
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 
 
-class CustomUserManager(BaseUserManager):
+class CustomUserManager(BaseUserManager["CustomUser"]):
     """Custom user manager where email is the unique identifier."""
 
-    def create_user(self, email, username, password=None, **extra_fields):
+    def create_user(
+        self,
+        email: str,
+        username: str,
+        password: str | None = None,
+        **extra_fields: Any,
+    ) -> CustomUser:
         """Create and save a regular user with the given email and password."""
         if not email:
             raise ValueError("The Email field must be set")
@@ -15,7 +27,13 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, username, password=None, **extra_fields):
+    def create_superuser(
+        self,
+        email: str,
+        username: str,
+        password: str | None = None,
+        **extra_fields: Any,
+    ) -> CustomUser:
         """Create and save a superuser with the given email and password."""
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
@@ -49,6 +67,5 @@ class CustomUser(AbstractUser):
         verbose_name = "user"
         verbose_name_plural = "users"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.email
-

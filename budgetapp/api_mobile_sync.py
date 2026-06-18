@@ -1,8 +1,15 @@
+"""Mobile sync pull/push API views for budget records."""
+
+from __future__ import annotations
+
+from datetime import datetime
+
 from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -11,7 +18,8 @@ from budgetapp.models import Budget
 from .serializers_mobile import MobileBudgetPushItemSerializer, MobileBudgetSyncSerializer
 
 
-def _parse_updated_after(raw):
+def _parse_updated_after(raw: str | None) -> datetime | None:
+    """Parse an ISO-8601 ``updated_after`` query parameter into an aware datetime."""
     if not raw:
         return None
     parsed = parse_datetime(raw)
@@ -23,11 +31,12 @@ def _parse_updated_after(raw):
 
 
 class MobileBudgetPullView(APIView):
-    """GET budgets changed after optional ?updated_after= ISO-8601 (timezone-aware)."""
+    """GET budgets changed after optional ``?updated_after=`` ISO-8601 timestamp."""
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        """Return budgets for the authenticated user, optionally filtered by update time."""
         user = request.user
         qs = Budget.objects.filter(user=user).order_by("updated_at", "id")
         updated_after = _parse_updated_after(request.query_params.get("updated_after"))
@@ -42,7 +51,8 @@ class MobileBudgetPushView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
+        """Create or update budgets from a JSON list under the ``budgets`` key."""
         user = request.user
         raw_list = request.data.get("budgets")
         if not isinstance(raw_list, list):
@@ -53,7 +63,7 @@ class MobileBudgetPushView(APIView):
         ser = MobileBudgetPushItemSerializer(data=raw_list, many=True)
         ser.is_valid(raise_exception=True)
 
-        unknown_ids = []
+        unknown_ids: list[int] = []
         for item in ser.validated_data:
             budget_id = item.get("id")
             if budget_id is None:
@@ -66,9 +76,9 @@ class MobileBudgetPushView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        created_ids = []
-        updated_ids = []
-        server_ids = []
+        created_ids: list[int] = []
+        updated_ids: list[int] = []
+        server_ids: list[int] = []
         with transaction.atomic():
             for item in ser.validated_data:
                 budget_id = item.get("id")

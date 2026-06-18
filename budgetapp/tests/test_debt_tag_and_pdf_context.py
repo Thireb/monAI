@@ -4,6 +4,7 @@ Regression tests for debt/tag deletion and PDF budget context (tag breakdown).
 Covers recently merged behavior: deleting a debt-tracking tag cascades debt cleanup,
 and PDF email context aggregates expenses by tag for the report.
 """
+from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
@@ -21,7 +22,7 @@ User = get_user_model()
 class TagDeleteDebtCascadeTests(TestCase):
     """Deleting a tag that backs debts removes those debts and their transactions."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client = Client()
         self.user = User.objects.create_user(
             username="debttest",
@@ -36,7 +37,7 @@ class TagDeleteDebtCascadeTests(TestCase):
             income=Decimal("5000.00"),
         )
 
-    def test_deleting_debt_tag_removes_debts_and_transactions(self):
+    def test_deleting_debt_tag_removes_debts_and_transactions(self) -> None:
         debt = Debt.objects.create(
             user=self.user,
             name="Board upgrade",
@@ -65,7 +66,7 @@ class TagDeleteDebtCascadeTests(TestCase):
         self.assertEqual(Debt.objects.filter(user=self.user).count(), 0)
         self.assertEqual(DebtTransaction.objects.count(), 0)
 
-    def test_deleting_tag_with_only_expenses_sets_expenses_to_no_tag(self):
+    def test_deleting_tag_with_only_expenses_sets_expenses_to_no_tag(self) -> None:
         """Non-debt tags: delete leaves expenses intact with tag cleared (SET_NULL)."""
         tag = Tag.objects.create(
             user=self.user,
@@ -93,7 +94,7 @@ class TagDeleteDebtCascadeTests(TestCase):
 class BudgetEmailPdfContextTests(TestCase):
     """_get_budget_context builds tag_breakdown for the PDF (account breakdown)."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = User.objects.create_user(
             username="pdfctx",
             email="pdfctx@example.com",
@@ -112,7 +113,7 @@ class BudgetEmailPdfContextTests(TestCase):
             user=self.user, name="Card", description="", color="#222222"
         )
 
-    def test_tag_breakdown_aggregates_by_tag_and_percentages(self):
+    def test_tag_breakdown_aggregates_by_tag_and_percentages(self) -> None:
         Expense.objects.create(
             budget=self.budget,
             name="A1",
@@ -147,7 +148,7 @@ class BudgetEmailPdfContextTests(TestCase):
         self.assertAlmostEqual(breakdown["Cash"]["percentage"], 75.0, places=5)
         self.assertAlmostEqual(breakdown["Card"]["percentage"], 25.0, places=5)
 
-    def test_tag_breakdown_empty_when_no_tagged_expenses(self):
+    def test_tag_breakdown_empty_when_no_tagged_expenses(self) -> None:
         Expense.objects.create(
             budget=self.budget,
             name="Untagged",

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""
-Script to help fix linting issues in the Django Budget Tracker project.
-"""
+"""Run linters and formatters for the Django Budget Tracker project."""
+from __future__ import annotations
 
 import argparse
 import subprocess  # nosec B404 - Required for running pre-commit
@@ -9,8 +8,16 @@ import sys
 from pathlib import Path
 
 
-def run_command(cmd, capture_output=True):
-    """Run a command and return its output."""
+def run_command(cmd: list[str], capture_output: bool = True) -> subprocess.CompletedProcess[str] | None:
+    """Run a shell command and return its completed process result.
+
+    Args:
+        cmd: Command and arguments to execute.
+        capture_output: When True, capture stdout and stderr as text.
+
+    Returns:
+        Completed process result, or None when subprocess raises CalledProcessError.
+    """
     try:
         # We're only running pre-commit commands with fixed arguments
         # nosec B603 - Command args are controlled by the script
@@ -22,8 +29,12 @@ def run_command(cmd, capture_output=True):
         return None
 
 
-def check_prerequisites():
-    """Check if pre-commit is installed."""
+def check_prerequisites() -> bool:
+    """Verify pre-commit is installed and hooks are configured.
+
+    Returns:
+        True when pre-commit is available and hooks are installed.
+    """
     result = run_command(["pre-commit", "--version"])
     if result and result.returncode == 0:
         print(f"pre-commit version: {result.stdout.strip()}")
@@ -41,8 +52,16 @@ def check_prerequisites():
     return True
 
 
-def run_formatters(files=None, all_files=False):
-    """Run auto-formatters on specified files or all files."""
+def run_formatters(files: list[str] | None = None, all_files: bool = False) -> bool:
+    """Run auto-formatters on specified files or all files.
+
+    Args:
+        files: Optional list of file paths to format.
+        all_files: When True, format the entire repository.
+
+    Returns:
+        True when all formatters exit successfully.
+    """
     # Basic formatters
     formatters = ["black", "isort", "prettier"]
 
@@ -60,8 +79,16 @@ def run_formatters(files=None, all_files=False):
     return result.returncode == 0 if result else False
 
 
-def run_linters(files=None, all_files=False, fix=False):
-    """Run linters on specified files or all files."""
+def run_linters(
+    files: list[str] | None = None, all_files: bool = False, fix: bool = False
+) -> None:
+    """Run linters on specified files or all files.
+
+    Args:
+        files: Optional list of file paths to lint.
+        all_files: When True, lint the entire repository.
+        fix: When True, attempt automatic HTML fixes with djlint.
+    """
     # All linters (no longer 'manual')
     linters = ["flake8", "djlint-django", "bandit"]
 
@@ -85,8 +112,12 @@ def run_linters(files=None, all_files=False, fix=False):
                 run_command(["djlint", path, "--reformat"], capture_output=False)
 
 
-def fix_common_issues(files=None):
-    """Fix common issues in files."""
+def fix_common_issues(files: list[str] | None = None) -> None:
+    """Fix common template issues that formatters do not handle.
+
+    Args:
+        files: File paths to inspect and repair.
+    """
     if not files:
         return
 
@@ -109,8 +140,12 @@ def fix_common_issues(files=None):
                 print(f"Error fixing HTML issues in {file_path}: {e}")
 
 
-def main():
-    """Main function."""
+def main() -> int:
+    """Parse CLI arguments and run formatters and linters.
+
+    Returns:
+        Process exit code (0 for success).
+    """
     parser = argparse.ArgumentParser(
         description="Run linters and formatters for the Django Budget Tracker project."
     )
