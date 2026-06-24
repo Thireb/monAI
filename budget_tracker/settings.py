@@ -199,8 +199,8 @@ WSGI_APPLICATION = "budget_tracker.wsgi.application"
 # Database (from config.yaml)
 # =============================================================================
 
-db_engine = db_config.get("engine", "sqlite3")
-db_name = db_config.get("name", "db.sqlite3")
+db_engine = db_config.get("engine", "mysql")
+db_name = db_config.get("name", "monai")
 
 DATABASES = {
     "default": {
@@ -208,6 +208,16 @@ DATABASES = {
         "NAME": BASE_DIR / db_name if db_engine == "sqlite3" else db_name,
     }
 }
+
+if db_engine != "sqlite3":
+    DATABASES["default"].update(
+        {
+            "USER": db_config.get("user", "root"),
+            "PASSWORD": db_config.get("password", ""),
+            "HOST": db_config.get("host", "127.0.0.1"),
+            "PORT": db_config.get("port", 3306),
+        }
+    )
 
 # =============================================================================
 # Password validation

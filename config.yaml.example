@@ -22,8 +22,12 @@ urls:
   ngrok: ""
 
 database:
-  engine: "sqlite3"
-  name: "db.sqlite3"
+  engine: "mysql"
+  name: "monai"
+  user: "root"
+  password: ""
+  host: "127.0.0.1"
+  port: 3306
 
 celery:
   broker_url: "redis://localhost:6379/0"
