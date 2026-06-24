@@ -71,6 +71,17 @@ pre-commit run --all-files
 - Keep templates, JS, and CSS in separate files (see `.cursor/rules/structuring.mdc`).
 - Do not commit secrets, keystores, or local `config.yaml`.
 
+## Before publishing (maintainers)
+
+Run these checks before making the repository public or cutting a release:
+
+```bash
+./scripts/audit_public_repo.sh
+gitleaks detect --source . --verbose
+```
+
+If secrets were ever committed, follow [SECURITY.md](SECURITY.md#if-secrets-were-ever-committed) (rotate credentials and scrub git history).
+
 ## Pull Requests
 
 - Keep changes focused and minimal.

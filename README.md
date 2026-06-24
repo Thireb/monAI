@@ -89,7 +89,7 @@ APK output: `mobile/budget_mobile/build/app/outputs/flutter-apk/app-release.apk`
 
 ## Docker (optional)
 
-With `config.yaml` in the project root:
+Create `config.yaml` from the example (see step 2 above). It is **not** copied into the image at build time; `docker compose` bind-mounts your project directory so the container reads `config.yaml` from the host.
 
 ```bash
 docker compose up --build

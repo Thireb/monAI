@@ -46,3 +46,35 @@ Never commit `mobile/budget_mobile/android/key.properties` or `*.jks`.
 - Set `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` for your HTTPS origin
 - Use HTTPS in production (`DEBUG=false` enables secure cookies in settings)
 - Run `python manage.py collectstatic` behind a proper WSGI server (e.g. gunicorn)
+
+## If secrets were ever committed
+
+Assume any secret that touched git is compromised, even after removal from the latest commit.
+
+1. **Revoke/rotate immediately** — Resend API keys, Django `secret_key`, superuser passwords, SMTP credentials, and any other exposed values.
+2. **Scrub git history before going public** — remove sensitive files from all commits:
+
+   ```bash
+   pip install git-filter-repo
+   git clone --mirror . ../repo-backup.git   # backup first
+   git filter-repo --path config.yaml --invert-paths --force
+   ```
+
+3. **Verify** — scan full history and tracked files:
+
+   ```bash
+   gitleaks detect --source . --verbose
+   ./scripts/audit_public_repo.sh
+   ```
+
+4. **Force-push only when ready** — collaborators must re-clone after a history rewrite:
+
+   ```bash
+   git push --force-with-lease origin main
+   ```
+
+## Database and Docker
+
+**Per-user Resend keys** are stored in the database on self-hosted instances. Treat database backups as sensitive.
+
+**Docker builds:** `config.yaml` is excluded from the Docker build context (`.dockerignore`). Mount or copy your local `config.yaml` at runtime — e.g. `docker compose` bind-mounts the project directory. Never bake real secrets into an image layer.

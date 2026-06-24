@@ -60,9 +60,8 @@ RUN python -m venv ${VENV_PATH} && \
 # -----------------------------------------------------------------------------
 # 5. Copy the rest of the project into the image
 # -----------------------------------------------------------------------------
-# .dockerignore excludes venv, .git, __pycache__, etc. config.yaml is copied
-# if it exists on your host (needed for Django settings).
-# COPY . . also works because it copies into workdirectory which is already set.
+# .dockerignore excludes venv, .git, __pycache__, config.yaml, etc.
+# Mount config.yaml at runtime (docker compose bind-mounts the project dir).
 # -----------------------------------------------------------------------------
 COPY . /app
 
