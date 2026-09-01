@@ -20,6 +20,8 @@ from .api_mobile_catalog import (
     MobileSubExpensePushView,
     MobileTagPullView,
     MobileTagPushView,
+    MobileTagTransferPullView,
+    MobileTagTransferPushView,
 )
 from .api_mobile_sync import MobileBudgetPullView, MobileBudgetPushView
 from .views_health import mobile_health
@@ -75,6 +77,16 @@ urlpatterns: list[URLPattern | URLResolver] = [
         "mobile/bill-reminders/push/",
         MobileBillReminderPushView.as_view(),
         name="api-mobile-bill-reminder-push",
+    ),
+    path(
+        "mobile/tag-transfers/pull/",
+        MobileTagTransferPullView.as_view(),
+        name="api-mobile-tag-transfer-pull",
+    ),
+    path(
+        "mobile/tag-transfers/push/",
+        MobileTagTransferPushView.as_view(),
+        name="api-mobile-tag-transfer-push",
     ),
     path("", include(router.urls)),
 ]

@@ -114,6 +114,16 @@ class MobileBudgetApiClient {
     return _postJson("/api/mobile/sub-expenses/push/", {"sub_expenses": items});
   }
 
+  Future<Map<String, dynamic>?> pullTagTransfers(String? updatedAfterIso) {
+    return _pullJson("/api/mobile/tag-transfers/pull/", updatedAfterIso);
+  }
+
+  Future<Map<String, dynamic>?> pushTagTransfers(
+    List<Map<String, dynamic>> items,
+  ) {
+    return _postJson("/api/mobile/tag-transfers/push/", {"tag_transfers": items});
+  }
+
   Future<Map<String, dynamic>?> _pullJson(
     String path,
     String? updatedAfterIso,

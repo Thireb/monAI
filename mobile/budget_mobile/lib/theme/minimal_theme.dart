@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
 
-/// Aligns with Django minimal theme (soft gradient, Quicksand, accent blues/greens).
+/// Action-first mobile palette (monAI accents, quieter than web glass stacks).
 class MinimalColors {
   MinimalColors._();
 
@@ -11,26 +11,13 @@ class MinimalColors {
   static const Color neutralGray = Color(0xFFE0E0E0);
   static const Color gradientStart = Color(0xFFF3F6FA);
   static const Color gradientEnd = Color(0xFFE9EAFC);
-  static const Color surfaceGlass = Color(0xE6FFFFFF);
+  static const Color surfaceQuiet = Color(0xFFF7F8FC);
   static const Color textPrimary = Color(0xFF1A1A2E);
   static const Color textSecondary = Color(0xFF5C5C6E);
-  /// ~85% opaque white for input fields (avoids withOpacity/withValues SDK drift).
   static const Color inputFieldFill = Color(0xD9FFFFFF);
-}
 
-const BorderRadius _minimalCardRadius = BorderRadius.all(Radius.circular(16));
-const EdgeInsets _minimalCardMargin =
-    EdgeInsets.symmetric(horizontal: 16, vertical: 8);
-
-/// Styling for budget list / sync [Card]s (avoids ThemeData.cardTheme SDK drift).
-Widget minimalCard({required Widget child}) {
-  return Card(
-    elevation: 0,
-    color: MinimalColors.surfaceGlass,
-    margin: _minimalCardMargin,
-    shape: const RoundedRectangleBorder(borderRadius: _minimalCardRadius),
-    child: child,
-  );
+  /// Legacy alias used by older screens.
+  static const Color surfaceGlass = surfaceQuiet;
 }
 
 ThemeData buildMinimalTheme() {
@@ -42,26 +29,31 @@ ThemeData buildMinimalTheme() {
       primary: MinimalColors.primaryBlue,
       secondary: MinimalColors.primaryGreen,
       tertiary: MinimalColors.primaryYellow,
-      surface: MinimalColors.surfaceGlass,
+      surface: MinimalColors.surfaceQuiet,
     ),
-    scaffoldBackgroundColor: MinimalColors.gradientStart,
+    scaffoldBackgroundColor: Colors.transparent,
+  );
+
+  final text = GoogleFonts.quicksandTextTheme(base.textTheme).apply(
+    bodyColor: MinimalColors.textPrimary,
+    displayColor: MinimalColors.textPrimary,
   );
 
   return base.copyWith(
-    textTheme: GoogleFonts.quicksandTextTheme(base.textTheme).apply(
-      bodyColor: MinimalColors.textPrimary,
-      displayColor: MinimalColors.textPrimary,
-    ),
+    textTheme: text,
     appBarTheme: AppBarTheme(
-      centerTitle: true,
+      centerTitle: false,
       elevation: 0,
       scrolledUnderElevation: 0,
       backgroundColor: Colors.transparent,
       foregroundColor: MinimalColors.textPrimary,
-      titleTextStyle: GoogleFonts.orbitron(
-        fontSize: 22,
-        fontWeight: FontWeight.w600,
-        color: MinimalColors.primaryBlue,
+      titleTextStyle: text.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: MinimalColors.surfaceQuiet,
+      indicatorColor: MinimalColors.primaryBlue.withValues(alpha: 0.15),
+      labelTextStyle: WidgetStatePropertyAll(
+        text.labelMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -74,6 +66,9 @@ ThemeData buildMinimalTheme() {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+    ),
+    listTileTheme: const ListTileThemeData(
+      contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
     ),
   );
 }
@@ -100,4 +95,13 @@ class MinimalPageBackground extends StatelessWidget {
       child: child,
     );
   }
+}
+
+/// Prefer [ListTile] / ink rows; keep this only when a bordered group is needed.
+Widget minimalCard({required Widget child}) {
+  return Material(
+    color: Colors.white.withValues(alpha: 0.72),
+    borderRadius: BorderRadius.circular(14),
+    child: child,
+  );
 }

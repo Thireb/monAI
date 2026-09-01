@@ -15,7 +15,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from budgetapp.models import BillReminder, Budget, Category, Expense, SubExpense, Tag
+from budgetapp.models import BillReminder, Budget, Category, Expense, SubExpense, Tag, TagTransfer
 
 from .serializers_mobile import (
     MobileBillReminderPushItemSerializer,
@@ -28,6 +28,8 @@ from .serializers_mobile import (
     MobileSubExpenseSyncSerializer,
     MobileTagPushItemSerializer,
     MobileTagSyncSerializer,
+    MobileTagTransferPushItemSerializer,
+    MobileTagTransferSyncSerializer,
     save_bill_reminder_for_user,
     save_category_for_user,
     save_tag_for_user,
@@ -524,6 +526,126 @@ class MobileBillReminderPushView(APIView):
                 if created:
                     created_ids.append(obj.id)
                 server_ids.append(obj.id)
+        return Response(
+            {"created_ids": created_ids, "server_ids": server_ids},
+            status=status.HTTP_200_OK,
+        )
+
+
+class MobileTagTransferPullView(APIView):
+    """GET tag transfers changed after optional ``?updated_after=`` timestamp."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> Response:
+        """Return tag transfers for budgets owned by the authenticated user."""
+        user = request.user
+        qs = (
+            TagTransfer.objects.filter(budget__user=user)
+            .select_related("budget", "from_tag", "to_tag")
+            .order_by("updated_at", "id")
+        )
+        updated_after = _parse_updated_after(request.query_params.get("updated_after"))
+        if updated_after is not None:
+            qs = qs.filter(updated_at__gt=updated_after)
+        data = MobileTagTransferSyncSerializer(qs, many=True).data
+        return Response({"tag_transfers": data})
+
+
+class MobileTagTransferPushView(APIView):
+    """Apply tag-transfer upserts and deletions from the mobile client."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request) -> Response:
+        """Create, update, or delete transfers under ``tag_transfers``."""
+        user = request.user
+        raw_list = request.data.get("tag_transfers")
+        if not isinstance(raw_list, list):
+            return Response(
+                {"detail": "Expected key 'tag_transfers' with a list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ser = MobileTagTransferPushItemSerializer(data=raw_list, many=True)
+        ser.is_valid(raise_exception=True)
+
+        for item in ser.validated_data:
+            if item.get("deleted"):
+                continue
+            bid = item["budget_id"]
+            if not Budget.objects.filter(pk=bid, user=user).exists():
+                return Response(
+                    {
+                        "detail": "Unknown budget_id for this user.",
+                        "budget_id": bid,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            for key in ("from_tag_id", "to_tag_id"):
+                tid = item[key]
+                if not Tag.objects.filter(pk=tid, user=user).exists():
+                    return Response(
+                        {"detail": f"Unknown {key}.", key: tid},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+        for item in ser.validated_data:
+            tid = item.get("id")
+            if tid is None:
+                continue
+            if item.get("deleted") and not TagTransfer.objects.filter(pk=tid).exists():
+                continue
+            if not TagTransfer.objects.filter(pk=tid, budget__user=user).exists():
+                return Response(
+                    {"detail": "Unknown transfer id(s).", "unknown_ids": [tid]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        created_ids: list[int] = []
+        server_ids: list[int] = []
+        with transaction.atomic():
+            for item in ser.validated_data:
+                if item.get("deleted"):
+                    tid = item["id"]
+                    obj = TagTransfer.objects.filter(
+                        pk=tid, budget__user=user
+                    ).first()
+                    server_ids.append(tid)
+                    if obj is not None:
+                        obj.delete()
+                    continue
+                budget = Budget.objects.get(pk=item["budget_id"], user=user)
+                from_tag = Tag.objects.get(pk=item["from_tag_id"], user=user)
+                to_tag = Tag.objects.get(pk=item["to_tag_id"], user=user)
+                amount = item["amount"]
+                note = item.get("note") or ""
+                xfer_date = item.get("date")
+                tid = item.get("id")
+                if tid is None:
+                    kwargs: dict[str, Any] = {
+                        "budget": budget,
+                        "from_tag": from_tag,
+                        "to_tag": to_tag,
+                        "amount": amount,
+                        "note": note,
+                    }
+                    if xfer_date is not None:
+                        kwargs["date"] = xfer_date
+                    obj = TagTransfer(**kwargs)
+                    obj.save()
+                    created_ids.append(obj.id)
+                    server_ids.append(obj.id)
+                else:
+                    obj = TagTransfer.objects.get(pk=tid, budget__user=user)
+                    obj.budget = budget
+                    obj.from_tag = from_tag
+                    obj.to_tag = to_tag
+                    obj.amount = amount
+                    obj.note = note
+                    if xfer_date is not None:
+                        obj.date = xfer_date
+                    obj.save()
+                    server_ids.append(obj.id)
         return Response(
             {"created_ids": created_ids, "server_ids": server_ids},
             status=status.HTTP_200_OK,

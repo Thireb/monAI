@@ -21,7 +21,7 @@ void main() {
   });
 
   testWidgets(
-    "home shows monAI and offline budget after load",
+    "shell shows Months tab after load",
     (tester) async {
       final settings = SettingsService.inMemory();
       final api = _NoopMobileApi(settings);
@@ -38,12 +38,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      expect(find.text("monAI"), findsOneWidget);
-      expect(find.textContaining("Dashboard"), findsOneWidget);
-      expect(
-        find.textContaining("budget month(s) stored on this device"),
-        findsOneWidget,
-      );
+      expect(find.text("Months"), findsWidgets);
+      expect(find.textContaining("No months yet"), findsOneWidget);
+      expect(find.text("More"), findsOneWidget);
     },
     timeout: const Timeout(Duration(seconds: 15)),
   );

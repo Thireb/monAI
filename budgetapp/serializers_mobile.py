@@ -9,7 +9,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from budgetapp.models import BillReminder, Budget, Category, Expense, SubExpense, Tag
+from budgetapp.models import BillReminder, Budget, Category, Expense, SubExpense, Tag, TagTransfer
 
 
 class MobileBudgetSyncSerializer(serializers.ModelSerializer):
@@ -465,3 +465,69 @@ def save_bill_reminder_for_user(
     br.notes = item.get("notes") or ""
     br.save()
     return br, False
+
+
+class MobileTagTransferSyncSerializer(serializers.ModelSerializer):
+    """Wire format for tag-transfer pull responses."""
+
+    budget_id = serializers.IntegerField(read_only=True)
+    from_tag_id = serializers.IntegerField(read_only=True)
+    to_tag_id = serializers.IntegerField(read_only=True)
+    date = serializers.DateField(format="%Y-%m-%d")
+
+    class Meta:
+        model = TagTransfer
+        fields = [
+            "id",
+            "budget_id",
+            "from_tag_id",
+            "to_tag_id",
+            "amount",
+            "date",
+            "note",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class MobileTagTransferPushItemSerializer(serializers.Serializer):
+    """Single tag-transfer item in a mobile push payload."""
+
+    id = serializers.IntegerField(required=False, allow_null=True)
+    budget_id = serializers.IntegerField(required=False, allow_null=True)
+    from_tag_id = serializers.IntegerField(required=False, allow_null=True)
+    to_tag_id = serializers.IntegerField(required=False, allow_null=True)
+    amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    date = serializers.DateField(required=False, allow_null=True)
+    note = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, default=""
+    )
+    deleted = serializers.BooleanField(required=False, default=False)
+
+    def validate_amount(self, value: Decimal | None) -> Decimal | None:
+        if value is None:
+            return value
+        if value <= Decimal("0"):
+            raise serializers.ValidationError("Amount must be greater than zero")
+        return value
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if attrs.get("deleted"):
+            if attrs.get("id") is None:
+                raise serializers.ValidationError(
+                    {"id": "Required when deleting a transfer."}
+                )
+            return attrs
+        for key in ("budget_id", "from_tag_id", "to_tag_id", "amount"):
+            if attrs.get(key) is None:
+                raise serializers.ValidationError({key: "This field is required."})
+        if attrs["from_tag_id"] == attrs["to_tag_id"]:
+            raise serializers.ValidationError(
+                "Cannot transfer to the same account tag."
+            )
+        note = (attrs.get("note") or "").strip()
+        attrs["note"] = note[:255]
+        return attrs

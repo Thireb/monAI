@@ -47,10 +47,10 @@ class TagAdmin(admin.ModelAdmin):
 class TagTransferAdmin(admin.ModelAdmin):
     """Admin interface for account-tag transfers within a budget."""
 
-    list_display = ("budget", "from_tag", "to_tag", "amount", "date", "created_at")
+    list_display = ("budget", "from_tag", "to_tag", "amount", "date", "updated_at")
     list_filter = ("date", "budget__month")
     search_fields = ("note", "from_tag__name", "to_tag__name")
-    readonly_fields = ("created_at",)
+    readonly_fields = ("created_at", "updated_at")
 
 
 @admin.register(Goal)

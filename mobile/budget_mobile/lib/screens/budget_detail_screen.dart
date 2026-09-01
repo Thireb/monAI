@@ -5,12 +5,18 @@ import "../repositories/budget_repository.dart";
 import "../repositories/expense_repository.dart";
 import "../repositories/sub_expense_repository.dart";
 import "../repositories/tag_repository.dart";
+import "../repositories/tag_transfer_repository.dart";
 import "../theme/minimal_theme.dart";
+import "../utils/account_breakdown.dart";
 import "../utils/budget_format.dart";
+import "../widgets/account_chip.dart";
+import "../widgets/money_text.dart";
 import "budget_form_screen.dart";
 import "expense_form_screen.dart";
 import "sub_expense_form_screen.dart";
+import "transfer_form_screen.dart";
 
+/// Month hub: remaining hero, account filter, expenses, add / transfer.
 class BudgetDetailScreen extends StatefulWidget {
   const BudgetDetailScreen({super.key, required this.budget});
 
@@ -24,7 +30,10 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
   List<ExpenseRow> _expenses = [];
   List<SubExpenseRow> _subAll = [];
   List<TagRow> _tags = [];
+  List<TagTransferRow> _transfers = [];
+  int? _filterTagServerId;
   bool _loading = true;
+  final Set<int> _expanded = {};
 
   @override
   void initState() {
@@ -33,11 +42,13 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
   }
 
   Future<void> _load() async {
-    final list = await AppScope.expenseRepo
-        .listForBudgetLocalId(widget.budget.localId);
-    final subs = await AppScope.subExpenseRepo
-        .listForBudgetLocalId(widget.budget.localId);
+    final list =
+        await AppScope.expenseRepo.listForBudgetLocalId(widget.budget.localId);
+    final subs =
+        await AppScope.subExpenseRepo.listForBudgetLocalId(widget.budget.localId);
     final tags = await AppScope.tagRepo.listNonDeleted();
+    final transfers = await AppScope.tagTransferRepo
+        .listForBudgetLocalId(widget.budget.localId);
     if (!mounted) {
       return;
     }
@@ -45,98 +56,13 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
       _expenses = list;
       _subAll = subs;
       _tags = tags;
+      _transfers = transfers;
       _loading = false;
     });
   }
 
   List<SubExpenseRow> _subsForExpense(int expenseLocalId) {
     return _subAll.where((s) => s.expenseLocalId == expenseLocalId).toList();
-  }
-
-  Future<void> _confirmDeleteSubExpense(SubExpenseRow s) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete sub-expense?"),
-        content: Text(
-          s.isReturn
-              ? "Remove this return line from your budget?"
-              : "Remove this sub-expense line?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text("Delete"),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    await AppScope.subExpenseRepo.markDeletedLocal(s.localId);
-    await AppScope.budgetSync.syncExpenseDeletes();
-    if (!mounted) {
-      return;
-    }
-    await _load();
-  }
-
-  Future<void> _confirmDeleteExpense(ExpenseRow e) async {
-    final subs = _subsForExpense(e.localId);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete expense?"),
-        content: Text(
-          subs.isEmpty
-              ? "This will remove \"${e.name}\" and its allocation."
-              : "This will remove \"${e.name}\" and ${subs.length} sub-line(s).",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text("Delete"),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    await AppScope.expenseRepo.markDeletedLocal(e.localId);
-    await AppScope.budgetSync.syncExpenseDeletes();
-    if (!mounted) {
-      return;
-    }
-    await _load();
-  }
-
-  String _remainingLine(ExpenseRow e) {
-    final allocated = e.amount;
-    double spent = 0;
-    double returns = 0;
-    for (final s in _subsForExpense(e.localId)) {
-      if (s.isReturn) {
-        returns += s.amount;
-      } else {
-        spent += s.amount;
-      }
-    }
-    final remaining = allocated - spent + returns;
-    final b = widget.budget;
-    return "Allocated ${formatMoneyLine(b.currency, allocated)} · "
-        "spent ${formatMoneyLine(b.currency, spent)}"
-        "${returns > 0 ? " · returns ${formatMoneyLine(b.currency, returns)}" : ""} · "
-        "remaining ${formatMoneyLine(b.currency, remaining)}";
   }
 
   double _totalExpenseAllocated() {
@@ -157,57 +83,8 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
     return t;
   }
 
-  /// Gross budgeted line amounts minus returns (matches server net budgeted expenses).
-  double _netBudgetedExpenses() {
-    return _totalExpenseAllocated() - _totalReturnsAll();
-  }
-
-  /// Same rule as server [Budget.get_remaining_budget]: income - gross + returns.
   double _remainingBudget() {
-    final b = widget.budget;
-    return b.income - _totalExpenseAllocated() + _totalReturnsAll();
-  }
-
-  /// Per-tag sums of allocated expense amounts (matches web "Account Breakdown").
-  List<({String name, String colorHex, double amount})> _accountBreakdownRows() {
-    final byServerId = <int, TagRow>{};
-    for (final t in _tags) {
-      final sid = t.serverId;
-      if (sid != null) {
-        byServerId[sid] = t;
-      }
-    }
-    final totals = <String, ({double amount, String color})>{};
-    for (final e in _expenses) {
-      final tid = e.tagServerId;
-      if (tid == null) {
-        continue;
-      }
-      final tag = byServerId[tid];
-      final name = tag?.name ?? "Tag #$tid";
-      final color = tag?.color ?? "#2196f3";
-      final prev = totals[name];
-      if (prev == null) {
-        totals[name] = (amount: e.amount, color: color);
-      } else {
-        totals[name] = (
-          amount: prev.amount + e.amount,
-          color: prev.color,
-        );
-      }
-    }
-    final list = totals.entries
-        .where((e) => e.value.amount > 0)
-        .map(
-          (e) => (
-            name: e.key,
-            colorHex: e.value.color,
-            amount: e.value.amount,
-          ),
-        )
-        .toList();
-    list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    return list;
+    return widget.budget.income - _totalExpenseAllocated() + _totalReturnsAll();
   }
 
   Color _parseHexColor(String hex) {
@@ -224,81 +101,104 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
     return MinimalColors.primaryBlue;
   }
 
-  Widget _summaryCard({
-    required BuildContext context,
-    required String label,
-    required String valueLine,
-    String? subline,
-    Widget? footer,
-  }) {
-    final labelStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: MinimalColors.primaryBlue,
-          fontWeight: FontWeight.w600,
-        );
-    final valueStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: MinimalColors.textPrimary,
-        );
-    final subStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: MinimalColors.textSecondary,
-          height: 1.35,
-        );
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: labelStyle,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+  Future<void> _confirmDeleteExpense(ExpenseRow e) async {
+    final subs = _subsForExpense(e.localId);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete expense?"),
+        content: Text(
+          subs.isEmpty
+              ? "Remove \"${e.name}\"?"
+              : "Remove \"${e.name}\" and ${subs.length} sub-line(s)?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text("Cancel"),
           ),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              valueLine,
-              style: valueStyle,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-            ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text("Delete"),
           ),
-          if (subline != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subline,
-              style: subStyle,
-              textAlign: TextAlign.center,
-            ),
-          ],
-          if (footer != null) ...[
-            const SizedBox(height: 6),
-            footer,
-          ],
         ],
       ),
     );
+    if (ok != true || !mounted) {
+      return;
+    }
+    await AppScope.expenseRepo.markDeletedLocal(e.localId);
+    await AppScope.budgetSync.syncExpenseDeletes();
+    if (mounted) {
+      await _load();
+    }
   }
 
-  /// Summary matches minimal web: gross, returns, net, remaining (see Budget model).
-  Widget _budgetSummarySection({
-    required BuildContext context,
-    required BudgetRow b,
-    required String grossLine,
-    required String returnsLine,
-    required String netLine,
-    required String remainingLine,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _summaryCard(
-          context: context,
-          label: "Income",
-          valueLine: formatMoneyLine(b.currency, b.income),
-          footer: TextButton(
+  Future<void> _confirmDeleteTransfer(TagTransferRow t) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete transfer?"),
+        content: const Text("This only undoes the account move."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) {
+      return;
+    }
+    await AppScope.tagTransferRepo.markDeletedLocal(t.localId);
+    await AppScope.budgetSync.syncTransferDeletes();
+    if (mounted) {
+      await _load();
+    }
+  }
+
+  String _tagName(int? serverId) {
+    if (serverId == null) {
+      return "No account";
+    }
+    for (final t in _tags) {
+      if (t.serverId == serverId) {
+        return t.name;
+      }
+    }
+    return "Tag #$serverId";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final b = widget.budget;
+    final remaining = _remainingBudget();
+    final gross = _totalExpenseAllocated();
+    final breakdown = buildAccountBreakdown(
+      expenses: _expenses,
+      transfers: _transfers,
+      tags: _tags,
+    );
+    final filtered = _filterTagServerId == null
+        ? _expenses
+        : _expenses
+            .where((e) => e.tagServerId == _filterTagServerId)
+            .toList();
+
+    return MinimalPageBackground(
+      child: Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: Text(formatBudgetMonthLabel(b.month)),
+        actions: [
+          IconButton(
+            tooltip: "Edit budget",
+            icon: const Icon(Icons.edit_outlined),
             onPressed: () async {
               await Navigator.of(context).push<bool>(
                 MaterialPageRoute<bool>(
@@ -308,434 +208,257 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
                   ),
                 ),
               );
-              if (context.mounted) {
+              if (mounted) {
                 await _load();
               }
             },
-            child: const Text("Edit"),
           ),
-        ),
-        const Divider(height: 20),
-        _summaryCard(
-          context: context,
-          label: "Budgeted expenses (gross)",
-          valueLine: grossLine,
-          subline: "Sum of expense line amounts",
-        ),
-        const Divider(height: 20),
-        _summaryCard(
-          context: context,
-          label: "Returns / refunds",
-          valueLine: returnsLine,
-          subline: "Credited back toward remaining",
-        ),
-        const Divider(height: 20),
-        _summaryCard(
-          context: context,
-          label: "Net budgeted expenses",
-          valueLine: netLine,
-          subline: "Gross − returns",
-        ),
-        const Divider(height: 20),
-        _summaryCard(
-          context: context,
-          label: "Remaining",
-          valueLine: remainingLine,
-          subline: "Income − net budgeted expenses",
-        ),
-      ],
-    );
-  }
-
-  Widget _accountBreakdownSection(BuildContext context, BudgetRow b) {
-    final rows = _accountBreakdownRows();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            "Account Breakdown",
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: MinimalColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-          const SizedBox(height: 12),
-          if (rows.isEmpty)
-            Text(
-              "No account breakdown available.",
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: MinimalColors.textSecondary,
-                  ),
-            )
-          else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: rows.map((row) {
-                final accent = _parseHexColor(row.colorHex);
-                return Container(
-                  constraints: const BoxConstraints(minWidth: 140),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: MinimalColors.surfaceGlass,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        row.name.toUpperCase(),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              color: MinimalColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.4,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        formatMoneyLine(b.currency, row.amount),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: accent,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final b = widget.budget;
-    final titleLabel = formatBudgetMonthLabel(b.month);
-    final gross = _totalExpenseAllocated();
-    final returns = _totalReturnsAll();
-    final net = _netBudgetedExpenses();
-    final remaining = _remainingBudget();
-    final grossLine = formatMoneyLine(b.currency, gross);
-    final returnsLine = formatMoneyLine(b.currency, returns);
-    final netLine = formatMoneyLine(b.currency, net);
-    final summaryRemainingLine = formatMoneyLine(b.currency, remaining);
-    return MinimalPageBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: Text(titleLabel),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: () async {
-                await Navigator.of(context).push<bool>(
+          PopupMenuButton<String>(
+            onSelected: (v) async {
+              if (v == "transfer") {
+                final changed = await Navigator.of(context).push<bool>(
                   MaterialPageRoute<bool>(
-                    builder: (_) => BudgetFormScreen(
-                      repository: AppScope.budgetRepo,
-                      existing: b,
-                    ),
+                    builder: (_) => TransferFormScreen(budget: b),
                   ),
                 );
-                if (context.mounted) {
+                if (changed == true && mounted) {
                   await _load();
                 }
-              },
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: "transfer", child: Text("Transfer")),
+            ],
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.of(context).push<bool>(
+            MaterialPageRoute<bool>(
+              builder: (_) => ExpenseFormScreen(
+                budgetLocalId: b.localId,
+              ),
             ),
-          ],
-        ),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: minimalCard(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 8,
+          );
+          if (mounted) {
+            await _load();
+          }
+        },
+        icon: const Icon(Icons.add),
+        label: const Text("Add"),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                children: [
+                  Text(
+                    "Remaining",
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: MinimalColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  MoneyText(
+                    remaining,
+                    currency: b.currency,
+                    style: Theme.of(context).textTheme.displaySmall,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Income ${formatMoneyLine(b.currency, b.income)}"
+                    " · Budgeted ${formatMoneyLine(b.currency, gross)}",
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: MinimalColors.textSecondary,
+                        ),
+                  ),
+                  if (breakdown.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      "Accounts",
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              if (b.isArchived)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: Text(
-                                    "Archived",
-                                    textAlign: TextAlign.center,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: MinimalColors.textSecondary,
-                                        ),
-                                  ),
-                                ),
-                              _budgetSummarySection(
-                                context: context,
-                                b: b,
-                                grossLine: grossLine,
-                                returnsLine: returnsLine,
-                                netLine: netLine,
-                                remainingLine: summaryRemainingLine,
-                              ),
-                            ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        AccountChip(
+                          label: "All",
+                          selected: _filterTagServerId == null,
+                          onTap: () =>
+                              setState(() => _filterTagServerId = null),
+                        ),
+                        ...breakdown.map(
+                          (row) => AccountChip(
+                            label:
+                                "${row.name} ${row.amount.toStringAsFixed(0)}",
+                            selected: _filterTagServerId == row.tagServerId,
+                            color: _parseHexColor(row.color),
+                            onTap: () => setState(() {
+                              _filterTagServerId =
+                                  _filterTagServerId == row.tagServerId
+                                      ? null
+                                      : row.tagServerId;
+                            }),
                           ),
                         ),
-                      ),
+                      ],
                     ),
+                  ],
+                  if (_transfers.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      "Transfers",
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    ..._transfers.map((t) {
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          "${_tagName(t.fromTagServerId)} → ${_tagName(t.toTagServerId)}",
+                        ),
+                        subtitle: t.note.isEmpty ? null : Text(t.note),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              formatMoneyLine(b.currency, t.amount),
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 20),
+                              onPressed: () => _confirmDeleteTransfer(t),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                  const SizedBox(height: 20),
+                  Text(
+                    "Expenses",
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
-                  SliverToBoxAdapter(
-                    child: _accountBreakdownSection(context, b),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    sliver: SliverToBoxAdapter(
+                  if (filtered.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
                       child: Text(
-                        "Expenses & sub-lines",
-                        style: Theme.of(context).textTheme.titleMedium,
+                        "No expenses yet. Tap Add.",
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: MinimalColors.textSecondary,
+                            ),
                       ),
                     ),
-                  ),
-                  if (_expenses.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(
-                        child: Text(
-                          "No expenses yet. Tap + to add one.",
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: MinimalColors.textSecondary,
-                              ),
+                  ...filtered.map((e) {
+                    final open = _expanded.contains(e.localId);
+                    final subs = _subsForExpense(e.localId);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            e.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            "${_tagName(e.tagServerId)}"
+                            "${e.isRecurring ? " · recurring" : ""}",
+                          ),
+                          trailing: Text(
+                            formatMoneyLine(b.currency, e.amount),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          onTap: () => setState(() {
+                            if (open) {
+                              _expanded.remove(e.localId);
+                            } else {
+                              _expanded.add(e.localId);
+                            }
+                          }),
                         ),
-                      ),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.only(bottom: 88),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (ctx, i) {
-                            final e = _expenses[i];
-                            final subs = _subsForExpense(e.localId);
-                            return minimalCard(
-                              child: ExpansionTile(
-                                initiallyExpanded: subs.isNotEmpty,
-                                tilePadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                title: Text(e.name),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      "${formatMoneyLine(b.currency, e.amount)}"
-                                      "${e.isRecurring ? " · recurring" : ""}",
+                        if (open)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8, bottom: 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (final s in subs)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 4),
+                                    child: Text(
+                                      "${s.isReturn ? "Return" : "Sub"}: "
+                                      "${s.name} · "
+                                      "${formatMoneyLine(b.currency, s.amount)}",
                                       style: Theme.of(context)
                                           .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: MinimalColors.textPrimary,
-                                            height: 1.35,
-                                          ),
+                                          .bodySmall,
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      _remainingLine(e),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: MinimalColors.textSecondary,
-                                            height: 1.45,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                                  ),
+                                Wrap(
+                                  spacing: 4,
                                   children: [
-                                    if (e.dirty == 1)
-                                      const Padding(
-                                        padding: EdgeInsets.only(right: 4),
-                                        child: Icon(
-                                          Icons.cloud_upload_outlined,
-                                          size: 18,
-                                        ),
-                                      ),
-                                    const Icon(Icons.expand_more),
-                                  ],
-                                ),
-                                children: [
-                                  if (subs.isEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
-                                      child: Text(
-                                        "No sub-expenses yet.",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(
-                                              color: MinimalColors
-                                                  .textSecondary,
+                                    TextButton(
+                                      onPressed: () async {
+                                        await Navigator.of(context).push<bool>(
+                                          MaterialPageRoute<bool>(
+                                            builder: (_) => ExpenseFormScreen(
+                                              budgetLocalId: b.localId,
+                                              existing: e,
                                             ),
-                                      ),
-                                    ),
-                                  ...subs.map((s) {
-                                    return ListTile(
-                                      dense: true,
-                                      visualDensity: VisualDensity.compact,
-                                      leading: Icon(
-                                        s.isReturn
-                                            ? Icons.reply
-                                            : Icons.subdirectory_arrow_right,
-                                        size: 20,
-                                        color: s.isReturn
-                                            ? MinimalColors.primaryGreen
-                                            : MinimalColors.textSecondary,
-                                      ),
-                                      title: Text(
-                                        s.isReturn
-                                            ? "Return: ${s.name}"
-                                            : s.name,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium,
-                                      ),
-                                      subtitle: Text(
-                                        formatMoneyLine(b.currency, s.amount),
-                                      ),
-                                      trailing: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (s.dirty == 1)
-                                            const Icon(
-                                              Icons.cloud_upload_outlined,
-                                              size: 16,
-                                            ),
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.delete_outline,
-                                              size: 20,
-                                            ),
-                                            tooltip: "Delete sub-expense",
-                                            onPressed: () =>
-                                                _confirmDeleteSubExpense(s),
                                           ),
-                                        ],
-                                      ),
-                                      onTap: () async {
+                                        );
+                                        if (mounted) {
+                                          await _load();
+                                        }
+                                      },
+                                      child: const Text("Edit"),
+                                    ),
+                                    TextButton(
+                                      onPressed: () async {
                                         await Navigator.of(context).push<bool>(
                                           MaterialPageRoute<bool>(
                                             builder: (_) =>
                                                 SubExpenseFormScreen(
                                               expenseLocalId: e.localId,
-                                              existing: s,
                                             ),
                                           ),
                                         );
-                                        await _load();
+                                        if (mounted) {
+                                          await _load();
+                                        }
                                       },
-                                    );
-                                  }),
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      8,
-                                      0,
-                                      8,
-                                      8,
+                                      child: const Text("Add sub"),
                                     ),
-                                    child: Row(
-                                      children: [
-                                        TextButton.icon(
-                                          onPressed: () async {
-                                            await Navigator.of(context)
-                                                .push<bool>(
-                                              MaterialPageRoute<bool>(
-                                                builder: (_) =>
-                                                    SubExpenseFormScreen(
-                                                  expenseLocalId: e.localId,
-                                                ),
-                                              ),
-                                            );
-                                            await _load();
-                                          },
-                                          icon: const Icon(
-                                            Icons.add,
-                                            size: 20,
-                                          ),
-                                          label: const Text("Sub-expense"),
-                                        ),
-                                        const Spacer(),
-                                        TextButton(
-                                          onPressed: () async {
-                                            await Navigator.of(context)
-                                                .push<bool>(
-                                              MaterialPageRoute<bool>(
-                                                builder: (_) =>
-                                                    ExpenseFormScreen(
-                                                  budgetLocalId: b.localId,
-                                                  existing: e,
-                                                ),
-                                              ),
-                                            );
-                                            await _load();
-                                          },
-                                          child: const Text("Edit expense"),
-                                        ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              _confirmDeleteExpense(e),
-                                          child: Text(
-                                            "Delete",
-                                            style: TextStyle(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .error,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                    TextButton(
+                                      onPressed: () =>
+                                          _confirmDeleteExpense(e),
+                                      child: const Text("Delete"),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                          childCount: _expenses.length,
-                        ),
-                      ),
-                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        const Divider(height: 1),
+                      ],
+                    );
+                  }),
                 ],
               ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () async {
-            await Navigator.of(context).push<bool>(
-              MaterialPageRoute<bool>(
-                builder: (_) => ExpenseFormScreen(budgetLocalId: b.localId),
-              ),
-            );
-            await _load();
-          },
-          child: const Icon(Icons.add),
-        ),
+            ),
       ),
     );
   }

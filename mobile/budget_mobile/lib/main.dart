@@ -3,7 +3,7 @@ import "package:flutter/material.dart";
 import "app_bootstrap.dart";
 import "app_scope.dart";
 import "repositories/budget_repository.dart";
-import "screens/home_screen.dart";
+import "screens/main_shell.dart";
 import "services/budget_sync_service.dart";
 import "services/sync_service.dart";
 import "theme/minimal_theme.dart";
@@ -37,7 +37,7 @@ class BudgetMobileApp extends StatelessWidget {
       title: "monAI Budget",
       debugShowCheckedModeBanner: false,
       theme: buildMinimalTheme(),
-      home: HomeScreen(
+      home: MainShell(
         syncServiceFuture: syncServiceFuture,
         budgetCountLoader: homeBudgetCountLoader,
         budgetRepository: homeBudgetCountLoader != null

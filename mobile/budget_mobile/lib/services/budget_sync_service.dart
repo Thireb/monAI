@@ -3,6 +3,7 @@ import "../repositories/category_repository.dart";
 import "../repositories/expense_repository.dart";
 import "../repositories/sub_expense_repository.dart";
 import "../repositories/tag_repository.dart";
+import "../repositories/tag_transfer_repository.dart";
 import "mobile_budget_api_client.dart";
 
 const String _kBudgetCursor = "budget_sync_last_updated_after";
@@ -10,10 +11,9 @@ const String _kCategoryCursor = "category_sync_last_updated_after";
 const String _kTagCursor = "tag_sync_last_updated_after";
 const String _kExpenseCursor = "expense_sync_last_updated_after";
 const String _kSubExpenseCursor = "sub_expense_sync_last_updated_after";
+const String _kTagTransferCursor = "tag_transfer_sync_last_updated_after";
 
-/// Push dirty categories → tags → budgets → expenses, then pull each table.
-/// Expense and sub-expense pulls always fetch the full server list and prune
-/// local synced rows missing from that list so web deletes apply on device.
+/// Push dirty categories → tags → budgets → expenses → transfers, then pull.
 class BudgetSyncService {
   BudgetSyncService(
     this._api,
@@ -22,6 +22,7 @@ class BudgetSyncService {
     this._tagRepo,
     this._expenseRepo,
     this._subExpenseRepo,
+    this._tagTransferRepo,
   );
 
   final MobileBudgetApiClient _api;
@@ -30,6 +31,7 @@ class BudgetSyncService {
   final TagRepository _tagRepo;
   final ExpenseRepository _expenseRepo;
   final SubExpenseRepository _subExpenseRepo;
+  final TagTransferRepository _tagTransferRepo;
 
   Future<bool> syncAll() async {
     try {
@@ -54,6 +56,12 @@ class BudgetSyncService {
       if (!await _pushDeletedExpenses()) {
         return false;
       }
+      if (!await _pushTagTransfers()) {
+        return false;
+      }
+      if (!await _pushDeletedTagTransfers()) {
+        return false;
+      }
       if (!await _pullCategories()) {
         return false;
       }
@@ -66,7 +74,10 @@ class BudgetSyncService {
       if (!await _pullExpenses()) {
         return false;
       }
-      return _pullSubExpenses();
+      if (!await _pullSubExpenses()) {
+        return false;
+      }
+      return _pullTagTransfers();
     } on Object {
       return false;
     }
@@ -85,6 +96,17 @@ class BudgetSyncService {
         return false;
       }
       return _pullSubExpenses();
+    } on Object {
+      return false;
+    }
+  }
+
+  Future<bool> syncTransferDeletes() async {
+    try {
+      if (!await _pushDeletedTagTransfers()) {
+        return false;
+      }
+      return _pullTagTransfers();
     } on Object {
       return false;
     }
@@ -574,6 +596,120 @@ class BudgetSyncService {
     await _subExpenseRepo.removeSyncedRowsNotInServerIdSet(serverIds);
     if (maxIso != null) {
       await _subExpenseRepo.setMeta(_kSubExpenseCursor, maxIso);
+    }
+    return true;
+  }
+
+  Future<bool> _pushTagTransfers() async {
+    final dirty = await _tagTransferRepo.dirtyRowsReadyToPush();
+    final ready = dirty.where((r) => r.budgetServerId != null).toList();
+    if (ready.isEmpty) {
+      return true;
+    }
+    final payloads = <Map<String, dynamic>>[];
+    for (final r in ready) {
+      final m = <String, dynamic>{
+        "budget_id": r.budgetServerId!,
+        "from_tag_id": r.fromTagServerId,
+        "to_tag_id": r.toTagServerId,
+        "amount": r.amount.toStringAsFixed(2),
+        "date": r.dateIso,
+        "note": r.note,
+      };
+      if (r.serverId != null) {
+        m["id"] = r.serverId;
+      }
+      payloads.add(m);
+    }
+    final response = await _api.pushTagTransfers(payloads);
+    if (response == null) {
+      return false;
+    }
+    final ids = response["server_ids"];
+    if (ids is! List) {
+      return false;
+    }
+    await _tagTransferRepo.applyPushServerIds(ready, ids);
+    return true;
+  }
+
+  Future<bool> _pushDeletedTagTransfers() async {
+    final ready = await _tagTransferRepo.dirtyDeletedRowsReadyToPush();
+    if (ready.isEmpty) {
+      return true;
+    }
+    final payloads = <Map<String, dynamic>>[];
+    for (final r in ready) {
+      payloads.add({"id": r.serverId, "deleted": true});
+    }
+    final response = await _api.pushTagTransfers(payloads);
+    if (response == null) {
+      return false;
+    }
+    final ids = response["server_ids"];
+    if (ids is! List || ready.length != ids.length) {
+      return false;
+    }
+    await _tagTransferRepo.purgeLocalsAfterDeletePush(
+      ready.map((r) => r.localId).toList(),
+    );
+    return true;
+  }
+
+  Future<bool> _pullTagTransfers() async {
+    final data = await _api.pullTagTransfers(null);
+    if (data == null) {
+      return false;
+    }
+    final list = data["tag_transfers"];
+    if (list is! List) {
+      return false;
+    }
+    String? maxIso;
+    final serverIds = <int>{};
+    for (final raw in list) {
+      if (raw is! Map) {
+        continue;
+      }
+      final item = Map<String, dynamic>.from(raw);
+      final sid = _asInt(item["id"]);
+      if (sid == null) {
+        continue;
+      }
+      serverIds.add(sid);
+      final budgetSid = _asInt(item["budget_id"]);
+      final fromTag = _asInt(item["from_tag_id"]);
+      final toTag = _asInt(item["to_tag_id"]);
+      final amountVal = _asDouble(item["amount"]);
+      final dateIso = item["date"] as String?;
+      final note = (item["note"] as String?) ?? "";
+      final updatedIso = item["updated_at"] as String?;
+      if (budgetSid == null ||
+          fromTag == null ||
+          toTag == null ||
+          amountVal == null ||
+          dateIso == null ||
+          updatedIso == null ||
+          updatedIso.isEmpty) {
+        continue;
+      }
+      await _tagTransferRepo.upsertFromServer(
+        serverId: sid,
+        budgetServerId: budgetSid,
+        fromTagServerId: fromTag,
+        toTagServerId: toTag,
+        amount: amountVal,
+        dateIso: dateIso,
+        note: note,
+        serverUpdatedAtIso: updatedIso,
+      );
+      if (maxIso == null || updatedIso.compareTo(maxIso) > 0) {
+        maxIso = updatedIso;
+      }
+    }
+    await _tagTransferRepo.removeSyncedRowsNotInServerIdSet(serverIds);
+    if (maxIso != null) {
+      await _tagTransferRepo.setMeta(_kTagTransferCursor, maxIso);
     }
     return true;
   }

@@ -63,6 +63,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            shrinkResources false
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
             } else {

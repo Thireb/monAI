@@ -4,6 +4,7 @@ import "repositories/category_repository.dart";
 import "repositories/expense_repository.dart";
 import "repositories/sub_expense_repository.dart";
 import "repositories/tag_repository.dart";
+import "repositories/tag_transfer_repository.dart";
 import "services/budget_sync_service.dart";
 import "services/mobile_budget_api_client.dart";
 import "services/secure_token_store.dart";
@@ -22,6 +23,7 @@ class AppScope {
   static late TagRepository tagRepo;
   static late ExpenseRepository expenseRepo;
   static late SubExpenseRepository subExpenseRepo;
+  static late TagTransferRepository tagTransferRepo;
   static late BudgetSyncService budgetSync;
   static late SyncService syncService;
 
@@ -34,6 +36,7 @@ class AppScope {
     tagRepo = TagRepository(db);
     expenseRepo = ExpenseRepository(db);
     subExpenseRepo = SubExpenseRepository(db);
+    tagTransferRepo = TagTransferRepository(db);
     budgetSync = BudgetSyncService(
       mobileApi,
       budgetRepo,
@@ -41,6 +44,7 @@ class AppScope {
       tagRepo,
       expenseRepo,
       subExpenseRepo,
+      tagTransferRepo,
     );
     syncService = SyncService(settings, mobileApi);
   }

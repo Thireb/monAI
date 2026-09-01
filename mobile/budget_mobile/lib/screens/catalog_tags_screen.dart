@@ -35,10 +35,12 @@ class _CatalogTagsScreenState extends State<CatalogTagsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Tags")),
+      appBar: AppBar(title: const Text("Accounts")),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
+          : _rows.isEmpty
+              ? const Center(child: Text("No accounts yet. Tap + to add."))
+              : ListView.builder(
               itemCount: _rows.length,
               itemBuilder: (ctx, i) {
                 final r = _rows[i];

@@ -12,7 +12,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from budgetapp.models import Budget, Category, Expense, SubExpense, Tag
+from budgetapp.models import Budget, Category, Expense, SubExpense, Tag, TagTransfer
 
 User = get_user_model()
 
@@ -701,3 +701,57 @@ class MobileCatalogSyncApiTests(TestCase):
         self.assertEqual(r2.status_code, status.HTTP_200_OK)
         exp = Expense.objects.get(budget=b)
         self.assertEqual(exp.bill_reminder_id, br.id)
+
+    def test_tag_transfer_push_pull_and_delete(self) -> None:
+        cash = Tag.objects.create(user=self.user, name="Cash", slug="cash")
+        bank = Tag.objects.create(user=self.user, name="Bank", slug="bank")
+        url_push = reverse("api-mobile-tag-transfer-push")
+        r1 = self.client.post(
+            url_push,
+            {
+                "tag_transfers": [
+                    {
+                        "budget_id": self.budget.id,
+                        "from_tag_id": cash.id,
+                        "to_tag_id": bank.id,
+                        "amount": "75.00",
+                        "note": "float",
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(r1.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(r1.data["created_ids"]), 1)
+        tid = r1.data["created_ids"][0]
+        url_pull = reverse("api-mobile-tag-transfer-pull")
+        r2 = self.client.get(url_pull)
+        self.assertEqual(r2.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(r2.data["tag_transfers"]), 1)
+        self.assertEqual(r2.data["tag_transfers"][0]["from_tag_id"], cash.id)
+        r3 = self.client.post(
+            url_push,
+            {"tag_transfers": [{"id": tid, "deleted": True}]},
+            format="json",
+        )
+        self.assertEqual(r3.status_code, status.HTTP_200_OK)
+        self.assertEqual(TagTransfer.objects.filter(pk=tid).count(), 0)
+
+    def test_tag_transfer_push_rejects_same_tag(self) -> None:
+        cash = Tag.objects.create(user=self.user, name="Cash2", slug="cash2")
+        url_push = reverse("api-mobile-tag-transfer-push")
+        r = self.client.post(
+            url_push,
+            {
+                "tag_transfers": [
+                    {
+                        "budget_id": self.budget.id,
+                        "from_tag_id": cash.id,
+                        "to_tag_id": cash.id,
+                        "amount": "10.00",
+                    }
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
