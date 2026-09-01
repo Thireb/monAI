@@ -18,6 +18,8 @@
 7. [Script Runner](#script-runner)
 8. [API Reference](#api-reference)
 9. [Android APK Building](#android-apk-building)
+10. [Obtainium / GitHub Releases](OBTAINIUM.md)
+11. [Play Store / signing](PLAY_STORE.md)
 10. [Development Guidelines](#development-guidelines)
 11. [Database Schema](#database-schema)
 12. [Deployment](#deployment)
@@ -448,24 +450,21 @@ Mobile clients typically use `POST /api/mobile/auth/token/` with JSON `email` an
 
 The mobile companion lives in `mobile/budget_mobile/`. See that directory's README.
 
-**Build APK without installing Flutter** (Docker only, from repo root):
+**FOSS release** (same pattern as [budget-notes](https://github.com/Thireb/budget-notes)):
 
-```bash
-chmod +x scripts/build_flutter_apk.sh
-./scripts/build_flutter_apk.sh
-```
-
-**Optional local Flutter build:**
-
-```bash
+```fish
+set -x JAVA_HOME /usr/lib/jvm/java-21-openjdk
+set -x ANDROID_HOME $HOME/Android/Sdk
 cd mobile/budget_mobile
-flutter pub get
-flutter analyze
-flutter test
+flutter clean
 flutter build apk --release
+# → build/app/outputs/flutter-apk/app-release.apk
+# Attach as MonAIBudget-<version>.apk  (or ./scripts/release_mobile_apk.sh)
 ```
 
-Never commit `.jks` or `key.properties`. See [SECURITY.md](../SECURITY.md).
+Setup signing once: [PLAY_STORE.md](PLAY_STORE.md). End-user install: [OBTAINIUM.md](OBTAINIUM.md).
+
+Never commit `.jks`, `keystore.properties`, or `key.properties`. See [SECURITY.md](../SECURITY.md).
 
 ---
 

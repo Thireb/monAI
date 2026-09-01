@@ -78,14 +78,24 @@ Without Resend on your profile, PDF email is disabled (system mail still uses `c
 
 See [mobile/budget_mobile/README.md](mobile/budget_mobile/README.md).
 
-**Build APK without installing Flutter** (Docker only):
+**FOSS release** (same pattern as [budget-notes](https://github.com/Thireb/budget-notes)):
 
-```bash
-chmod +x scripts/build_flutter_apk.sh
-./scripts/build_flutter_apk.sh
+```fish
+# one-time: keystore.properties + keystore/*.jks at repo root — docs/PLAY_STORE.md
+set -x JAVA_HOME /usr/lib/jvm/java-21-openjdk
+set -x ANDROID_HOME $HOME/Android/Sdk
+cd mobile/budget_mobile
+flutter clean
+flutter build apk --release
+# → build/app/outputs/flutter-apk/app-release.apk
+# Attach to a GitHub Release as MonAIBudget-<version>.apk
 ```
 
-APK output: `mobile/budget_mobile/build/app/outputs/flutter-apk/app-release.apk`
+Or `./scripts/release_mobile_apk.sh` (same build + copies to `dist/`).
+Obtainium: [docs/OBTAINIUM.md](docs/OBTAINIUM.md).
+
+Release cert **SHA-256:**
+`A7:E7:08:56:62:FA:D2:1B:BF:1F:A3:3B:CB:F3:1E:BA:CD:72:4D:C0:BC:50:A6:F4:BC:BB:E4:5C:F6:5D:74:ED`
 
 ## Docker (optional)
 

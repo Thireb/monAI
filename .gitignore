@@ -13,6 +13,7 @@ new_config.yaml
 *.jks
 *.keystore
 key.properties
+keystore.properties
 *.pem
 *.p12
 credentials.json
@@ -196,3 +197,9 @@ android-sdk/
 mobile/budget_mobile/build/
 mobile/budget_mobile/android/.gradle/
 mobile/budget_mobile/android/local.properties
+# Android upload keystore (repo root, budget-notes layout)
+/keystore/
+mobile/budget_mobile/keystore/
+mobile/budget_mobile/dist/
+*.apk
+*.aab

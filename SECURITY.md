@@ -32,13 +32,17 @@ Include:
 
 ## Android signing
 
+Release signing uses repo-root `keystore.properties` + `keystore/*.jks`
+(same layout as budget-notes). Never commit those files. Published APK
+SHA-256 is in [docs/OBTAINIUM.md](docs/OBTAINIUM.md).
+
 If an upload keystore was ever committed to git history, treat it as compromised: rotate the key, update any deploy secrets, and verify removal with:
 
 ```bash
 git log --all -- '*.jks'
 ```
 
-Never commit `mobile/budget_mobile/android/key.properties` or `*.jks`.
+Never commit `keystore.properties`, `mobile/budget_mobile/android/key.properties`, or `*.jks`.
 
 ## Production checklist
 

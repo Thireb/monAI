@@ -38,57 +38,42 @@ Token from: `POST /api/mobile/auth/token/` with JSON `{"email","password"}`.
 | POST | `/api/mobile/expenses/push/` | `{ "expenses": [ … ] }` |
 | GET | `/api/mobile/sub-expenses/pull/` | optional `updated_after` |
 | POST | `/api/mobile/sub-expenses/push/` | `{ "sub_expenses": [ … ] }` |
+| GET | `/api/mobile/tag-transfers/pull/` | optional `updated_after` |
+| POST | `/api/mobile/tag-transfers/push/` | `{ "tag_transfers": [ … ] }` |
 
 Push responses include `server_ids` in the **same order** as the request list.
 
-**Deletes:** include items with `"deleted": true` and the existing server **`id`** in `expenses` or `sub_expenses` push payloads. Validation and cascade behavior live in `MobileExpensePushView` / `MobileSubExpensePushView` (`budgetapp/api_mobile_catalog.py`).
+**Deletes:** include items with `"deleted": true` and the existing server **`id`** in `expenses`, `sub_expenses`, or `tag_transfers` push payloads. Validation and cascade behavior live in `MobileExpensePushView` / `MobileSubExpensePushView` / `MobileTagTransferPushView` (`budgetapp/api_mobile_catalog.py`).
 
-**Sync order (app):** push categories → tags → budgets → expenses → sub-expenses, then pull the same.
+**Sync order (app):** push categories → tags → budgets → expenses → sub-expenses → tag-transfers, then pull the same.
 
 ### Budget summary vs Django
 
 The budget detail summary cards (gross budgeted expenses, returns, net, remaining) follow **`Budget`** in `budgetapp/models.py`: gross = sum of expense amounts, returns from sub-expenses with `is_return`, remaining = **income − gross + returns**. Same rules as the minimal web UI and PDF context built from `get_summary_display_strings`.
 
-## Build APK with Docker (no local Flutter SDK)
+## FOSS release (GitHub + Obtainium)
 
-You only need **Docker** — no Flutter, Android SDK, or Java on your machine.
+Same pattern as [budget-notes](https://github.com/Thireb/budget-notes)
+(`./gradlew clean assembleRelease` → attach `BudgetNotes-<version>.apk`):
 
-From the **repository root**:
-
-```bash
-chmod +x scripts/build_flutter_apk.sh
-./scripts/build_flutter_apk.sh
-```
-
-The first run downloads the Flutter Docker image (`ghcr.io/cirruslabs/flutter:stable`, ~2 GB). Later builds reuse the cache.
-
-**Output:** `mobile/budget_mobile/build/app/outputs/flutter-apk/app-release.apk`
-
-Copy the APK to your phone and install (enable “Install unknown apps” if prompted).
-
-### Release signing (optional)
-
-Debug builds work for personal use. For release signing, copy `android/key.properties.example` to `android/key.properties` and place your keystore beside it. See `android/key.properties.example` for field names. Never commit `key.properties` or `*.jks`.
-
-### Alternate image
-
-Override the Flutter image if needed:
-
-```bash
-FLUTTER_DOCKER_IMAGE=cirrusci/flutter:stable ./scripts/build_flutter_apk.sh
-```
-
-## Local Flutter build (optional)
-
-If you already have Flutter and the Android SDK installed:
-
-```bash
+```fish
+# One-time signing: docs/PLAY_STORE.md (keystore.properties at monAI repo root)
+set -x JAVA_HOME /usr/lib/jvm/java-21-openjdk
+set -x ANDROID_HOME $HOME/Android/Sdk
 cd mobile/budget_mobile
-flutter pub get
+flutter clean
 flutter build apk --release
+# Signed when keystore.properties is present:
+# build/app/outputs/flutter-apk/app-release.apk
+# Attach to a GitHub Release as MonAIBudget-<version>.apk
 ```
 
-Output: `build/app/outputs/flutter-apk/app-release.apk`
+Or from repo root: `./scripts/release_mobile_apk.sh` (copies to `dist/MonAIBudget-<version>.apk`).
+
+Release cert SHA-256:
+`A7:E7:08:56:62:FA:D2:1B:BF:1F:A3:3B:CB:F3:1E:BA:CD:72:4D:C0:BC:50:A6:F4:BC:BB:E4:5C:F6:5D:74:ED`
+
+User install: [docs/OBTAINIUM.md](../../docs/OBTAINIUM.md). Play / AAB: [docs/PLAY_STORE.md](../../docs/PLAY_STORE.md).
 
 ## Tests
 
