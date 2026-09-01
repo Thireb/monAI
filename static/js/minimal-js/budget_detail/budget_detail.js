@@ -289,6 +289,7 @@ $(function () {
     const newRow = $('<tr>')
       .addClass('expense-row')
       .attr('data-expense-id', expense.id)
+      .attr('data-expense-tag-id', expense.tag_foreign_key_id || '')
       .attr('data-original-index', nextIndex);
 
     // Add cells
@@ -514,6 +515,7 @@ $(function () {
       'data-reminder-recurrence': br ? br.recurrence_months : 12,
       'data-reminder-enabled': remEnabled,
     });
+    row.attr('data-expense-tag-id', expense.tag_foreign_key_id || '');
 
     // Reinitialize tooltips on the updated row
     if (window.initMinimalTooltips) {
@@ -628,6 +630,9 @@ $(function () {
       success: function (response) {
         // Replace the tag summary section with updated content
         $('.tag-summary-section').replaceWith(response.html);
+        if (typeof applyTagFilter === 'function') {
+          applyTagFilter();
+        }
       },
       error: function () {
         console.warn('Failed to load tag stats via AJAX, using fallback');
@@ -777,6 +782,137 @@ $(function () {
 
   // Initialize tag totals on page load
   updateTagTotals();
+
+  let activeTagFilterId = null;
+
+  function applyTagFilter() {
+    const $clearBtn = $('#clear-tag-filter-btn');
+    if (!activeTagFilterId) {
+      $('.expense-row').show();
+      $('.tag-summary-card').removeClass('is-active').attr('aria-pressed', 'false');
+      $clearBtn.hide();
+      return;
+    }
+    $('.expense-row').each(function () {
+      const rowTag = String($(this).data('expense-tag-id') || '');
+      const match = rowTag === String(activeTagFilterId);
+      $(this).toggle(match);
+      if (!match) {
+        $('#subexpenses-' + $(this).data('expense-id')).hide();
+      }
+    });
+    $('.tag-summary-card').each(function () {
+      const isActive = String($(this).data('tag-id')) === String(activeTagFilterId);
+      $(this).toggleClass('is-active', isActive).attr('aria-pressed', isActive ? 'true' : 'false');
+    });
+    $clearBtn.show();
+  }
+
+  $(document).on('click', '.tag-summary-card', function () {
+    const tagId = String($(this).data('tag-id') || '');
+    if (!tagId) {
+      return;
+    }
+    activeTagFilterId = activeTagFilterId === tagId ? null : tagId;
+    applyTagFilter();
+  });
+
+  $(document).on('click', '#clear-tag-filter-btn', function () {
+    activeTagFilterId = null;
+    applyTagFilter();
+  });
+
+  $(document).on('click', '[data-modal-target="#transferModal"]', function (e) {
+    e.preventDefault();
+    const form = $('#transfer-form');
+    if (form.length) {
+      form[0].reset();
+      clearFormErrors(form);
+      form.find('.form-errors').hide();
+    }
+    openModalWithAnimation('#transferModal');
+  });
+
+  $(document).on('submit', '#transfer-form', function (e) {
+    e.preventDefault();
+    const form = $(this);
+    clearFormErrors(form);
+    form.find('.form-errors').hide();
+
+    const fromTag = form.find('[name=from_tag]').val();
+    const toTag = form.find('[name=to_tag]').val();
+    const amount = form.find('[name=amount]').val();
+    if (!fromTag || !toTag) {
+      form.find('.form-errors').text('Select both accounts.').show();
+      return;
+    }
+    if (fromTag === toTag) {
+      form.find('.form-errors').text('Cannot transfer to the same account.').show();
+      return;
+    }
+    if (!amount || isNaN(amount) || Number(amount) <= 0) {
+      form.find('.form-errors').text('Amount must be a positive number.').show();
+      return;
+    }
+
+    $.ajax({
+      url: form.attr('action'),
+      type: 'POST',
+      data: form.serialize(),
+      success: function (response) {
+        showToast('Success', response.message, 'success');
+        closeModalWithAnimation('#transferModal');
+        if (response.remaining_budget_display) {
+          const currency = $('.budget-currency').text();
+          $('.remaining-budget-value').text(
+            currency + ' ' + response.remaining_budget_display
+          );
+        }
+        updateTagTotals();
+      },
+      error: function (xhr) {
+        const response = xhr.responseJSON;
+        form
+          .find('.form-errors')
+          .text(response?.message || 'Could not create transfer.')
+          .show();
+      },
+    });
+  });
+
+  $(document).on('click', '.delete-transfer-btn', function () {
+    const btn = $(this);
+    const url = btn.data('url');
+    const transferId = btn.data('transfer-id');
+    if (!url || !transferId) {
+      return;
+    }
+    if (!window.confirm('Delete this transfer?')) {
+      return;
+    }
+    $.ajax({
+      url: url,
+      type: 'POST',
+      data: {
+        transfer_id: transferId,
+        csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').first().val(),
+      },
+      success: function (response) {
+        showToast('Success', response.message, 'success');
+        if (response.remaining_budget_display) {
+          const currency = $('.budget-currency').text();
+          $('.remaining-budget-value').text(
+            currency + ' ' + response.remaining_budget_display
+          );
+        }
+        updateTagTotals();
+      },
+      error: function (xhr) {
+        const response = xhr.responseJSON;
+        showToast('Error', response?.message || 'Could not delete transfer.', 'error');
+      },
+    });
+  });
 
   // Expand/collapse sub-expense rows (improved)
   $(document).on('click keydown', '.subexpense-total-toggle', function (e) {

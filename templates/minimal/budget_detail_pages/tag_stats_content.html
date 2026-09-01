@@ -2,15 +2,26 @@
 {% load humanize %}
 <!-- Tag Summary Cards -->
 <div class="tag-summary-section mt-4">
-    <h6 class="text-center mb-3 text-muted">Account Breakdown</h6>
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mb-3">
+        <h6 class="text-center mb-0 text-muted">Account Breakdown</h6>
+        <button type="button" class="btn btn-minimal btn-sm" data-modal-target="#transferModal">
+            Transfer between accounts
+        </button>
+        <button type="button" class="btn btn-minimal btn-sm btn-clear-tag-filter"
+            id="clear-tag-filter-btn" style="display: none;" aria-label="Clear account filter">
+            Clear filter
+        </button>
+    </div>
     {% if tag_labels %}
     <div class="tag-summary-cards d-flex flex-wrap gap-2 justify-content-center">
         {% for tag, label in tag_labels.items %}
-        {% if tag_totals|get_item:tag > 0 %}
-        <div class="tag-summary-card" data-tag="{{ tag }}">
+        {% if tag_totals|get_item:tag != 0 %}
+        <button type="button" class="tag-summary-card" data-tag="{{ tag }}"
+            data-tag-id="{{ tag_ids|get_item:tag }}"
+            aria-pressed="false" title="Filter expenses by this account">
             <div class="tag-label">{{ label }}</div>
             <div class="tag-value">{{ budget.currency }} {{ tag_totals|get_item:tag|floatformat:2|intcomma }}</div>
-        </div>
+        </button>
         {% endif %}
         {% endfor %}
     </div>
@@ -19,5 +30,28 @@
     {% endif %}
     {% else %}
     <div class="text-center text-muted">No account breakdown available.</div>
+    {% endif %}
+
+    {% if transfers %}
+    <div class="tag-transfers-list mt-3">
+        <h6 class="text-center text-muted mb-2">Recent transfers</h6>
+        <ul class="list-unstyled mb-0">
+            {% for t in transfers %}
+            <li class="tag-transfer-row d-flex flex-wrap align-items-center justify-content-between gap-2"
+                data-transfer-id="{{ t.id }}">
+                <span class="tag-transfer-desc">
+                    {{ t.from_name|title }} → {{ t.to_name|title }}
+                    <strong>{{ budget.currency }} {{ t.amount_display }}</strong>
+                    {% if t.note %}<span class="text-muted small"> — {{ t.note }}</span>{% endif %}
+                </span>
+                <button type="button" class="btn-icon btn-danger delete-transfer-btn"
+                    aria-label="Delete transfer" data-transfer-id="{{ t.id }}"
+                    data-url="{% url 'minimal:tag_transfer_delete' year=budget.month.year month=budget.month.month %}">
+                    🗑️
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
     {% endif %}
 </div>

@@ -12,6 +12,7 @@ from .models import (
     Goal,
     GoalContribution,
     Tag,
+    TagTransfer,
 )
 
 
@@ -40,6 +41,16 @@ class TagAdmin(admin.ModelAdmin):
     list_filter = ("is_active", "created_at")
     search_fields = ("name", "description")
     readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(TagTransfer)
+class TagTransferAdmin(admin.ModelAdmin):
+    """Admin interface for account-tag transfers within a budget."""
+
+    list_display = ("budget", "from_tag", "to_tag", "amount", "date", "created_at")
+    list_filter = ("date", "budget__month")
+    search_fields = ("note", "from_tag__name", "to_tag__name")
+    readonly_fields = ("created_at",)
 
 
 @admin.register(Goal)

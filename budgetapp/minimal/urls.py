@@ -49,6 +49,8 @@ from .views import (
     TagDeleteView,
     TagManagementView,
     TagStatsView,
+    TagTransferCreateView,
+    TagTransferDeleteView,
     TagUpdateView,
 )
 
@@ -90,6 +92,16 @@ urlpatterns = [
         "budget/<int:year>/<int:month>/tag-stats/",
         TagStatsView.as_view(),
         name="tag_stats",
+    ),
+    path(
+        "budget/<int:year>/<int:month>/transfers/create/",
+        TagTransferCreateView.as_view(),
+        name="tag_transfer_create",
+    ),
+    path(
+        "budget/<int:year>/<int:month>/transfers/delete/",
+        TagTransferDeleteView.as_view(),
+        name="tag_transfer_delete",
     ),
     path(
         "budget/<int:year>/<int:month>/summary-cards/",

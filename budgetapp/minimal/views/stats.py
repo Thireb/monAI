@@ -19,14 +19,7 @@ class CategoryStatsView(LoginRequiredView):
     """View for AJAX updates to category statistics."""
 
     def _format_currency(self, val: float) -> str:
-        """Format a float as a comma-separated currency string.
-
-        Args:
-            val: Numeric value to format.
-
-        Returns:
-            Formatted string with two decimal places.
-        """
+        """Format a float as a comma-separated currency string."""
         return intcomma(f"{val:,.2f}")
 
     def get(
@@ -58,7 +51,9 @@ class CategoryStatsView(LoginRequiredView):
                     }
                 category_totals[cat]["amount"] += float(expense.amount)
             for cat, data in category_totals.items():
-                percent = (data["amount"] / float(total_expenses) * 100) if total_expenses else 0
+                percent = (
+                    (data["amount"] / float(total_expenses) * 100) if total_expenses else 0
+                )
                 expenses_by_category[cat] = {
                     "amount": data["amount"],
                     "amount_display": self._format_currency(data["amount"]),
@@ -72,22 +67,17 @@ class CategoryStatsView(LoginRequiredView):
             "expenses_by_category": expenses_by_category,
         }
 
-        html = render_to_string("minimal/budget_detail_pages/category_stats_content.html", context)
+        html = render_to_string(
+            "minimal/budget_detail_pages/category_stats_content.html", context
+        )
         return JsonResponse({"html": html})
 
 
 class TagStatsView(LoginRequiredView):
-    """View for AJAX updates to tag statistics."""
+    """View for AJAX updates to tag statistics (incl. transfers)."""
 
     def _format_currency(self, val: float) -> str:
-        """Format a float as a comma-separated currency string.
-
-        Args:
-            val: Numeric value to format.
-
-        Returns:
-            Formatted string with two decimal places.
-        """
+        """Format a float as a comma-separated currency string."""
         return intcomma(f"{val:,.2f}")
 
     def get(
@@ -104,23 +94,43 @@ class TagStatsView(LoginRequiredView):
             Budget, month=budget_date, is_archived=False, user=self.request.user
         )
 
-        expenses_qs = budget.expenses.all()
-
+        breakdown = budget.get_tag_account_breakdown()
         tag_totals = {}
         tag_labels = {}
-        for expense in expenses_qs:
-            if expense.tag_foreign_key:
-                tag_name = expense.tag_foreign_key.name
-                if tag_name not in tag_totals:
-                    tag_totals[tag_name] = 0
-                    tag_labels[tag_name] = tag_name
-                tag_totals[tag_name] += float(expense.amount)
+        tag_ids = {}
+        for name, data in breakdown.items():
+            amount = float(data["amount"])
+            if amount == 0:
+                continue
+            tag_totals[name] = amount
+            tag_labels[name] = data["label"]
+            tag_ids[name] = data["tag_id"]
+
+        transfers = (
+            budget.tag_transfers.select_related("from_tag", "to_tag").order_by(
+                "-created_at"
+            )[:20]
+        )
+        transfer_rows = [
+            {
+                "id": t.id,
+                "from_name": t.from_tag.name,
+                "to_name": t.to_tag.name,
+                "amount_display": self._format_currency(float(t.amount)),
+                "note": t.note,
+            }
+            for t in transfers
+        ]
 
         context = {
             "budget": budget,
             "tag_totals": tag_totals,
             "tag_labels": tag_labels,
+            "tag_ids": tag_ids,
+            "transfers": transfer_rows,
         }
 
-        html = render_to_string("minimal/budget_detail_pages/tag_stats_content.html", context)
+        html = render_to_string(
+            "minimal/budget_detail_pages/tag_stats_content.html", context
+        )
         return JsonResponse({"html": html})

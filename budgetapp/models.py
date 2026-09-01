@@ -112,6 +112,48 @@ class Budget(models.Model):
             "remaining_budget_display": fmt(self.get_remaining_budget()),
         }
 
+    def get_tag_account_breakdown(self) -> dict[str, dict[str, Any]]:
+        """Per-tag totals: expense sums adjusted by transfers (out -, in +).
+
+        Transfers do not affect remaining budget; they only reclassify which
+        account tag the monthly allocation sits under.
+        """
+        totals: dict[int, Decimal] = {}
+        meta: dict[int, dict[str, Any]] = {}
+
+        def _ensure(tag: Tag) -> None:
+            if tag.id not in meta:
+                meta[tag.id] = {
+                    "name": tag.name,
+                    "color": tag.color,
+                    "tag_id": tag.id,
+                }
+                totals.setdefault(tag.id, Decimal("0"))
+
+        for expense in self.expenses.select_related("tag_foreign_key"):
+            tag = expense.tag_foreign_key
+            if not tag:
+                continue
+            _ensure(tag)
+            totals[tag.id] += expense.amount
+
+        for transfer in self.tag_transfers.select_related("from_tag", "to_tag"):
+            _ensure(transfer.from_tag)
+            _ensure(transfer.to_tag)
+            totals[transfer.from_tag_id] -= transfer.amount
+            totals[transfer.to_tag_id] += transfer.amount
+
+        result: dict[str, dict[str, Any]] = {}
+        for tag_id, amount in totals.items():
+            info = meta[tag_id]
+            result[info["name"]] = {
+                "amount": amount,
+                "tag_id": tag_id,
+                "color": info["color"],
+                "label": info["name"],
+            }
+        return result
+
 
 class Category(models.Model):
     """User-defined expense category with icon and color styling."""
@@ -194,6 +236,64 @@ class Tag(models.Model):
     def save(self, *args: Any, **kwargs: Any) -> None:
         if not self.slug:
             self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+class TagTransfer(models.Model):
+    """Zero-sum move of allocation between account tags within a budget month.
+
+    Does not change Budget remaining; only adjusts account-tag breakdown.
+    """
+
+    budget = models.ForeignKey(
+        Budget,
+        on_delete=models.CASCADE,
+        related_name="tag_transfers",
+    )
+    from_tag = models.ForeignKey(
+        Tag,
+        on_delete=models.CASCADE,
+        related_name="transfers_out",
+    )
+    to_tag = models.ForeignKey(
+        Tag,
+        on_delete=models.CASCADE,
+        related_name="transfers_in",
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateField(default=timezone.now)
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name_plural = "Tag transfers"
+
+    def __str__(self) -> str:
+        return (
+            f"{self.amount} from {self.from_tag} to {self.to_tag} "
+            f"({self.budget})"
+        )
+
+    def clean(self) -> None:
+        from django.core.exceptions import ValidationError
+
+        if self.amount is not None and self.amount <= 0:
+            raise ValidationError({"amount": "Amount must be greater than zero."})
+        if (
+            self.from_tag_id
+            and self.to_tag_id
+            and self.from_tag_id == self.to_tag_id
+        ):
+            raise ValidationError("Cannot transfer to the same account tag.")
+        budget_user_id = self.budget.user_id if self.budget_id else None
+        if budget_user_id and self.from_tag_id and self.from_tag.user_id != budget_user_id:
+            raise ValidationError({"from_tag": "Tag must belong to the budget owner."})
+        if budget_user_id and self.to_tag_id and self.to_tag.user_id != budget_user_id:
+            raise ValidationError({"to_tag": "Tag must belong to the budget owner."})
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        self.full_clean()
         super().save(*args, **kwargs)
 
 

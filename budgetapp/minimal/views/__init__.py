@@ -51,6 +51,9 @@ from .subexpense import (
 # Stats views
 from .stats import CategoryStatsView, TagStatsView
 
+# Tag transfer views
+from .transfer import TagTransferCreateView, TagTransferDeleteView
+
 # Tag views
 from .tag import (
     TagCreateView,
@@ -118,6 +121,9 @@ __all__ = [
     # Stats
     "CategoryStatsView",
     "TagStatsView",
+    # Tag transfers
+    "TagTransferCreateView",
+    "TagTransferDeleteView",
     # Tag
     "TagManagementView",
     "TagCreateView",

@@ -134,15 +134,17 @@ class BudgetDetailView(LoginRequiredTemplateView):
                     "percentage_display": f"{percent:.1f}",
                 }
 
+        breakdown = budget.get_tag_account_breakdown()
         tag_totals = {}
         tag_labels = {}
-        for expense in expenses_qs:
-            if expense.tag_foreign_key:
-                tag_name = expense.tag_foreign_key.name
-                if tag_name not in tag_totals:
-                    tag_totals[tag_name] = 0
-                    tag_labels[tag_name] = tag_name
-                tag_totals[tag_name] += float(expense.amount)
+        tag_ids = {}
+        for name, data in breakdown.items():
+            amount = float(data["amount"])
+            if amount == 0:
+                continue
+            tag_totals[name] = amount
+            tag_labels[name] = data["label"]
+            tag_ids[name] = data["tag_id"]
 
         context.update(
             {
@@ -154,6 +156,7 @@ class BudgetDetailView(LoginRequiredTemplateView):
                 "expenses_by_category": expenses_by_category,
                 "tag_totals": tag_totals,
                 "tag_labels": tag_labels,
+                "tag_ids": tag_ids,
                 "bill_reminder_defaults_url": reverse("minimal:bill_reminder_defaults"),
                 "bill_reminder_severity_choices": BillReminder.Severity.choices,
                 "resend_configured": user_has_resend_config(self.request.user),
@@ -473,24 +476,17 @@ class BudgetEmailPDFView(LoginRequiredView):
                     "percentage_display": f"{percent:.1f}",
                 }
 
-        tag_totals = {}
-        tag_colors = {}
-        for expense in expenses_qs:
-            if expense.tag_foreign_key:
-                tag_name = expense.tag_foreign_key.name
-                if tag_name not in tag_totals:
-                    tag_totals[tag_name] = 0
-                    tag_colors[tag_name] = expense.tag_foreign_key.color
-                tag_totals[tag_name] += float(expense.amount)
-
         tag_breakdown = {}
-        for tag_name, amount in tag_totals.items():
+        for tag_name, data in budget.get_tag_account_breakdown().items():
+            amount = float(data["amount"])
+            if amount == 0:
+                continue
             denom = float(gross_budgeted)
             percent = (amount / denom * 100) if denom else 0
             tag_breakdown[tag_name] = {
                 "amount": amount,
                 "amount_display": self._format_currency(amount),
-                "color": tag_colors.get(tag_name, "#2196f3"),
+                "color": data.get("color", "#2196f3"),
                 "percentage": percent,
                 "percentage_display": f"{percent:.1f}",
             }
