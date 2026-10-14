@@ -28,9 +28,10 @@ A well-built web app can do the app's job on its own. The web already holds all 
 - [x] Stop the summary refresh from nesting a 2nd summary section (the "2 Hide buttons" glitch)
 - [x] Make tall modals scroll, so Save and Cancel are reachable on short screens and phones
 - [x] Add a unique `(user, month)` constraint on `Budget`; merge existing duplicates in the migration
-- [ ] Serve the app over HTTPS (for example `tailscale serve`); install it on a phone as a PWA
+- [x] Serve the app over HTTPS (`tailscale serve`); install it on a phone as a PWA (works, 2026-10-14)
+- [x] Offline: cache CDN files, cache the 12 latest budget months, 4 s network time limit for pages
 - [x] Playwright smoke tests for the budget page (`budgetapp/tests/test_budget_page_browser.py`)
-- [ ] **Gate:** no double modals or wrong labels · all Django tests pass · a new test for duplicate months · PWA installs over HTTPS
+- [x] **Gate:** no double modals or wrong labels · all Django tests pass · a new test for duplicate months · PWA installs over HTTPS
 
 ### Phase 1 · Foundation
 

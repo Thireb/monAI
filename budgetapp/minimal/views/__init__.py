@@ -11,6 +11,7 @@ from __future__ import annotations
 from .base import (
     LoginRequiredTemplateView,
     LoginRequiredView,
+    OfflineUrlsView,
     OfflineView,
     UnicodeJsonResponse,
 )
@@ -101,6 +102,7 @@ __all__ = [
     "LoginRequiredTemplateView",
     "UnicodeJsonResponse",
     "OfflineView",
+    "OfflineUrlsView",
     # Home
     "HomeView",
     "CalendarContentView",

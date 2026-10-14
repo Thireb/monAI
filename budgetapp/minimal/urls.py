@@ -40,6 +40,7 @@ from .views import (
     ExpenseDeleteView,
     HomeView,
     IncomeUpdateView,
+    OfflineUrlsView,
     OfflineView,
     SubExpenseCreateView,
     SubExpenseDeleteView,
@@ -61,6 +62,7 @@ urlpatterns = [
     path("<int:year>/", HomeView.as_view(), name="home_year"),
     path("calendar/<int:year>/", CalendarContentView.as_view(), name="calendar_content"),
     path("offline/", OfflineView.as_view(), name="offline"),
+    path("offline/urls/", OfflineUrlsView.as_view(), name="offline_urls"),
     path("budget/<int:year>/<int:month>/", BudgetDetailView.as_view(), name="budget_detail"),
     path("budget/create/", BudgetCreateView.as_view(), name="budget_create"),
     path(

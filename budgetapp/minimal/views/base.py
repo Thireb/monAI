@@ -5,9 +5,16 @@ from __future__ import annotations
 from typing import Any
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import JsonResponse
+from django.http import HttpRequest, JsonResponse
+from django.urls import reverse
+from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
+
+from budgetapp.models import Budget
+
+# How many recent budget months the app keeps ready for offline use.
+OFFLINE_BUDGET_MONTHS = 12
 
 
 class LoginRequiredView(LoginRequiredMixin, View):
@@ -40,3 +47,26 @@ class OfflineView(TemplateView):
     """Offline fallback page for PWA."""
 
     template_name = "minimal/offline.html"
+
+
+class OfflineUrlsView(LoginRequiredMixin, View):
+    """List the pages the service worker should cache for offline use.
+
+    The list holds the home page, the offline page and, for each recent
+    budget month, its page and the partials that page loads after it opens.
+    """
+
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> JsonResponse:
+        """Return ``{"urls": [...]}`` for the logged-in user."""
+        year = timezone.now().year
+        urls = [
+            reverse("minimal:home"),
+            reverse("minimal:offline"),
+            reverse("minimal:calendar_content", kwargs={"year": year}),
+        ]
+        budgets = Budget.objects.filter(user=request.user, is_archived=False)
+        for budget in budgets.order_by("-month")[:OFFLINE_BUDGET_MONTHS]:
+            ym = {"year": budget.month.year, "month": budget.month.month}
+            for name in ("budget_detail", "summary_cards", "category_stats", "tag_stats"):
+                urls.append(reverse(f"minimal:{name}", kwargs=ym))
+        return JsonResponse({"urls": urls})

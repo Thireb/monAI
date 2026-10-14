@@ -131,13 +131,14 @@ Give each module by name:
   budgetapp.tests.test_debt_tag_and_pdf_context budgetapp.tests.test_mobile_sync \
   budgetapp.tests.test_tag_transfers budgetapp.tests.test_bill_reminders \
   budgetapp.tests.test_budget_summary budgetapp.tests.test_user_resend_email \
-  budgetapp.tests.test_budget_month_unique budgetapp.tests.test_budget_page_browser
+  budgetapp.tests.test_budget_month_unique budgetapp.tests.test_budget_page_browser \
+  budgetapp.tests.test_pwa_offline
 ```
 
-On 2026-10-14, all 76 tests passed (about 60 seconds).
+On 2026-10-14, all 79 tests passed (about 60 seconds).
 Logs with `🔴 400` in the output are normal. Some tests check error responses.
 
-`test_budget_page_browser` drives headless Chromium with Playwright. It needs network
+`test_budget_page_browser` and `test_pwa_offline` drive headless Chromium with Playwright. It needs network
 access, because the page loads jQuery and anime.js from CDNs. It is skipped when
 Playwright is missing. To set it up: `uv sync --extra dev`, then
 `.venv/bin/python -m playwright install chromium`.

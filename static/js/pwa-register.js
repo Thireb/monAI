@@ -4,6 +4,32 @@
 (function () {
   'use strict';
 
+  // Ask the service worker to cache recent pages for offline use,
+  // at most once every 15 minutes.
+  const WARM_INTERVAL_MS = 15 * 60 * 1000;
+  const WARM_KEY = 'monai-offline-warmed-at';
+
+  function warmOfflineCache() {
+    if (!navigator.onLine) return;
+    let last = 0;
+    try {
+      last = Number(localStorage.getItem(WARM_KEY)) || 0;
+    } catch (e) {
+      // Storage can be blocked; warm every time then.
+    }
+    if (Date.now() - last < WARM_INTERVAL_MS) return;
+    // Only a worker that controls the page gets the message reliably. On the
+    // first visit there is none yet; the controllerchange reload comes next.
+    const controller = navigator.serviceWorker.controller;
+    if (!controller) return;
+    controller.postMessage({ type: 'WARM_CACHE' });
+    try {
+      localStorage.setItem(WARM_KEY, String(Date.now()));
+    } catch (e) {
+      // Ignore: see above.
+    }
+  }
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       const swUrl = '/service-worker.js';
@@ -12,6 +38,7 @@
         .register(swUrl)
         .then(registration => {
           console.log('[PWA] Service Worker registered successfully:', registration.scope);
+          warmOfflineCache();
 
           // Check for updates periodically
           setInterval(() => {
@@ -24,13 +51,9 @@
 
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // New service worker available
+                // The new worker activates at once (skipWaiting); the
+                // controllerchange handler below reloads the page.
                 console.log('[PWA] New service worker available');
-                // Optionally show update notification to user
-                if (confirm('A new version of the app is available. Reload to update?')) {
-                  newWorker.postMessage({ action: 'skipWaiting' });
-                  window.location.reload();
-                }
               }
             });
           });
