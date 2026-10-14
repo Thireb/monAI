@@ -402,6 +402,22 @@ a {
   font-size: 13px;
 }
 
+.btn--ghost {
+  background: transparent;
+  color: var(--ink-2);
+}
+
+.btn--danger {
+  background: var(--red-soft);
+  color: var(--red-ink);
+}
+
+/* First tap of a "tap again to confirm" button. */
+.btn.is-armed {
+  background: var(--red);
+  color: var(--on-accent);
+}
+
 .btn__hint {
   opacity: 0.8;
   font-weight: 600;

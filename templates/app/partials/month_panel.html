@@ -78,7 +78,9 @@
     <section id="lines" class="card stack" aria-labelledby="lines-title">
         <div class="row">
             <h2 id="lines-title">Lines</h2>
-            <span class="small muted">Tap "Day-to-day" on lines like groceries and transport.</span>
+            {% if not budget.is_archived %}
+                <span class="small muted">Tap "Day-to-day" on lines like groceries and transport.</span>
+            {% endif %}
         </div>
         {% for group in snap.categories %}
             <div class="line-group">

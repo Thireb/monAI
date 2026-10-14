@@ -248,3 +248,102 @@ class LineAndMonthTests(AppViewTestBase):
         # A second POST does not create a duplicate.
         self.client.post(url, {"copy": "1"})
         self.assertEqual(Budget.objects.filter(user=self.user, month=nxt).count(), 1)
+
+
+class LineSheetTests(AppViewTestBase):
+    """The line sheet: edit, delete, spends, returns, ownership and archived months."""
+
+    def test_sheet_shows_figures_and_spends(self) -> None:
+        SubExpense.objects.create(expense=self.groceries, name="Milk", amount=D("300"))
+        response = self.client.get(reverse("app:line_sheet", kwargs={"pk": self.groceries.pk}))
+        self.assertContains(response, "Milk")
+        self.assertContains(response, "11,700")  # left
+        self.assertContains(response, 'value="Groceries"')
+
+    def test_edit_line(self) -> None:
+        url = reverse("app:line_sheet", kwargs={"pk": self.rent.pk})
+        response = self.client.post(
+            url, {"edit-name": "House rent", "edit-amount": "21000", "edit-tag_foreign_key": ""}
+        )
+        self.assertContains(response, "Saved.")
+        self.assertEqual(response["HX-Trigger"], "monthChanged")
+        self.rent.refresh_from_db()
+        self.assertEqual((self.rent.name, self.rent.amount), ("House rent", D("21000")))
+        self.assertIsNone(self.rent.tag_foreign_key)
+
+    def test_edit_errors_keep_the_line(self) -> None:
+        url = reverse("app:line_sheet", kwargs={"pk": self.rent.pk})
+        response = self.client.post(url, {"edit-name": "", "edit-amount": "-1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "form-error")
+        self.assertNotIn("HX-Trigger", response)
+        self.rent.refresh_from_db()
+        self.assertEqual(self.rent.name, "Rent")
+
+    def test_delete_line(self) -> None:
+        SubExpense.objects.create(expense=self.rent, name="x", amount=D("1"))
+        response = self.client.post(reverse("app:line_delete", kwargs={"pk": self.rent.pk}))
+        self.assertContains(response, 'Deleted the line "Rent"')
+        self.assertContains(response, "data-line-sheet-done")
+        self.assertFalse(Expense.objects.filter(pk=self.rent.pk).exists())
+        self.assertFalse(SubExpense.objects.exists())
+
+    def test_add_spend_and_return(self) -> None:
+        url = reverse("app:line_spend_create", kwargs={"pk": self.groceries.pk})
+        self.client.post(url, {"kind": "spend", "amount": "500", "note": "Veg"})
+        response = self.client.post(url, {"kind": "return", "amount": "100"})
+        self.assertContains(response, "Return saved.")
+        self.assertEqual(response["HX-Trigger"], "monthChanged")
+        spends = {(s.name, s.amount, s.is_return) for s in self.groceries.sub_expenses.all()}
+        self.assertEqual(spends, {("Veg", D("500"), False), ("Return: Groceries", D("100"), True)})
+        response = self.client.post(url, {"kind": "spend", "amount": "abc"})
+        self.assertContains(response, "form-error")
+        self.assertEqual(self.groceries.sub_expenses.count(), 2)
+
+    def test_delete_spend(self) -> None:
+        spend = SubExpense.objects.create(expense=self.groceries, name="Milk", amount=D("300"))
+        response = self.client.post(reverse("app:spend_delete", kwargs={"pk": spend.pk}))
+        self.assertContains(response, "Deleted the spend.")
+        self.assertFalse(SubExpense.objects.exists())
+
+    def test_other_users_line_is_404(self) -> None:
+        other = User.objects.create_user(
+            username="other", email="other@example.com", password="testpassword"
+        )
+        budget = Budget.objects.create(user=other, month=self.today.replace(day=1))
+        line = Expense.objects.create(budget=budget, name="Theirs", amount=D("10"))
+        spend = SubExpense.objects.create(expense=line, name="x", amount=D("1"))
+        for name in ("app:line_sheet", "app:line_delete", "app:line_spend_create"):
+            with self.subTest(name=name):
+                url = reverse(name, kwargs={"pk": line.pk})
+                self.assertEqual(self.client.post(url, {"amount": "5"}).status_code, 404)
+        self.assertEqual(
+            self.client.get(reverse("app:line_sheet", kwargs={"pk": line.pk})).status_code, 404
+        )
+        url = reverse("app:spend_delete", kwargs={"pk": spend.pk})
+        self.assertEqual(self.client.post(url).status_code, 404)
+        self.assertTrue(Expense.objects.filter(pk=line.pk).exists())
+        self.assertTrue(SubExpense.objects.filter(pk=spend.pk).exists())
+
+    def test_archived_month_is_read_only(self) -> None:
+        Budget.objects.filter(pk=self.budget.pk).update(is_archived=True)
+        spend = SubExpense.objects.create(expense=self.rent, name="x", amount=D("1"))
+        posts = [
+            (reverse("app:line_sheet", kwargs={"pk": self.rent.pk}), {"edit-name": "New"}),
+            (reverse("app:line_delete", kwargs={"pk": self.rent.pk}), {}),
+            (reverse("app:line_daily", kwargs={"pk": self.rent.pk}), {}),
+            (reverse("app:line_spend_create", kwargs={"pk": self.rent.pk}), {"amount": "5"}),
+            (reverse("app:spend_delete", kwargs={"pk": spend.pk}), {}),
+            (reverse("app:spend_undo", kwargs={"pk": spend.pk}), {}),
+            (reverse("app:line_create", kwargs=self.month_kwargs), {"line-name": "X"}),
+        ]
+        for url, data in posts:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.post(url, data).status_code, 404)
+        self.assertEqual(self.spend(amount="10", line=str(self.rent.pk)).status_code, 404)
+        self.assertEqual(SubExpense.objects.count(), 1)
+        page = self.client.get(reverse("app:month", kwargs=self.month_kwargs))
+        self.assertContains(page, "archived, so it is read-only")
+        self.assertNotContains(page, 'id="line-form"')
+        self.assertNotContains(page, 'id="quick-add"')
+        self.assertNotContains(page, "line-row__open")

@@ -1,0 +1,8 @@
+{# Answer to a deleted line: empties the sheet (the script closes it) and shows a toast. #}
+<div data-line-sheet-done></div>
+<div hx-swap-oob="beforeend:#toasts">
+    <div class="toast" data-autoclose="4000" role="status">
+        <span>Deleted the line "{{ line_name }}".</span>
+        <button type="button" class="icon-btn" data-close-toast aria-label="Close">✕</button>
+    </div>
+</div>

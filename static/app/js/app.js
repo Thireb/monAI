@@ -1,4 +1,4 @@
-// monAI new UI: theme toggle, quick-add sheet, toasts and the "Added!" celebration.
+// monAI new UI: theme toggle, quick-add and line sheets, toasts and the "Added!" celebration.
 // Page data comes from the server as HTML (HTMX); this file only handles UI state.
 (function () {
   'use strict';
@@ -57,6 +57,50 @@
     return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
   }
 
+  // ---------- Line sheet ----------
+
+  function lineSheet() {
+    return document.getElementById('line-sheet');
+  }
+
+  // The server sends the sheet body into #line-sheet-body. After a delete, the body holds
+  // [data-line-sheet-done] and the sheet closes.
+  function afterLineSheetSwap() {
+    const dialog = lineSheet();
+    if (!dialog) return;
+    if (dialog.querySelector('[data-line-sheet-done]')) {
+      if (dialog.open) dialog.close();
+      return;
+    }
+    if (!dialog.open) dialog.showModal();
+  }
+
+  // ---------- Tap again to confirm ----------
+
+  // A button with data-confirm-tap asks for a second tap within 3 s before HTMX sends it.
+  // The first tap shows the data-confirm-tap text on the button.
+  const CONFIRM_MS = 3000;
+
+  function confirmTap(event) {
+    const button = event.detail.elt;
+    if (!button || !button.hasAttribute('data-confirm-tap')) return;
+    if (button.dataset.armed === '1') {
+      delete button.dataset.armed;
+      return;
+    }
+    event.preventDefault();
+    const label = button.textContent;
+    button.dataset.armed = '1';
+    button.classList.add('is-armed');
+    button.textContent = button.getAttribute('data-confirm-tap');
+    setTimeout(() => {
+      if (!button.isConnected) return;
+      delete button.dataset.armed;
+      button.classList.remove('is-armed');
+      button.textContent = label;
+    }, CONFIRM_MS);
+  }
+
   // ---------- Celebration ----------
 
   function celebrate() {
@@ -107,7 +151,8 @@
 
   document.addEventListener('click', event => {
     const target = event.target.closest(
-      '[data-theme-toggle], [data-open-quick-add], [data-close-quick-add], [data-close-toast]'
+      '[data-theme-toggle], [data-open-quick-add], [data-close-quick-add], [data-close-toast], ' +
+        '[data-close-line-sheet]'
     );
     if (!target) return;
     if (target.hasAttribute('data-theme-toggle')) {
@@ -117,6 +162,9 @@
       openSheet();
     } else if (target.hasAttribute('data-close-quick-add')) {
       closeSheet();
+    } else if (target.hasAttribute('data-close-line-sheet')) {
+      const dialog = lineSheet();
+      if (dialog && dialog.open) dialog.close();
     } else if (target.hasAttribute('data-close-toast')) {
       const toast = target.closest('.toast');
       if (toast) toast.remove();
@@ -127,7 +175,8 @@
   document.addEventListener('keydown', event => {
     if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
     if ((event.key === '/' || event.key === '+') && !isTyping(event.target)) {
-      if (!sheet()) return;
+      const other = lineSheet();
+      if (!sheet() || (other && other.open)) return;
       event.preventDefault();
       openSheet();
     }
@@ -145,6 +194,12 @@
   document.body.addEventListener('spendAdded', () => {
     closeSheet();
     celebrate();
+  });
+
+  document.body.addEventListener('htmx:confirm', confirmTap);
+
+  document.body.addEventListener('htmx:afterSwap', event => {
+    if (event.detail.target && event.detail.target.id === 'line-sheet-body') afterLineSheetSwap();
   });
 
   // Toasts arrive out of band, so check the whole page after each swap.

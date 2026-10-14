@@ -1,14 +1,23 @@
 {% load app_format %}
-{# One expense line. Context: line (LineView), optional show_toggle. #}
+{# One expense line. Context: line (LineView), budget, optional show_toggle. Tap the name to open the line sheet. #}
 <div class="line-row" data-line-id="{{ line.id }}">
     <!-- djlint:off H021 -->
     <span class="line-row__icon" style="--swatch: {{ line.category_color }}" aria-hidden="true">{{ line.name|slice:":1"|upper }}</span>
     <!-- djlint:on -->
     <div class="line-row__body">
         <div class="line-row__title">
-            <span class="line-row__name">{{ line.name }}</span>
+            {% if budget.is_archived %}
+                <span class="line-row__name">{{ line.name }}</span>
+            {% else %}
+                <button type="button"
+                        class="line-row__name line-row__open"
+                        hx-get="{% url 'app:line_sheet' pk=line.id %}"
+                        hx-target="#line-sheet-body"
+                        hx-swap="innerHTML"
+                        aria-haspopup="dialog">{{ line.name }}</button>
+            {% endif %}
             <span class="badge">{{ line.account_name }}</span>
-            {% if show_toggle %}
+            {% if show_toggle and not budget.is_archived %}
                 <button type="button"
                         class="chip chip--tiny"
                         aria-pressed="{% if line.is_daily %}true{% else %}false{% endif %}"

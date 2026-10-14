@@ -103,3 +103,9 @@ def record_spend(line: Expense, amount: Decimal, note: str = "") -> SubExpense:
     """Record a spend on ``line``. The note, or the line name, names the sub-expense."""
     name = (note or line.name).strip()[:200]
     return SubExpense.objects.create(expense=line, name=name, amount=amount, is_return=False)
+
+
+def record_return(line: Expense, amount: Decimal, note: str = "") -> SubExpense:
+    """Record a return (refund) on ``line``. It gives the amount back to the budget."""
+    name = (note or f"Return: {line.name}").strip()[:200]
+    return SubExpense.objects.create(expense=line, name=name, amount=amount, is_return=True)

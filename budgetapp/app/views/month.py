@@ -1,4 +1,4 @@
-"""Month page of the new UI, its HTMX panel and the line actions."""
+"""Month page of the new UI, its HTMX panel and month creation."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.views import View
 
 from budgetapp.app.forms import LineForm
-from budgetapp.models import Budget, Expense
+from budgetapp.models import Budget
 from budgetapp.services.home import goal_cards, upcoming_bills
 from budgetapp.services.month import build_month_snapshot
 from budgetapp.services.months import create_month
@@ -92,45 +92,3 @@ class MonthCreateView(LoginRequiredMixin, View):
         if not Budget.objects.filter(user=request.user, month=first_day).exists():
             create_month(request.user, first_day, copy_previous=request.POST.get("copy") == "1")
         return redirect(month_url(first_day))
-
-
-class LineCreateView(LoginRequiredMixin, View):
-    """Add an expense line to a month (HTMX form on the month page)."""
-
-    def post(self, request: HttpRequest, year: int, month: int) -> HttpResponse:
-        """Save the line, or return the form with its errors."""
-        budget = get_object_or_404(Budget, user=request.user, month=month_date(year, month))
-        form = LineForm(request.POST, user=request.user, prefix="line")
-        if not form.is_valid():
-            return render(
-                request,
-                "app/partials/line_form.html",
-                {"line_form": form, "budget": budget},
-            )
-        line = form.save(commit=False)
-        line.budget = budget
-        line.save()
-        response = render(
-            request,
-            "app/partials/line_form.html",
-            {
-                "line_form": LineForm(user=request.user, prefix="line"),
-                "budget": budget,
-                "saved_name": line.name,
-            },
-        )
-        response["HX-Trigger"] = "monthChanged"
-        return response
-
-
-class LineDailyToggleView(LoginRequiredMixin, View):
-    """Mark or unmark a line as day-to-day spending."""
-
-    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
-        """Flip ``is_daily`` and ask the page to refresh its panel."""
-        line = get_object_or_404(Expense, pk=pk, budget__user=request.user)
-        line.is_daily = not line.is_daily
-        line.save(update_fields=["is_daily", "updated_at"])
-        response = HttpResponse(status=204)
-        response["HX-Trigger"] = "monthChanged"
-        return response

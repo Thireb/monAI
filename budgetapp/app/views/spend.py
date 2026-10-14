@@ -40,7 +40,9 @@ class SpendCreateView(LoginRequiredMixin, View):
 
     def post(self, request: HttpRequest) -> HttpResponse:
         """Save the spend and answer with the "Added!" card, or explain what is missing."""
-        budget = get_object_or_404(Budget, pk=request.POST.get("budget"), user=request.user)
+        budget = get_object_or_404(
+            Budget, pk=request.POST.get("budget"), user=request.user, is_archived=False
+        )
         text = request.POST.get("text", "").strip()
         note = request.POST.get("note", "").strip()
         try:
@@ -87,7 +89,12 @@ class SpendUndoView(LoginRequiredMixin, View):
 
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
         """Delete the spend and replace the card with a short note."""
-        spend = get_object_or_404(SubExpense, pk=pk, expense__budget__user=request.user)
+        spend = get_object_or_404(
+            SubExpense,
+            pk=pk,
+            expense__budget__user=request.user,
+            expense__budget__is_archived=False,
+        )
         name = spend.expense.name
         spend.delete()
         response = render(request, "app/partials/spend_undone.html", {"line_name": name})

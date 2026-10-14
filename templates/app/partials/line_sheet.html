@@ -1,0 +1,109 @@
+{% load app_format %}
+{# Body of the line sheet. Context: line, line_view, budget, form, spends, message, spend_error, edit_open. #}
+<div class="stack" data-line-sheet="{{ line.pk }}">
+    <div class="row">
+        <h2 id="line-sheet-title">{{ line.name }}</h2>
+        <button type="button" class="icon-btn" data-close-line-sheet aria-label="Close">✕</button>
+    </div>
+    {% if message %}<p class="form-ok" role="status">{{ message }}</p>{% endif %}
+    {% if line_view %}
+        <div class="line-sheet__figures">
+            <div>
+                <span class="small muted">Amount</span>
+                <span class="money money--big">{{ line_view.amount|money }}</span>
+            </div>
+            <div>
+                <span class="small muted">Spent</span>
+                <span class="money money--big">{{ line_view.spent|money }}</span>
+            </div>
+            <div>
+                {% if line_view.status == "over" %}
+                    <span class="small muted">Over</span>
+                    <span class="money money--big money--over">{{ line_view.left|absolute|money }}</span>
+                {% else %}
+                    <span class="small muted">Left</span>
+                    <span class="money money--big money--good">{{ line_view.left|money }}</span>
+                {% endif %}
+            </div>
+        </div>
+        {% include "app/components/progress.html" with pct=line_view.used_pct status=line_view.status label=line.name thick=True %}
+    {% endif %}
+    <form class="stack line-sheet__spend"
+          hx-post="{% url 'app:line_spend_create' pk=line.pk %}"
+          hx-target="#line-sheet-body"
+          hx-disabled-elt="find button[type='submit']">
+        <h3>Add to this line</h3>
+        <div class="seg" role="radiogroup" aria-label="Kind">
+            <input class="chip-input" type="radio" name="kind" value="spend" id="ls-kind-spend" checked>
+            <label class="chip" for="ls-kind-spend">Spend</label>
+            <input class="chip-input" type="radio" name="kind" value="return" id="ls-kind-return">
+            <label class="chip" for="ls-kind-return">Return</label>
+        </div>
+        <div class="line-form__fields">
+            <label class="field">
+                Amount
+                <input name="amount" inputmode="decimal" autocomplete="off" required>
+            </label>
+            <label class="field">
+                Note (optional)
+                <input name="note" maxlength="200" autocomplete="off">
+            </label>
+        </div>
+        {% if spend_error %}<p class="form-error" role="alert">{{ spend_error }}</p>{% endif %}
+        <button type="submit" class="btn btn--primary">Save</button>
+    </form>
+    <section class="stack" aria-labelledby="line-spends-title">
+        <h3 id="line-spends-title">Spends and returns</h3>
+        {% for spend in spends %}
+            <div class="spend-row">
+                <div>
+                    <div class="spend-row__name">{{ spend.name }}</div>
+                    <div class="small muted">
+                        {{ spend.created_at|date:"j M, H:i" }}
+                        {% if spend.is_return %}<span class="badge">Return</span>{% endif %}
+                    </div>
+                </div>
+                <span class="money{% if spend.is_return %} money--good{% endif %}">
+                    {% if spend.is_return %}+{% endif %}{{ spend.amount|money }}
+                </span>
+                <button type="button"
+                        class="btn btn--small btn--ghost"
+                        hx-post="{% url 'app:spend_delete' pk=spend.pk %}"
+                        hx-target="#line-sheet-body"
+                        data-confirm-tap="Tap again"
+                        aria-label="Delete {{ spend.name }}">Delete</button>
+            </div>
+        {% empty %}
+            <p class="muted small">Nothing spent on this line yet.</p>
+        {% endfor %}
+    </section>
+    <details class="line-sheet__edit" {% if edit_open %}open{% endif %}>
+        <summary>Edit the line</summary>
+        <form class="stack"
+              hx-post="{% url 'app:line_sheet' pk=line.pk %}"
+              hx-target="#line-sheet-body"
+              hx-disabled-elt="find button[type='submit']">
+            <div class="line-form__fields">
+                {% for field in form %}
+                    {% if field.field.widget.input_type == "checkbox" %}
+                        <label class="check">{{ field }} {{ field.label }}</label>
+                    {% else %}
+                        <label class="field">
+                            {{ field.label }}
+                            {{ field }}
+                            {% for error in field.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                        </label>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div class="row">
+                <button type="submit" class="btn btn--primary">Save changes</button>
+                <button type="button"
+                        class="btn btn--danger"
+                        hx-post="{% url 'app:line_delete' pk=line.pk %}"
+                        hx-target="#line-sheet-body"
+                        data-confirm-tap="Tap again to delete">Delete line</button>
+            </div>
+        </form>
+    </details>
+</div>

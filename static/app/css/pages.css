@@ -332,3 +332,69 @@ legend {
 .quick-add-message p {
   margin: 0;
 }
+
+/* ---------- Line sheet ---------- */
+
+.line-row__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 4px;
+}
+
+.line-row__open:hover,
+.line-row__open:focus-visible {
+  text-decoration-color: var(--green);
+  outline: none;
+}
+
+.line-sheet__figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.line-sheet__figures > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.line-sheet__spend {
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.spend-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.spend-row__name {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.line-sheet__edit summary {
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.line-sheet__edit[open] summary {
+  margin-bottom: 8px;
+}

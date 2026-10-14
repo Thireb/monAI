@@ -176,3 +176,34 @@ class AppBrowserTests(StaticLiveServerTestCase):
         # The submit button must be reachable on a short screen.
         page.click("#quick-add button[type=submit]", timeout=5000)
         page.wait_for_selector(".toast--added")
+
+    def test_line_sheet_edit_spend_and_delete(self) -> None:
+        page = self.open(self.month_url)
+        page.click(f"[data-line-id='{self.gifts.pk}'] .line-row__open")
+        page.wait_for_selector("#line-sheet[open] >> text=Spends and returns")
+
+        page.fill("#line-sheet [name=amount]", "400")
+        page.fill("#line-sheet [name=note]", "Card")
+        page.click("#line-sheet .line-sheet__spend button[type=submit]")
+        page.wait_for_selector("#line-sheet >> text=Spend saved.")
+        page.wait_for_selector("#month-panel >> text=2,600 left")
+
+        # Delete needs 2 taps: the first one only changes the label.
+        delete = "#line-sheet .spend-row button"
+        page.click(delete)
+        self.assertEqual(page.inner_text(delete), "Tap again")
+        self.assertTrue(SubExpense.objects.exists())
+        page.click(delete)
+        page.wait_for_selector("#line-sheet >> text=Deleted the spend.")
+        self.assertFalse(SubExpense.objects.exists())
+
+        page.click("#line-sheet summary")
+        page.fill("#id_edit-name", "Presents")
+        page.click("#line-sheet >> text=Save changes")
+        page.wait_for_selector("#month-panel >> text=Presents")
+
+        page.click("#line-sheet >> text=Delete line")
+        page.click("#line-sheet >> text=Tap again to delete")
+        page.wait_for_selector('text=Deleted the line "Presents"')
+        page.wait_for_selector("#line-sheet:not([open])", state="attached")
+        self.assertFalse(Expense.objects.filter(pk=self.gifts.pk).exists())

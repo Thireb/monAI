@@ -34,8 +34,8 @@ def shift_month(day: date, months: int) -> date:
 
 
 def quick_add_context(budget: Budget | None, snap: MonthSnapshot | None) -> dict[str, Any]:
-    """Context for the quick-add sheet. Without a budget, the sheet is not shown."""
-    if budget is None or snap is None:
+    """Context for the quick-add sheet. Without a budget, or for an archived one, it is hidden."""
+    if budget is None or snap is None or budget.is_archived:
         return {}
     return {
         "budget": budget,

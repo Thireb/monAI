@@ -11,14 +11,15 @@
 {% block content %}
     {% if snap %}
         {% include "app/partials/month_panel.html" %}
-        <section class="card stack" aria-labelledby="add-line-title">
-            <h2 id="add-line-title">Add a line</h2>
-            {% include "app/partials/line_form.html" %}
-            <p class="small muted">
-                To edit or delete a line, use the
-                <a href="{% url 'minimal:budget_detail' year=first_day.year month=first_day.month %}">classic month page</a>.
-            </p>
-        </section>
+        {% if budget.is_archived %}
+            <p class="card small muted">This month is archived, so it is read-only.</p>
+        {% else %}
+            <section class="card stack" aria-labelledby="add-line-title">
+                <h2 id="add-line-title">Add a line</h2>
+                {% include "app/partials/line_form.html" %}
+                <p class="small muted">Tap the name of a line to edit it, delete it or see its spends.</p>
+            </section>
+        {% endif %}
     {% else %}
         <section class="card empty">
             <h1>{{ first_day|date:"F Y" }} has no budget yet</h1>
