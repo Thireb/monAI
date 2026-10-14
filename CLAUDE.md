@@ -15,6 +15,11 @@ monAI is a self-hosted personal budget tracker. It has 2 clients:
 
 The owner uses it with PKR as the default currency.
 
+## Current work
+
+Follow `docs/REDESIGN_PLAN.md`. Tick its boxes when work is merged.
+The Flutter app is being retired: do not improve it or the `/api/mobile/*` sync.
+
 ## Local machine (not Cursor Cloud)
 
 The `AGENTS.md` paths (`/workspace/venv`) are for Cursor Cloud. On this machine:
