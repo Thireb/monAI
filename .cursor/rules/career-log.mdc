@@ -1,0 +1,65 @@
+---
+description: Log leadership/management-relevant signals from a completed ticket into career-log.md. Apply this rule whenever the user says a trigger phrase like "log this ticket", "ticket done, log it", or "career log this" after finishing work on an issue/ticket.
+alwaysApply: false
+---
+
+# Career Log Capture
+
+When the user gives a trigger phrase (e.g. "log this ticket", "ticket done, log it",
+"career log this") after completing work on a ticket/issue, do the following:
+
+## 1. Gather context
+Look at the current conversation and recent file changes to reconstruct what the
+ticket was about: the problem, the files/systems touched, and any PR description
+or commit messages available. If something important is unclear or missing, ask
+the user directly rather than guessing — especially:
+- Who else was involved (teammates coordinated with, unblocked, or mentored)
+- Any decision the user made about scope, priority, or approach that others
+  deferred to
+- Any moment the user explained a technical decision to a non-technical
+  stakeholder (PM, support, client)
+- The measurable or observable outcome (bug rate, downtime avoided, feature
+  shipped, time saved, teammate now able to work independently on X)
+
+## 2. Filter for signal
+Not every ticket has leadership content. If, after gathering context, the ticket
+was purely solo technical work with no coordination, mentoring, scoping decision,
+or stakeholder communication — say so plainly and ask the user if they still want
+it logged (e.g. for a pure technical-depth resume line) or skipped. Don't force
+management framing onto tickets that don't have it.
+
+## 3. Write the entry
+Append a new entry to `career-log.md` in the project root (create the file with a
+top-level `# Career Log` heading if it doesn't exist yet). Use this structure:
+
+```markdown
+## [YYYY-MM-DD] <Short ticket/project title>
+
+**Scope owned:** <what the user was responsible for>
+
+**Coordination / mentoring:** <who was involved, what was unblocked or taught —
+or "None" if solo>
+
+**Decision made:** <any scoping, prioritization, or technical-direction call the
+user made — or "None">
+
+**Stakeholder communication:** <any explanation of technical decisions to a
+non-technical party — or "None">
+
+**Impact:** <concrete, quantified outcome where possible>
+
+**Resume-ready line:** <one polished sentence, outcome-first, written the way it
+would appear on a resume or LinkedIn — only include this if step 2 found real
+leadership signal>
+```
+
+## 4. Confirm
+After appending, tell the user in one or two lines what was logged — don't repeat
+the whole entry back, they can open the file. If the entry had no real leadership
+signal, say that plainly instead of manufacturing one.
+
+## Notes
+- Never invent details (people, numbers, outcomes) the user hasn't confirmed —
+  ask instead of guessing.
+- Keep entries factual and specific. Vague entries ("helped the team") are
+  useless six months later when writing a resume bullet from this log.
