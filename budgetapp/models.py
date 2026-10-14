@@ -278,21 +278,14 @@ class TagTransfer(models.Model):
         verbose_name_plural = "Tag transfers"
 
     def __str__(self) -> str:
-        return (
-            f"{self.amount} from {self.from_tag} to {self.to_tag} "
-            f"({self.budget})"
-        )
+        return f"{self.amount} from {self.from_tag} to {self.to_tag} " f"({self.budget})"
 
     def clean(self) -> None:
         from django.core.exceptions import ValidationError
 
         if self.amount is not None and self.amount <= 0:
             raise ValidationError({"amount": "Amount must be greater than zero."})
-        if (
-            self.from_tag_id
-            and self.to_tag_id
-            and self.from_tag_id == self.to_tag_id
-        ):
+        if self.from_tag_id and self.to_tag_id and self.from_tag_id == self.to_tag_id:
             raise ValidationError("Cannot transfer to the same account tag.")
         budget_user_id = self.budget.user_id if self.budget_id else None
         if budget_user_id and self.from_tag_id and self.from_tag.user_id != budget_user_id:
@@ -312,6 +305,10 @@ class Expense(models.Model):
     name = models.CharField(max_length=200)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     is_recurring = models.BooleanField(default=False)
+    is_daily = models.BooleanField(
+        default=False,
+        help_text="Day-to-day spending line (groceries, transport); used for Safe to spend today",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     category = models.ForeignKey(

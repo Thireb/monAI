@@ -1,0 +1,248 @@
+"""Tests for budgetapp.services: month figures, quick add and month creation."""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.utils import timezone
+
+from budgetapp.models import Budget, Category, Expense, SubExpense, Tag, TagTransfer
+from budgetapp.services.month import build_month_snapshot
+from budgetapp.services.months import create_month
+from budgetapp.services.quick_add import QuickAddError, match_lines, parse_amount, parse_spend_text
+
+User = get_user_model()
+D = Decimal
+
+
+def _spend(line: Expense, amount: str, day: date, is_return: bool = False) -> SubExpense:
+    """Create a sub-expense dated ``day`` (noon, local time)."""
+    sub = SubExpense.objects.create(expense=line, name="x", amount=D(amount), is_return=is_return)
+    when = timezone.make_aware(datetime(day.year, day.month, day.day, 12, 0))
+    SubExpense.objects.filter(pk=sub.pk).update(created_at=when)
+    return sub
+
+
+class MonthSnapshotTests(TestCase):
+    """build_month_snapshot follows the Budget money rules."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user(
+            username="snap", email="snap@example.com", password="testpassword"
+        )
+        self.cash = Tag.objects.create(user=self.user, name="Cash", slug="cash", color="#2e8b57")
+        self.bank = Tag.objects.create(user=self.user, name="Bank", slug="bank", color="#6b5bb5")
+        food = Category.objects.create(user=self.user, name="Food", slug="food", color="#ffaa00")
+        self.budget = Budget.objects.create(
+            user=self.user, month=date(2026, 10, 1), income=D("10000")
+        )
+        self.rent = Expense.objects.create(
+            budget=self.budget, name="Rent", amount=D("5000"), tag_foreign_key=self.bank
+        )
+        self.groceries = Expense.objects.create(
+            budget=self.budget,
+            name="Groceries",
+            amount=D("3100"),
+            is_daily=True,
+            category=food,
+            tag_foreign_key=self.cash,
+        )
+
+    def test_line_left_counts_spends_and_returns(self) -> None:
+        _spend(self.groceries, "1000", date(2026, 10, 2))
+        _spend(self.groceries, "100", date(2026, 10, 3), is_return=True)
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        line = next(line for line in snap.lines if line.name == "Groceries")
+        self.assertEqual(line.spent, D("1000"))
+        self.assertEqual(line.returned, D("100"))
+        self.assertEqual(line.left, D("2000"))
+        self.assertEqual(line.status, "ok")
+
+    def test_totals_match_budget_model(self) -> None:
+        _spend(self.groceries, "250", date(2026, 10, 2), is_return=True)
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        self.assertEqual(snap.gross, self.budget.get_gross_budgeted_expenses())
+        self.assertEqual(snap.returns, self.budget.get_total_returns())
+        self.assertEqual(snap.unallocated, self.budget.get_remaining_budget())
+        self.assertEqual(snap.allocated_pct, 79)  # (8100 - 250) / 10000
+
+    def test_line_status(self) -> None:
+        _spend(self.rent, "5000", date(2026, 10, 1))
+        _spend(self.groceries, "2400", date(2026, 10, 2))
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        status = {line.name: line.status for line in snap.lines}
+        self.assertEqual(status, {"Rent": "done", "Groceries": "close"})
+        _spend(self.groceries, "1000", date(2026, 10, 3))
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        line = next(line for line in snap.lines if line.name == "Groceries")
+        self.assertEqual((line.status, line.left, line.used_pct), ("over", D("-300"), 100))
+
+    def test_daily_lines_come_first(self) -> None:
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        self.assertEqual([line.name for line in snap.lines], ["Groceries", "Rent"])
+
+    def test_safe_to_spend_today(self) -> None:
+        # Oct 2026 has 31 days; on the 14th there are 18 days left, today included.
+        _spend(self.groceries, "1300", date(2026, 10, 5))
+        _spend(self.groceries, "60", date(2026, 10, 14))
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        self.assertEqual(snap.days_left, 18)
+        self.assertEqual(snap.daily_left, D("1740"))
+        self.assertEqual(snap.allowance_today, D("100.00"))  # (1740 + 60) / 18
+        self.assertEqual(snap.safe_today, D("40.00"))
+        self.assertEqual(snap.over_today, D("0"))
+
+    def test_safe_to_spend_goes_negative_when_over(self) -> None:
+        _spend(self.groceries, "250", date(2026, 10, 14))
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        self.assertLess(snap.safe_today, 0)
+        self.assertEqual(snap.over_today, -snap.safe_today)
+
+    def test_no_daily_lines_means_no_safe_amount(self) -> None:
+        Expense.objects.filter(pk=self.groceries.pk).update(is_daily=False)
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        self.assertFalse(snap.has_daily_lines)
+        self.assertIsNone(snap.safe_today)
+
+    def test_other_month_has_no_safe_amount_or_streak(self) -> None:
+        _spend(self.groceries, "10", date(2026, 10, 2))
+        snap = build_month_snapshot(self.budget, today=date(2026, 11, 3))
+        self.assertFalse(snap.is_current)
+        self.assertIsNone(snap.safe_today)
+        self.assertEqual(snap.streak, 0)
+
+    def test_streak_counts_days_under_limit_back_from_today(self) -> None:
+        # Daily limit: 3100 / 31 = 100.
+        _spend(self.groceries, "90", date(2026, 10, 8))
+        _spend(self.groceries, "150", date(2026, 10, 9))  # Over: the streak stops here.
+        _spend(self.groceries, "40", date(2026, 10, 10))
+        _spend(self.groceries, "100", date(2026, 10, 12))
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        self.assertEqual(snap.daily_limit, D("100.00"))
+        self.assertEqual(snap.streak, 5)  # 10th to 14th
+        bars = {bar.day: bar for bar in snap.days}
+        self.assertTrue(bars[9].is_over)
+        self.assertTrue(bars[14].is_today)
+        self.assertTrue(bars[15].is_future)
+
+    def test_streak_starts_at_first_recorded_spend(self) -> None:
+        _spend(self.groceries, "20", date(2026, 10, 13))
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        self.assertEqual(snap.streak, 2)
+
+    def test_accounts_include_transfers(self) -> None:
+        TagTransfer.objects.create(
+            budget=self.budget, from_tag=self.bank, to_tag=self.cash, amount=D("400")
+        )
+        _spend(self.groceries, "1000", date(2026, 10, 2))
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        accounts = {a.name: (a.total, a.used) for a in snap.accounts}
+        self.assertEqual(accounts["Cash"], (D("3500"), D("1000")))
+        self.assertEqual(accounts["Bank"], (D("4600"), D("0")))
+
+    def test_categories_group_lines(self) -> None:
+        snap = build_month_snapshot(self.budget, today=date(2026, 10, 14))
+        self.assertEqual(
+            [(g.name, g.amount) for g in snap.categories],
+            [("Uncategorized", D("5000")), ("Food", D("3100"))],
+        )
+
+
+class QuickAddParseTests(TestCase):
+    """parse_amount and parse_spend_text."""
+
+    def test_amount_formats(self) -> None:
+        self.assertEqual(parse_amount("2500"), D("2500.00"))
+        self.assertEqual(parse_amount("2,500"), D("2500.00"))
+        self.assertEqual(parse_amount("12.5"), D("12.50"))
+        self.assertEqual(parse_amount("2.5k"), D("2500.00"))
+        self.assertEqual(parse_amount("3K"), D("3000.00"))
+
+    def test_bad_amounts(self) -> None:
+        for raw in ("", "abc", "0", "-5", "1.234", "999999999"):
+            with self.subTest(raw=raw), self.assertRaises(QuickAddError):
+                parse_amount(raw)
+
+    def test_text_in_any_order(self) -> None:
+        parsed = parse_spend_text("#Cash 2500 eating out")
+        self.assertEqual(parsed.amount, D("2500.00"))
+        self.assertEqual(parsed.words, "eating out")
+        self.assertEqual(parsed.account, "cash")
+
+    def test_text_needs_exactly_one_amount(self) -> None:
+        with self.assertRaises(QuickAddError):
+            parse_spend_text("groceries")
+        with self.assertRaises(QuickAddError):
+            parse_spend_text("groceries 20 30")
+
+
+class MatchLinesTests(TestCase):
+    """match_lines picks lines by name, category and account."""
+
+    def setUp(self) -> None:
+        user = User.objects.create_user(
+            username="match", email="match@example.com", password="testpassword"
+        )
+        cash = Tag.objects.create(user=user, name="Cash", slug="cash")
+        bank = Tag.objects.create(user=user, name="Bank", slug="bank")
+        travel = Category.objects.create(user=user, name="Travel", slug="travel")
+        self.budget = Budget.objects.create(user=user, month=date(2026, 10, 1))
+        self.groceries = Expense.objects.create(
+            budget=self.budget, name="Groceries", amount=D("1"), tag_foreign_key=cash
+        )
+        self.gifts = Expense.objects.create(
+            budget=self.budget, name="Gifts", amount=D("1"), tag_foreign_key=cash
+        )
+        self.fuel = Expense.objects.create(
+            budget=self.budget, name="Fuel", amount=D("1"), category=travel, tag_foreign_key=bank
+        )
+
+    def test_rules(self) -> None:
+        self.assertEqual(match_lines(self.budget, "groceries"), [self.groceries])
+        self.assertEqual(match_lines(self.budget, "gro"), [self.groceries])
+        self.assertEqual(match_lines(self.budget, "cer"), [self.groceries])
+        self.assertEqual(match_lines(self.budget, "travel"), [self.fuel])
+        self.assertEqual(match_lines(self.budget, "g"), [self.gifts, self.groceries])
+        self.assertEqual(match_lines(self.budget, "rent"), [])
+
+    def test_account_narrows_the_match(self) -> None:
+        self.assertEqual(match_lines(self.budget, "", "ba"), [self.fuel])
+        self.assertEqual(match_lines(self.budget, "g", "bank"), [])
+        self.assertEqual(match_lines(self.budget, "", "cash"), [])  # 2 lines: ask the user
+
+
+class CreateMonthTests(TestCase):
+    """create_month copies income and recurring lines from the latest earlier month."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user(
+            username="months", email="months@example.com", password="testpassword"
+        )
+        sept = Budget.objects.create(
+            user=self.user, month=date(2026, 9, 1), income=D("900"), currency="USD"
+        )
+        Expense.objects.create(
+            budget=sept, name="Rent", amount=D("500"), is_recurring=True, is_daily=False
+        )
+        Expense.objects.create(
+            budget=sept, name="Food", amount=D("200"), is_recurring=True, is_daily=True
+        )
+        Expense.objects.create(budget=sept, name="Trip", amount=D("100"))
+
+    def test_copies_income_currency_and_recurring_lines(self) -> None:
+        created = create_month(self.user, date(2026, 10, 14))
+        budget = created.budget
+        self.assertEqual(budget.month, date(2026, 10, 1))
+        self.assertEqual((budget.income, budget.currency), (D("900"), "USD"))
+        self.assertEqual(created.copied_lines, 2)
+        lines = {e.name: e.is_daily for e in budget.expenses.all()}
+        self.assertEqual(lines, {"Rent": False, "Food": True})
+
+    def test_empty_month(self) -> None:
+        created = create_month(self.user, date(2026, 10, 1), copy_previous=False)
+        self.assertIsNone(created.copied_from)
+        self.assertEqual(created.budget.expenses.count(), 0)
+        self.assertEqual(created.budget.income, D("0"))
