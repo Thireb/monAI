@@ -9,7 +9,17 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
-from budgetapp.models import Budget, Category, Expense, SubExpense, Tag, TagTransfer
+from budgetapp.bill_reminder_utils import apply_bill_reminders_to_budget
+from budgetapp.models import (
+    BillReminder,
+    Budget,
+    Category,
+    Expense,
+    SubExpense,
+    Tag,
+    TagTransfer,
+)
+from budgetapp.services.bills import coming_up, month_bills
 from budgetapp.services.month import build_month_snapshot
 from budgetapp.services.months import create_month
 from budgetapp.services.quick_add import QuickAddError, match_lines, parse_amount, parse_spend_text
@@ -246,3 +256,59 @@ class CreateMonthTests(TestCase):
         self.assertIsNone(created.copied_from)
         self.assertEqual(created.budget.expenses.count(), 0)
         self.assertEqual(created.budget.income, D("0"))
+
+
+class BillsTests(TestCase):
+    """month_bills and coming_up: applied bills, pending reminders and states."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user(
+            username="bills", email="bills@example.com", password="testpassword"
+        )
+        self.budget = Budget.objects.create(user=self.user, month=date(2026, 10, 1))
+        self.today = date(2026, 10, 14)
+
+    def _reminder(self, name: str, due: date, amount: str = "1000") -> BillReminder:
+        return BillReminder.objects.create(
+            user=self.user, name=name, amount=D(amount), next_bill_date=due, recurrence_months=12
+        )
+
+    def _bills(self) -> list:
+        return month_bills(self.budget, build_month_snapshot(self.budget, self.today), self.today)
+
+    def test_applied_and_pending_bills(self) -> None:
+        self._reminder("Car tax", date(2026, 10, 10))
+        self._reminder("Insurance", date(2026, 10, 20))
+        apply_bill_reminders_to_budget(self.budget)
+        self._reminder("Domain", date(2026, 10, 16))  # Added after the month was made.
+        self._reminder("Next year", date(2026, 11, 2))
+        bills = self._bills()
+        self.assertEqual(
+            [(b.name, b.due, b.state) for b in bills],
+            [
+                ("Car tax", date(2026, 10, 10), "late"),
+                ("Domain", date(2026, 10, 16), "unplanned"),
+                ("Insurance", date(2026, 10, 20), "soon"),
+            ],
+        )
+        self.assertIsNone(bills[1].line_id)
+
+    def test_paid_bill(self) -> None:
+        self._reminder("Car tax", date(2026, 10, 10))
+        apply_bill_reminders_to_budget(self.budget)
+        line = self.budget.expenses.get()
+        SubExpense.objects.create(expense=line, name="paid", amount=D("1000"))
+        bill = self._bills()[0]
+        self.assertEqual((bill.is_paid, bill.state), (True, "paid"))
+        snap = build_month_snapshot(self.budget, self.today)
+        self.assertEqual(coming_up(self.budget, snap, self.today), [])
+
+    def test_coming_up_adds_later_months(self) -> None:
+        self._reminder("Insurance", date(2026, 10, 20))
+        apply_bill_reminders_to_budget(self.budget)
+        self._reminder("Car tax", date(2027, 1, 5))
+        self._reminder("Domain", date(2026, 11, 1))
+        snap = build_month_snapshot(self.budget, self.today)
+        names = [b.name for b in coming_up(self.budget, snap, self.today)]
+        self.assertEqual(names, ["Insurance", "Domain", "Car tax"])
+        self.assertEqual(len(coming_up(self.budget, snap, self.today, limit=2)), 2)

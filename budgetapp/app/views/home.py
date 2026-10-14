@@ -7,7 +7,8 @@ from typing import Any
 from django.utils import timezone
 
 from budgetapp.models import Budget
-from budgetapp.services.home import goal_cards, upcoming_bills
+from budgetapp.services.bills import coming_up
+from budgetapp.services.home import goal_cards
 from budgetapp.services.month import build_month_snapshot
 
 from .base import AppTemplateView, month_url, quick_add_context
@@ -32,7 +33,7 @@ class HomeView(AppTemplateView):
                 "snap": snap,
                 "month_url": month_url(today),
                 "daily_lines": [line for line in snap.lines if line.is_daily] if snap else [],
-                "bills": upcoming_bills(self.request.user, today),
+                "bills": coming_up(budget, snap, today) if budget and snap else [],
                 "goals": goal_cards(self.request.user),
                 "quick_add": quick_add_context(budget, snap),
             }

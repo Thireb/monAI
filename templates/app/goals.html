@@ -1,0 +1,23 @@
+{% extends "app/base.html" %}
+{% block title %}monAI · Goals{% endblock title %}
+{% block month_link %}{{ month_url }}{% endblock month_link %}
+{% block content %}
+    {% include "app/partials/goals_panel.html" %}
+    <section class="grid grid--two">
+        <details class="card stack" {% if not goals %}open{% endif %}>
+            <summary class="card__summary">
+                <h2>Start a goal</h2>
+            </summary>
+            {% include "app/partials/goal_form.html" %}
+        </details>
+        <details class="card stack">
+            <summary class="card__summary">
+                <h2>Add a debt</h2>
+            </summary>
+            {% include "app/partials/debt_form.html" %}
+            <p class="small muted">
+                monAI makes an account for the debt. Lines that use this account count as repayments.
+            </p>
+        </details>
+    </section>
+{% endblock content %}

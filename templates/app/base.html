@@ -47,6 +47,9 @@
                             <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
                         </svg>
                     </button>
+                    <a class="btn btn--small hide-phone"
+                       href="{% url 'app:goals' %}"
+                       {% if nav == 'goals' %}aria-current="page"{% endif %}>Goals</a>
                     <a class="btn btn--small hide-phone" href="{% url 'minimal:home' %}">Classic view</a>
                 </div>
             </header>
@@ -63,7 +66,7 @@
             {% else %}
                 <span aria-hidden="true"></span>
             {% endif %}
-            <a href="{% url 'minimal:goal_list' %}">Goals</a>
+            <a href="{% url 'app:goals' %}" {% if nav == 'goals' %}aria-current="page"{% endif %}>Goals</a>
             <a href="{% url 'minimal:home' %}">Classic</a>
         </nav>
         {% if quick_add %}

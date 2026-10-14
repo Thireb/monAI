@@ -1,0 +1,128 @@
+{% load app_format %}
+{# Goals and debts. Refreshes after each change (goalsChanged). Context: goals, debts. #}
+<div id="goals-panel"
+     class="stack"
+     hx-get="{% url 'app:goals_panel' %}"
+     hx-trigger="goalsChanged from:body"
+     hx-swap="outerHTML">
+    <section class="stack" aria-labelledby="goals-title">
+        <h1 id="goals-title">Savings goals</h1>
+        {% if goals %}
+            <div class="grid grid--two">
+                {% for goal in goals %}
+                    <article class="card goal-tile{% if goal.is_done %} card--soft{% endif %}"
+                             id="goal-{{ goal.id }}">
+                        <div class="goal-tile__head">
+                            {% include "app/components/ring.html" with pct=goal.pct value=goal.pct|stringformat:"d"|add:"%" small=True sun=True label="Goal progress" %}
+                            <div class="stack goal-card__text">
+                                <h2>{{ goal.name }}</h2>
+                                <span class="small">{{ goal.current|money }} of {{ goal.target|money }}</span>
+                                {% if goal.is_done %}
+                                    <span class="badge badge--good">Reached</span>
+                                {% elif goal.on_track is True %}
+                                    <span class="badge badge--good">On track</span>
+                                {% elif goal.on_track is False %}
+                                    <span class="badge badge--warn">Behind</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if not goal.is_done %}
+                            <p class="small muted goal-tile__plan">
+                                {% if goal.monthly_needed %}
+                                    Save {{ goal.monthly_needed|money }} a month to reach it by {{ goal.target_date|date:"j M Y" }}.
+                                {% elif goal.projected_date %}
+                                    At your pace, you reach it in {{ goal.projected_date|date:"F Y" }}.
+                                {% else %}
+                                    {{ goal.left|money }} to go.
+                                {% endif %}
+                            </p>
+                            <form class="inline-form"
+                                  hx-post="{% url 'app:goal_contribute' pk=goal.id %}"
+                                  hx-swap="none"
+                                  hx-disabled-elt="find button"
+                                  data-reset-ok>
+                                <input name="amount"
+                                       inputmode="decimal"
+                                       autocomplete="off"
+                                       required
+                                       placeholder="Amount"
+                                       aria-label="Amount to add to {{ goal.name }}">
+                                <button type="submit" class="btn btn--primary btn--small">Add money</button>
+                            </form>
+                        {% endif %}
+                        <a class="small link" href="{% url 'minimal:goal_detail' goal_id=goal.id %}">History and edit</a>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="card muted">No goals yet. Start one below: a trip, a new phone, a safety fund.</p>
+        {% endif %}
+    </section>
+    <section class="stack" aria-labelledby="debts-title">
+        <h1 id="debts-title">Debts</h1>
+        {% if debts %}
+            <div class="grid grid--two">
+                {% for debt in debts %}
+                    <article class="card stack{% if debt.is_paid_off %} card--soft{% endif %}"
+                             id="debt-{{ debt.id }}">
+                        <div class="row">
+                            <h2>{{ debt.name }}</h2>
+                            {% if debt.is_paid_off %}<span class="badge badge--good">Paid off</span>{% endif %}
+                        </div>
+                        <div>
+                            <span class="money money--big{% if debt.owed %} money--over{% endif %}">{{ debt.owed|money }}</span>
+                            <span class="small muted">still owed</span>
+                        </div>
+                        {% include "app/components/progress.html" with pct=debt.repaid_pct status=debt.is_paid_off|yesno:"done,ok" label="Repaid" thick=True %}
+                        <span class="small muted">Repaid {{ debt.repaid|money }} of {{ debt.borrowed|money }} borrowed</span>
+                        {% if not debt.is_paid_off %}
+                            <p class="small goal-tile__plan">
+                                {% if debt.payoff_month %}
+                                    Paid off by <strong>{{ debt.payoff_month|date:"F Y" }}</strong> at {{ debt.monthly_repayment|money }} a month.
+                                {% elif debt.owed %}
+                                    Add a repayment to see when it ends.
+                                {% endif %}
+                            </p>
+                            {% if debt.owed %}
+                                <form class="inline-form"
+                                      hx-post="{% url 'app:debt_repay' pk=debt.id %}"
+                                      hx-swap="none"
+                                      hx-disabled-elt="find button"
+                                      data-reset-ok>
+                                    <input name="amount"
+                                           inputmode="decimal"
+                                           autocomplete="off"
+                                           required
+                                           placeholder="Amount"
+                                           aria-label="Amount to repay on {{ debt.name }}">
+                                    <button type="submit" class="btn btn--primary btn--small">Repay this month</button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                        {% if debt.can_borrow %}
+                            <details>
+                                <summary class="small link">Borrowed more?</summary>
+                                <form class="inline-form"
+                                      hx-post="{% url 'app:debt_borrow' pk=debt.id %}"
+                                      hx-swap="none"
+                                      hx-disabled-elt="find button"
+                                      data-reset-ok>
+                                    <input name="amount"
+                                           inputmode="decimal"
+                                           autocomplete="off"
+                                           required
+                                           placeholder="Up to {{ debt.can_borrow|money }}"
+                                           aria-label="Amount borrowed for {{ debt.name }}">
+                                    <button type="submit" class="btn btn--small">Record</button>
+                                </form>
+                            </details>
+                        {% endif %}
+                        <a class="small link" href="{% url 'minimal:debt_detail' debt_id=debt.id %}">History and edit</a>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="card muted">No debts. Nice.</p>
+        {% endif %}
+    </section>
+</div>

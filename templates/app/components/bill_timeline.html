@@ -1,0 +1,35 @@
+{% load app_format %}
+{# Bill timeline. Parameter: bills (MonthBill list). The date bubble colour shows the state. #}
+<ol class="timeline">
+    {% for bill in bills %}
+        <li class="timeline__item" data-state="{{ bill.state }}">
+            <span class="timeline__date" aria-hidden="true">
+                {% if bill.due %}
+                    <b>{{ bill.due|date:"j" }}</b><small>{{ bill.due|date:"M" }}</small>
+                {% else %}
+                    <b>·</b>
+                {% endif %}
+            </span>
+            <div class="timeline__body">
+                <div class="bill__name">{{ bill.name }}</div>
+                <div class="small muted">
+                    {% if bill.due %}<span class="visually-hidden">{{ bill.due|date:"j F" }}:</span>{% endif %}
+                    {% if bill.state == "paid" %}
+                        Paid
+                    {% elif bill.state == "late" %}
+                        {{ bill.days_until|absolute }} day{{ bill.days_until|absolute|pluralize }} late
+                    {% elif bill.state == "today" %}
+                        Due today
+                    {% elif bill.state == "unplanned" %}
+                        Not a line of this month yet
+                    {% elif bill.days_until is None %}
+                        This month
+                    {% else %}
+                        In {{ bill.days_until }} day{{ bill.days_until|pluralize }}
+                    {% endif %}
+                </div>
+            </div>
+            <span class="money">{{ bill.amount|money }}</span>
+        </li>
+    {% endfor %}
+</ol>

@@ -347,3 +347,35 @@ class LineSheetTests(AppViewTestBase):
         self.assertNotContains(page, 'id="line-form"')
         self.assertNotContains(page, 'id="quick-add"')
         self.assertNotContains(page, "line-row__open")
+
+
+class MonthBillsTests(AppViewTestBase):
+    """The bill timeline on the month page and its "add bills" button."""
+
+    def test_pending_bill_can_be_added_to_the_month(self) -> None:
+        due = self.today.replace(day=28)
+        reminder = BillReminder.objects.create(
+            user=self.user, name="Car tax", amount=D("4000"), next_bill_date=due
+        )
+        page = self.client.get(reverse("app:month", kwargs=self.month_kwargs))
+        self.assertContains(page, "Bills in")
+        self.assertContains(page, "Add 1 bill to this month")
+        response = self.client.post(reverse("app:month_bills_apply", kwargs=self.month_kwargs))
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response["HX-Trigger"], "monthChanged")
+        line = self.budget.expenses.get(bill_reminder=reminder)
+        self.assertEqual(line.amount, D("4000"))
+        panel = self.client.get(
+            reverse("app:month_panel", kwargs=self.month_kwargs), {"view": "month"}
+        )
+        self.assertContains(panel, "Car tax")
+        self.assertNotContains(panel, "to this month")
+
+    def test_lines_over_income_show_as_over(self) -> None:
+        Budget.objects.filter(pk=self.budget.pk).update(income=D("30000"))
+        for url in (reverse("app:home"), reverse("app:month", kwargs=self.month_kwargs)):
+            with self.subTest(url=url):
+                page = self.client.get(url)
+                self.assertContains(page, "Lines are over income by")
+                self.assertContains(page, "2,000")
+                self.assertNotContains(page, "Not yet given a job")

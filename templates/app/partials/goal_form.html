@@ -1,0 +1,10 @@
+{# New goal form. Context: goal_form, optional saved_name. #}
+<form id="goal-form"
+      class="line-form"
+      hx-post="{% url 'app:goal_create' %}"
+      hx-target="this"
+      hx-swap="outerHTML">
+    {% if saved_name %}<p class="form-ok" role="status">Started the goal "{{ saved_name }}".</p>{% endif %}
+    {% include "app/components/form_fields.html" with form=goal_form %}
+    <button type="submit" class="btn btn--primary">Start goal</button>
+</form>

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -11,9 +12,11 @@ from django.utils import timezone
 from django.views import View
 
 from budgetapp.app.forms import LineForm
+from budgetapp.bill_reminder_utils import apply_bill_reminders_to_budget
 from budgetapp.models import Budget
-from budgetapp.services.home import goal_cards, upcoming_bills
-from budgetapp.services.month import build_month_snapshot
+from budgetapp.services.bills import coming_up, month_bills
+from budgetapp.services.home import goal_cards
+from budgetapp.services.month import MonthSnapshot, build_month_snapshot
 from budgetapp.services.months import create_month
 
 from .base import AppTemplateView, month_date, month_url, quick_add_context, shift_month
@@ -24,6 +27,17 @@ PANEL_TEMPLATES = {
     "month": "app/partials/month_panel.html",
     "sheet": "app/partials/quick_add_chips.html",
 }
+
+
+def bill_context(budget: Budget | None, snap: MonthSnapshot | None, today: date) -> dict[str, Any]:
+    """The month's bills, and how many of them are not lines yet."""
+    if budget is None or snap is None:
+        return {"month_bills": [], "unplanned_bills": 0}
+    bills = month_bills(budget, snap, today)
+    return {
+        "month_bills": bills,
+        "unplanned_bills": sum(1 for bill in bills if bill.line_id is None),
+    }
 
 
 class MonthView(AppTemplateView):
@@ -54,6 +68,7 @@ class MonthView(AppTemplateView):
                 "next_url": month_url(shift_month(first_day, 1)),
                 "previous_budget": previous,
                 "line_form": LineForm(user=self.request.user, prefix="line"),
+                **bill_context(budget, snap, today),
                 "quick_add": quick_add_context(budget, snap),
             }
         )
@@ -76,7 +91,8 @@ class MonthPanelView(LoginRequiredMixin, View):
             "today": today,
             "month_url": month_url(budget.month),
             "daily_lines": [line for line in snap.lines if line.is_daily],
-            "bills": upcoming_bills(request.user, today) if view == "home" else [],
+            "bills": coming_up(budget, snap, today) if view == "home" else [],
+            **(bill_context(budget, snap, today) if view == "month" else {}),
             "goals": goal_cards(request.user) if view == "home" else [],
             "lines": quick_add_context(budget, snap).get("lines", []),
         }
@@ -92,3 +108,17 @@ class MonthCreateView(LoginRequiredMixin, View):
         if not Budget.objects.filter(user=request.user, month=first_day).exists():
             create_month(request.user, first_day, copy_previous=request.POST.get("copy") == "1")
         return redirect(month_url(first_day))
+
+
+class MonthBillsApplyView(LoginRequiredMixin, View):
+    """Add the bills that are due this month but are not lines yet."""
+
+    def post(self, request: HttpRequest, year: int, month: int) -> HttpResponse:
+        """Create the bill lines and ask the page to refresh its panel."""
+        budget = get_object_or_404(
+            Budget, user=request.user, month=month_date(year, month), is_archived=False
+        )
+        apply_bill_reminders_to_budget(budget)
+        response = HttpResponse(status=204)
+        response["HX-Trigger"] = "monthChanged"
+        return response

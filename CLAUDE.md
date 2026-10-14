@@ -39,7 +39,7 @@ The `AGENTS.md` paths (`/workspace/venv`) are for Cursor Cloud. On this machine:
 | `accounts/` | Custom user model and profile. Each user has a Resend key. |
 | `budgetapp/models.py` | All domain models. |
 | `budgetapp/app/` | **New UI** at `/app/` (namespace `app`): views, forms, urls. New UI work goes here. |
-| `budgetapp/services/` | Money logic for the new UI: `month.py` (month figures, Safe to spend today), `quick_add.py`, `months.py`, `home.py`. |
+| `budgetapp/services/` | Money logic for the new UI: `month.py` (month figures, Safe to spend today), `quick_add.py`, `months.py`, `goals.py` (goals, debt payoff), `bills.py` (bill timeline), `home.py`. |
 | `budgetapp/minimal/views/` | Classic web UI views (`/minimal/`), 1 file per feature. |
 | `budgetapp/minimal/urls.py` | Web UI routes, namespace `minimal`. |
 | `budgetapp/api_urls.py` | REST and mobile sync routes under `/api/`. |
@@ -141,10 +141,10 @@ Give each module by name:
   budgetapp.tests.test_budget_summary budgetapp.tests.test_user_resend_email \
   budgetapp.tests.test_budget_month_unique budgetapp.tests.test_budget_page_browser \
   budgetapp.tests.test_pwa_offline budgetapp.tests.test_services budgetapp.tests.test_app_views \
-  budgetapp.tests.test_app_browser
+  budgetapp.tests.test_app_goals budgetapp.tests.test_app_browser
 ```
 
-On 2026-10-14, all 124 tests passed (about 2 minutes).
+On 2026-10-14, all 153 tests passed (about 2 minutes).
 Logs with `🔴 400` in the output are normal. Some tests check error responses.
 
 `test_budget_page_browser`, `test_pwa_offline` and `test_app_browser` drive headless Chromium with Playwright. It needs network

@@ -1,0 +1,10 @@
+{# New debt form. Context: debt_form, optional saved_name. #}
+<form id="debt-form"
+      class="line-form"
+      hx-post="{% url 'app:debt_create' %}"
+      hx-target="this"
+      hx-swap="outerHTML">
+    {% if saved_name %}<p class="form-ok" role="status">Added the debt "{{ saved_name }}".</p>{% endif %}
+    {% include "app/components/form_fields.html" with form=debt_form %}
+    <button type="submit" class="btn btn--primary">Add debt</button>
+</form>

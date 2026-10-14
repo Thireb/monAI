@@ -102,6 +102,11 @@ a {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
+.grid--two {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  align-items: start;
+}
+
 .span-2 {
   grid-column: span 2;
 }
@@ -311,11 +316,31 @@ a {
   white-space: nowrap;
 }
 
+.stack > .badge {
+  align-self: flex-start;
+}
+
 .badge--streak {
   background: var(--surface);
   color: var(--sun-ink);
   font-size: 14px;
   padding: 6px 14px;
+}
+
+.badge--good {
+  background: var(--green-soft);
+  color: var(--green-soft-ink);
+}
+
+.badge--warn {
+  background: var(--sun-soft);
+  color: var(--sun-ink);
+}
+
+.link {
+  color: var(--green-ink);
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .chips {
@@ -382,6 +407,11 @@ a {
 .icon-btn:focus-visible {
   outline: 3px solid var(--green);
   outline-offset: 2px;
+}
+
+.btn[aria-current='page'] {
+  background: var(--green-soft);
+  color: var(--green-soft-ink);
 }
 
 .btn--primary {
@@ -491,6 +521,32 @@ a {
   border-radius: var(--radius);
 }
 
+/* One amount and one button on a line, for quick actions on a card. */
+.inline-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.inline-form input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  padding: 0 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.inline-form input:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
 .form-error {
   color: var(--red-ink);
   font-weight: 700;
@@ -530,6 +586,11 @@ a {
 @media (max-width: 720px) {
   .app-header .hide-phone {
     display: none;
+  }
+
+  .grid--two {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+    align-items: start;
   }
 
   .span-2 {
@@ -679,6 +740,11 @@ a {
 .toast .btn {
   background: var(--bg);
   color: var(--ink);
+}
+
+.toast--error {
+  background: var(--red-soft);
+  color: var(--red-ink);
 }
 
 .toast--added {

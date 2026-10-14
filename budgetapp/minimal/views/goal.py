@@ -5,12 +5,12 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from django.db.models import Sum
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 
 from budgetapp.forms import GoalContributionForm, GoalForm
 from budgetapp.models import Category, Goal, GoalContribution
+from budgetapp.services.goals import sync_goal_amount
 
 from .base import LoginRequiredTemplateView, LoginRequiredView
 
@@ -21,10 +21,7 @@ def _sync_goal_current_amount(goal: Goal) -> None:
     Args:
         goal: The goal to synchronize.
     """
-    total = goal.contributions.aggregate(t=Sum("amount"))["t"] or Decimal("0")
-    if goal.current_amount != total:
-        goal.current_amount = total
-        goal.save(update_fields=["current_amount"])
+    sync_goal_amount(goal)
 
 
 class GoalListView(LoginRequiredTemplateView):
@@ -41,9 +38,7 @@ class GoalListView(LoginRequiredTemplateView):
         completed_goals = []
         for goal in all_goals.order_by("-start_date"):
             _sync_goal_current_amount(goal)
-            goal.remaining_to_save = max(
-                Decimal("0"), goal.target_amount - goal.current_amount
-            )
+            goal.remaining_to_save = max(Decimal("0"), goal.target_amount - goal.current_amount)
             is_complete = goal.current_amount >= goal.target_amount
             if goal.is_active and not is_complete:
                 active_goals.append(goal)

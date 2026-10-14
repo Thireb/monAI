@@ -64,16 +64,6 @@ legend {
 
 /* ---------- Bills and goals ---------- */
 
-.bill {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: var(--surface);
-  border-radius: 18px;
-  padding: 14px 16px;
-}
-
 .bill__name {
   font-weight: 700;
 }
@@ -88,6 +78,64 @@ legend {
 
 .goal-card__text {
   gap: 4px;
+}
+
+/* ---------- Goals page ---------- */
+
+.goal-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.goal-tile__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.goal-tile__plan {
+  margin: 0;
+}
+
+.card__summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  cursor: pointer;
+}
+
+/* A chevron replaces the browser marker, which display: flex hides. */
+.card__summary,
+.line-sheet__edit summary {
+  list-style: none;
+}
+
+.card__summary::-webkit-details-marker,
+.line-sheet__edit summary::-webkit-details-marker {
+  display: none;
+}
+
+.card__summary::after,
+.line-sheet__edit summary::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  margin-left: auto;
+  border-right: 2.5px solid var(--ink-2);
+  border-bottom: 2.5px solid var(--ink-2);
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+}
+
+details[open] > .card__summary::after,
+.line-sheet__edit[open] summary::after {
+  transform: rotate(-135deg);
+}
+
+.card__summary h2 {
+  display: inline;
+  margin: 0;
 }
 
 /* ---------- Accounts ---------- */
@@ -397,4 +445,94 @@ legend {
 
 .line-sheet__edit[open] summary {
   margin-bottom: 8px;
+}
+
+/* ---------- Bill timeline ---------- */
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+/* The line that joins the date bubbles. */
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 21px;
+  top: 22px;
+  bottom: 22px;
+  width: 2px;
+  background: var(--line);
+}
+
+.timeline__item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.timeline__date {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  position: relative;
+}
+
+.timeline__date b {
+  font-size: 16px;
+}
+
+.timeline__date small {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.timeline__item[data-state='paid'] .timeline__date {
+  background: var(--green-soft);
+  color: var(--green-soft-ink);
+}
+
+.timeline__item[data-state='paid'] .bill__name {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-2);
+}
+
+.timeline__item[data-state='today'] .timeline__date,
+.timeline__item[data-state='soon'] .timeline__date {
+  background: var(--sun-soft);
+  color: var(--sun-ink);
+}
+
+.timeline__item[data-state='late'] .timeline__date {
+  background: var(--red-soft);
+  color: var(--red-ink);
+}
+
+.timeline__item[data-state='unplanned'] .timeline__date {
+  background: var(--surface);
+  border: 2px dashed var(--line);
+}
+
+/* On the sun-coloured "Coming up" card, the bubbles need more contrast. */
+.card--sun .timeline__date {
+  background: var(--surface);
+}
+
+.card--sun .timeline__item[data-state='today'] .timeline__date,
+.card--sun .timeline__item[data-state='soon'] .timeline__date {
+  background: var(--sun);
+  color: var(--on-sun);
 }

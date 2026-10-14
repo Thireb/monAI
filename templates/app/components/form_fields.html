@@ -1,0 +1,15 @@
+{# Fields of a Django form, in the new UI style. Parameter: form. #}
+{% if form.non_field_errors %}<p class="form-error">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+<div class="line-form__fields">
+    {% for field in form %}
+        {% if field.field.widget.input_type == "checkbox" %}
+            <label class="check">{{ field }} {{ field.label }}</label>
+        {% else %}
+            <label class="field">
+                {{ field.label }}
+                {{ field }}
+                {% for error in field.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+            </label>
+        {% endif %}
+    {% endfor %}
+</div>

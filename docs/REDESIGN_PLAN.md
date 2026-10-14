@@ -64,8 +64,9 @@ This removes about 5,900 lines of Dart and about 2,100 lines of mobile sync code
 
 ### Phase 3 · Goals, debts, bills
 
-- [ ] Progress rings for goals; a payoff date for each debt
-- [ ] Bill timeline on the home page and on the month page
+- [x] Edit and delete lines, and see, add and delete spends and returns, in a line sheet
+- [x] Progress rings for goals; a payoff date for each debt (`/app/goals/`, with add money, repay and borrow)
+- [x] Bill timeline on the home page and on the month page, with "Add bills to this month"
 - [ ] Web Push notifications for bill reminders
 - [ ] Offline quick add: save to IndexedDB, send when the network comes back
 - [ ] Move all other pages to the components
@@ -73,11 +74,11 @@ This removes about 5,900 lines of Dart and about 2,100 lines of mobile sync code
 
 ### Phase 4 · Fun and reward
 
-- [ ] Streaks
+- [x] Streaks (the "days under budget" badge on the home page, done in Phase 2)
 - [ ] Month recap on the 1st of the month
-- [ ] Goal celebrations at 25 %, 50 %, 75 % and 100 %, and when a debt is paid off
-- [ ] Undo toast in place of confirm dialogs
-- [ ] "Copy last month?" on a new, empty month
+- [x] Goal celebrations at 25 %, 50 %, 75 % and 100 %, and when a debt is paid off
+- [ ] Undo toast in place of confirm dialogs (the new UI uses Undo after a spend and "tap again" for deletes; the classic pages still use dialogs)
+- [x] "Copy last month?" on a new, empty month (done in Phase 2)
 - [ ] **Gate:** used 5 days a week for 1 month
 
 ## Current state (audit, 2026-10-14)
@@ -151,7 +152,7 @@ The biggest gain is less typing: most budget apps lose users at data entry, not 
 | # | Recommendation | Why | Size | Done |
 | --- | --- | --- | --- | --- |
 | 1 | Add the unique `(user, month)` constraint now, before any redesign | It is a data bug today. 1 duplicate month breaks the web budget page. | Small | [x] |
-| 2 | Auto-copy recurring expenses into a new month | `Expense.is_recurring` exists but the user still builds each month by hand | Small | [ ] |
+| 2 | Auto-copy recurring expenses into a new month | `Expense.is_recurring` exists but the user still builds each month by hand | Small | [x] |
 | 3 | Use 1 grammar for quick add, voice and the agent intent schema | `groceries 2500 #cash` can map to the `expense_upsert` action in `docs/agent_intent/` | Medium | [ ] |
 | 4 | Add browser smoke tests (Playwright) for the budget page | They catch double modals and wrong labels. The Django tests do not test the UI. | Medium | [x] |
 | 5 | Use `Decimal` for money in all views | 37 `float()` calls in `budgetapp/minimal/views/` can make totals differ by a small amount from the PDF | Small | [ ] |

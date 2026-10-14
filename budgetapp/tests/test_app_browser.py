@@ -18,7 +18,7 @@ from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
-from budgetapp.models import Budget, Expense, SubExpense, Tag
+from budgetapp.models import Budget, Debt, DebtTransaction, Expense, Goal, SubExpense, Tag
 
 try:
     from playwright.sync_api import Error as PlaywrightError
@@ -207,3 +207,23 @@ class AppBrowserTests(StaticLiveServerTestCase):
         page.wait_for_selector('text=Deleted the line "Presents"')
         page.wait_for_selector("#line-sheet:not([open])", state="attached")
         self.assertFalse(Expense.objects.filter(pk=self.gifts.pk).exists())
+
+    def test_goals_page_contribute_and_repay(self) -> None:
+        goal = Goal.objects.create(user=self.user, name="Trip", target_amount=D("1000"))
+        debt = Debt.objects.create(user=self.user, name="Laptop", total_amount=D("5000"))
+        DebtTransaction.objects.create(debt=debt, amount=D("3000"))
+        page = self.open(reverse("app:goals"))
+
+        amount = f"#goal-{goal.pk} [name=amount]"
+        page.fill(amount, "300")
+        page.press(amount, "Enter")
+        page.wait_for_selector("text=25%!")
+        page.wait_for_selector(f"#goal-{goal.pk} >> text=300 of 1,000")
+        self.assertEqual(page.input_value(amount), "")
+
+        repay = f"#debt-{debt.pk} [name=amount]"
+        page.fill(repay, "1000")
+        page.click(f"#debt-{debt.pk} >> text=Repay this month")
+        page.wait_for_selector(f"#debt-{debt.pk} >> text=Repaid 1,000 of 3,000 borrowed")
+        line = Expense.objects.get(tag_foreign_key=debt.debt_tag)
+        self.assertEqual((line.budget, line.amount), (self.budget, D("1000")))

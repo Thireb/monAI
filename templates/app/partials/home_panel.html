@@ -1,5 +1,5 @@
 {% load app_format %}
-{# Home panel: refreshes after each change (monthChanged). Context: snap, budget, month_url, daily_lines, bills, goals. #}
+{# Home panel: refreshes after each change (monthChanged). Context: snap, budget, month_url, daily_lines, bills (MonthBill), goals. #}
 <div id="home-panel"
      class="stack"
      hx-get="{% url 'app:month_panel' year=budget.month.year month=budget.month.month %}?view=home"
@@ -55,8 +55,13 @@
                     <div class="money money--big">{{ budget.currency }} {{ snap.income|money }}</div>
                 </div>
                 <div>
-                    <div class="small muted">Not yet given a job</div>
-                    <div class="money money--big money--good">{{ budget.currency }} {{ snap.unallocated|money }}</div>
+                    {% if snap.unallocated < 0 %}
+                        <div class="small muted">Lines are over income by</div>
+                        <div class="money money--big money--over">{{ budget.currency }} {{ snap.unallocated|absolute|money }}</div>
+                    {% else %}
+                        <div class="small muted">Not yet given a job</div>
+                        <div class="money money--big money--good">{{ budget.currency }} {{ snap.unallocated|money }}</div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -85,27 +90,14 @@
         <aside class="split__side">
             <div class="card card--sun stack">
                 <h2>Coming up</h2>
-                {% for bill in bills %}
-                    <div class="bill">
-                        <div>
-                            <div class="bill__name">{{ bill.name }}</div>
-                            <div class="small muted">
-                                {% if bill.days_until == 0 %}
-                                    today
-                                {% else %}
-                                    in {{ bill.days_until }} day{{ bill.days_until|pluralize }}
-                                {% endif %}
-                                · {{ bill.due|date:"j M" }}
-                            </div>
-                        </div>
-                        <span class="money">{{ bill.amount|money }}</span>
-                    </div>
-                {% empty %}
+                {% if bills %}
+                    {% include "app/components/bill_timeline.html" %}
+                {% else %}
                     <p class="muted small">No bills due soon.</p>
-                {% endfor %}
+                {% endif %}
             </div>
             {% for goal in goals %}
-                <a class="card goal-card" href="{% url 'minimal:goal_detail' goal_id=goal.id %}">
+                <a class="card goal-card" href="{% url 'app:goals' %}#goal-{{ goal.id }}">
                     {% include "app/components/ring.html" with pct=goal.pct value=goal.pct|stringformat:"d"|add:"%" small=True sun=True label="Goal progress" %}
                     <div class="stack goal-card__text">
                         <h3>{{ goal.name }}</h3>

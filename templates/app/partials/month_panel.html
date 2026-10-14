@@ -1,5 +1,5 @@
 {% load app_format %}
-{# Month panel: refreshes after each change (monthChanged). Context: snap, budget. #}
+{# Month panel: refreshes after each change (monthChanged). Context: snap, budget, month_bills, unplanned_bills. #}
 <div id="month-panel"
      class="stack"
      hx-get="{% url 'app:month_panel' year=budget.month.year month=budget.month.month %}?view=month"
@@ -37,9 +37,14 @@
                 <span class="small muted">this month</span>
             {% endif %}
         </div>
-        <div class="stat">
-            <span class="small muted">Not yet given a job</span>
-            <span class="money money--big money--good">{{ snap.unallocated|money }}</span>
+        <div class="stat{% if snap.unallocated < 0 %} stat--over{% endif %}">
+            {% if snap.unallocated < 0 %}
+                <span class="small">Lines are over income by</span>
+                <span class="money money--big">{{ snap.unallocated|absolute|money }}</span>
+            {% else %}
+                <span class="small muted">Not yet given a job</span>
+                <span class="money money--big money--good">{{ snap.unallocated|money }}</span>
+            {% endif %}
             <span class="small muted">{{ budget.currency }}</span>
         </div>
     </section>
@@ -66,6 +71,22 @@
                 {% if snap.is_current %}<span>{{ today|date:"j M" }} · today</span>{% endif %}
                 <span>{{ snap.days_in_month }} {{ budget.month|date:"M" }}</span>
             </div>
+        </section>
+    {% endif %}
+    {% if month_bills %}
+        <section class="card stack" aria-labelledby="bills-title">
+            <div class="row">
+                <h2 id="bills-title">Bills in {{ budget.month|date:"F" }}</h2>
+                {% if unplanned_bills and not budget.is_archived %}
+                    <button type="button"
+                            class="btn btn--small btn--primary"
+                            hx-post="{% url 'app:month_bills_apply' year=budget.month.year month=budget.month.month %}"
+                            hx-swap="none">
+                        Add {{ unplanned_bills }} bill{{ unplanned_bills|pluralize }} to this month
+                    </button>
+                {% endif %}
+            </div>
+            {% include "app/components/bill_timeline.html" with bills=month_bills %}
         </section>
     {% endif %}
     {% if snap.accounts %}

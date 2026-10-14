@@ -1,0 +1,17 @@
+{# Answer to a small form: a toast. Context: message, optional title, error. #}
+<div hx-swap-oob="beforeend:#toasts">
+    <div class="toast{% if title %} toast--added{% endif %}{% if error %} toast--error{% endif %}"
+         data-autoclose="{% if error %}6000{% else %}4000{% endif %}"
+         role="{% if error %}alert{% else %}status{% endif %}">
+        {% if title %}
+            <div class="row">
+                <span class="toast__title">{{ title }}</span>
+                <button type="button" class="icon-btn" data-close-toast aria-label="Close">✕</button>
+            </div>
+            <span>{{ message }}</span>
+        {% else %}
+            <span>{{ message }}</span>
+            <button type="button" class="icon-btn" data-close-toast aria-label="Close">✕</button>
+        {% endif %}
+    </div>
+</div>

@@ -198,6 +198,17 @@
 
   document.body.addEventListener('htmx:confirm', confirmTap);
 
+  // Sent with a goal milestone or a paid-off debt.
+  document.body.addEventListener('celebrate', celebrate);
+
+  // A form with data-reset-ok is cleared after a request that changed something.
+  document.body.addEventListener('htmx:afterRequest', event => {
+    const form = event.detail.elt;
+    if (!form || form.tagName !== 'FORM' || !form.hasAttribute('data-reset-ok')) return;
+    const trigger = event.detail.xhr && event.detail.xhr.getResponseHeader('HX-Trigger');
+    if (event.detail.successful && trigger) form.reset();
+  });
+
   document.body.addEventListener('htmx:afterSwap', event => {
     if (event.detail.target && event.detail.target.id === 'line-sheet-body') afterLineSheetSwap();
   });
