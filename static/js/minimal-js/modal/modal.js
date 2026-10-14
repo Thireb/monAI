@@ -13,6 +13,14 @@ function openModalWithAnimation(modalId) {
     console.warn('Modal not found:', modalId);
     return;
   }
+  // Several click handlers can ask for the same modal; open it only once.
+  if ($modal.hasClass('show') && !$modal.hasClass('closing')) return;
+  // Opened again while closing: stop the close animation first.
+  if ($modal.hasClass('closing')) {
+    anime.remove(modalId);
+    anime.remove(modalId + ' .modal-content');
+    $modal.removeClass('closing');
+  }
 
   // Remove Bootstrap classes if present
   $modal.removeClass('modal fade');
@@ -45,7 +53,8 @@ function openModalWithAnimation(modalId) {
  */
 function closeModalWithAnimation(modalId) {
   const $modal = $(modalId);
-  if (!$modal.length || !$modal.hasClass('show')) return;
+  if (!$modal.length || !$modal.hasClass('show') || $modal.hasClass('closing')) return;
+  $modal.addClass('closing');
 
   // Use anime.js for smooth animation
   anime({
@@ -62,7 +71,7 @@ function closeModalWithAnimation(modalId) {
     duration: 300,
     easing: 'easeInQuad',
     complete: function () {
-      $modal.hide().removeClass('show');
+      $modal.hide().removeClass('show closing');
       // Trigger custom event for modal closed
       $modal.trigger('modal:closed');
     },
@@ -84,6 +93,10 @@ function resetModalForm(modalId) {
 
 // Initialize modals when document is ready
 $(function () {
+  // Bind the shared handlers only once, even if this file loads twice.
+  if (window.minimalModalsInitialized) return;
+  window.minimalModalsInitialized = true;
+
   // Prevent Bootstrap from initializing on our custom modals
   $('.modal-minimal').each(function () {
     // Remove any Bootstrap modal attributes that might cause conflicts

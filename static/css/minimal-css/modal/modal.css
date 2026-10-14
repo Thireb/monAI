@@ -9,13 +9,17 @@
   height: 100% !important;
   background: rgba(0, 0, 0, 0.5) !important;
   display: flex !important;
-  align-items: center !important;
+  /* Top-align and scroll, so a modal taller than the screen stays reachable.
+     The content's auto margins centre it when it fits. */
+  align-items: flex-start !important;
   justify-content: center !important;
+  overflow-y: auto !important;
   z-index: 1050 !important;
   opacity: 0;
   visibility: hidden;
   /* Override Bootstrap modal styles */
-  padding: 0 !important;
+  padding: 24px 0 !important;
+  box-sizing: border-box !important;
   margin: 0 !important;
   border: none !important;
   outline: none !important;
@@ -29,7 +33,7 @@
 .modal-minimal .modal-content {
   max-width: 500px;
   width: 90%;
-  margin: 0 auto;
+  margin: auto;
   position: relative;
   z-index: 1051;
 }

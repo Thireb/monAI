@@ -564,8 +564,12 @@ $(function () {
       url: `/minimal/budget/${year}/${month}/summary-cards/`,
       type: 'GET',
       success: function (response) {
-        // Update summary cards with server-calculated values
-        $('.summary-cards').html(response.html);
+        // The response is the whole summary section (toggle button included).
+        // Swap in only its cards, so the button and the section are not nested.
+        const freshCards = $('<div>').html(response.html).find('.summary-cards');
+        if (freshCards.length) {
+          $('#summary-section .summary-cards').first().replaceWith(freshCards);
+        }
 
         // Update category stats
         updateCategoryStats();
@@ -685,95 +689,68 @@ $(function () {
 
   // NOTE: showToast is provided by core/utils.js (global)
 
-  // Toggle summary section with animation
-  $('.summary-toggle-btn').on('click', function () {
-    var content = $('.summary-toggle-content');
-    var text = $('.summary-toggle-text');
-    var isVisible = content.is(':visible');
+  // Show or hide a section with animation. A click while the animation
+  // runs is ignored, so the label always matches the section.
+  function bindSectionToggle(btnSelector, contentSelector, textSelector, name) {
+    let busy = false;
+    $(btnSelector).on('click', function () {
+      if (busy) return;
+      busy = true;
+      const content = $(contentSelector);
+      const text = $(textSelector);
 
-    if (isVisible) {
-      // Hide with animation
-      anime({
-        targets: '.summary-toggle-content',
-        opacity: [1, 0],
-        height: [content.height(), 0],
-        duration: 300,
-        easing: 'easeInOutQuad',
-        complete: function () {
-          content.hide();
-          text.text('Show Summary');
-        },
-      });
-    } else {
-      // Show with animation
-      content.css({
-        opacity: 0,
-        height: 0,
-        display: 'block',
-        overflow: 'hidden',
-      });
+      if (content.is(':visible')) {
+        anime({
+          targets: contentSelector,
+          opacity: [1, 0],
+          height: [content.height(), 0],
+          duration: 300,
+          easing: 'easeInOutQuad',
+          complete: function () {
+            content.hide();
+            text.text('Show ' + name);
+            busy = false;
+          },
+        });
+      } else {
+        content.css({
+          opacity: 0,
+          height: 0,
+          display: 'block',
+          overflow: 'hidden',
+        });
 
-      anime({
-        targets: '.summary-toggle-content',
-        opacity: [0, 1],
-        height: [0, content[0].scrollHeight],
-        duration: 400,
-        easing: 'easeOutQuad',
-        complete: function () {
-          content.css({
-            height: '',
-            overflow: '',
-          });
-          text.text('Hide Summary');
-        },
-      });
-    }
-  });
+        anime({
+          targets: contentSelector,
+          opacity: [0, 1],
+          height: [0, content[0].scrollHeight],
+          duration: 400,
+          easing: 'easeOutQuad',
+          complete: function () {
+            content.css({
+              height: '',
+              overflow: '',
+            });
+            text.text('Hide ' + name);
+            busy = false;
+          },
+        });
+      }
+    });
+  }
 
-  // Toggle category stats section with animation
-  $('.category-stats-toggle-btn').on('click', function () {
-    var content = $('.category-stats-toggle-content');
-    var text = $('.category-stats-toggle-text');
-    var isVisible = content.is(':visible');
-
-    if (isVisible) {
-      // Hide with animation
-      anime({
-        targets: '.category-stats-toggle-content',
-        opacity: [1, 0],
-        height: [content.height(), 0],
-        duration: 300,
-        easing: 'easeInOutQuad',
-        complete: function () {
-          content.hide();
-          text.text('Show Category Stats');
-        },
-      });
-    } else {
-      // Show with animation
-      content.css({
-        opacity: 0,
-        height: 0,
-        display: 'block',
-        overflow: 'hidden',
-      });
-
-      anime({
-        targets: '.category-stats-toggle-content',
-        opacity: [0, 1],
-        height: [0, content[0].scrollHeight],
-        duration: 400,
-        easing: 'easeOutQuad',
-        complete: function () {
-          content.css({
-            height: '',
-            overflow: '',
-          });
-          text.text('Hide Category Stats');
-        },
-      });
-    }
-  });
+  bindSectionToggle(
+    '.summary-toggle-btn',
+    '.summary-toggle-content',
+    '.summary-toggle-text',
+    'Summary'
+  );
+  bindSectionToggle(
+    '.category-stats-toggle-btn',
+    '.category-stats-toggle-content',
+    '.category-stats-toggle-text',
+    'Category Stats'
+  );
 
   // Initialize tooltips for all elements on page load
   if (window.initMinimalTooltips) {

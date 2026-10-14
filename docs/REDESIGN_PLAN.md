@@ -23,11 +23,14 @@ A well-built web app can do the app's job on its own. The web already holds all 
 
 ### Phase 0 · Fix the glitches
 
-- [ ] Load `modal.js` only 1 time (remove it from `budget_detail.html`); stop the double handlers
-- [ ] Lock each toggle while its animation runs, so the label always matches the panel
-- [ ] Add a unique `(user, month)` constraint on `Budget`; merge existing duplicates in the migration
+- [x] Load `modal.js` only 1 time (it loaded 2 times on 4 pages); stop the double handlers
+- [x] Lock each toggle while its animation runs, so the label always matches the panel
+- [x] Stop the summary refresh from nesting a 2nd summary section (the "2 Hide buttons" glitch)
+- [x] Make tall modals scroll, so Save and Cancel are reachable on short screens and phones
+- [x] Add a unique `(user, month)` constraint on `Budget`; merge existing duplicates in the migration
 - [ ] Serve the app over HTTPS (for example `tailscale serve`); install it on a phone as a PWA
-- [ ] **Gate:** no double modals or wrong labels · all Django tests pass · a new test for duplicate months
+- [x] Playwright smoke tests for the budget page (`budgetapp/tests/test_budget_page_browser.py`)
+- [ ] **Gate:** no double modals or wrong labels · all Django tests pass · a new test for duplicate months · PWA installs over HTTPS
 
 ### Phase 1 · Foundation
 
@@ -144,10 +147,10 @@ The biggest gain is less typing: most budget apps lose users at data entry, not 
 
 | # | Recommendation | Why | Size | Done |
 | --- | --- | --- | --- | --- |
-| 1 | Add the unique `(user, month)` constraint now, before any redesign | It is a data bug today. 1 duplicate month breaks the web budget page. | Small | [ ] |
+| 1 | Add the unique `(user, month)` constraint now, before any redesign | It is a data bug today. 1 duplicate month breaks the web budget page. | Small | [x] |
 | 2 | Auto-copy recurring expenses into a new month | `Expense.is_recurring` exists but the user still builds each month by hand | Small | [ ] |
 | 3 | Use 1 grammar for quick add, voice and the agent intent schema | `groceries 2500 #cash` can map to the `expense_upsert` action in `docs/agent_intent/` | Medium | [ ] |
-| 4 | Add browser smoke tests (Playwright) for the budget page | They catch double modals and wrong labels. The Django tests do not test the UI. | Medium | [ ] |
+| 4 | Add browser smoke tests (Playwright) for the budget page | They catch double modals and wrong labels. The Django tests do not test the UI. | Medium | [x] |
 | 5 | Use `Decimal` for money in all views | 37 `float()` calls in `budgetapp/minimal/views/` can make totals differ by a small amount from the PDF | Small | [ ] |
 | 6 | Encrypt `resend_api_key` in the database | It is a plain `CharField` in `accounts/models.py` | Small | [ ] |
 | 7 | Remove the old one-time commands and `budgetapp/tests.py` | Old migration helpers add noise. `tests.py` breaks `manage.py test budgetapp.tests`. | Small | [ ] |
