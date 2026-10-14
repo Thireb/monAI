@@ -11,12 +11,16 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 from decimal import Decimal, InvalidOperation
 
 from budgetapp.models import Budget, Expense, SubExpense
 
 AMOUNT_RE = re.compile(r"^(\d[\d,]*(?:\.\d{1,2})?)(k)?$", re.IGNORECASE)
 MAX_AMOUNT = Decimal("99999999.99")
+# A spend saved offline keeps its own time only if it reaches the server within this time.
+OFFLINE_MAX_AGE = timedelta(days=7)
 
 
 class QuickAddError(ValueError):
@@ -99,10 +103,39 @@ def match_lines(budget: Budget, words: str, account: str = "") -> list[Expense]:
     return []
 
 
-def record_spend(line: Expense, amount: Decimal, note: str = "") -> SubExpense:
-    """Record a spend on ``line``. The note, or the line name, names the sub-expense."""
+def record_spend(
+    line: Expense, amount: Decimal, note: str = "", spent_at: datetime | None = None
+) -> SubExpense:
+    """Record a spend on ``line``. The note, or the line name, names the sub-expense.
+
+    ``spent_at`` is the time of a spend that was saved offline and sent later. The day chart
+    and Safe to spend today use it, so the spend counts on the day it was made.
+    """
     name = (note or line.name).strip()[:200]
-    return SubExpense.objects.create(expense=line, name=name, amount=amount, is_return=False)
+    spend = SubExpense.objects.create(expense=line, name=name, amount=amount, is_return=False)
+    if spent_at is not None:
+        SubExpense.objects.filter(pk=spend.pk).update(created_at=spent_at)
+        spend.created_at = spent_at
+    return spend
+
+
+def parse_spent_at(raw: str, now: datetime) -> datetime | None:
+    """Read the time (milliseconds since 1970) of a spend that was saved offline.
+
+    Return ``None`` for a missing or bad value, a time more than 1 minute in the future, or a
+    time more than ``OFFLINE_MAX_AGE`` ago. The spend then gets the time it reaches the server.
+    """
+    try:
+        millis = int(raw)
+    except (TypeError, ValueError):
+        return None
+    try:
+        when = datetime.fromtimestamp(millis / 1000, tz=dt_timezone.utc)
+    except (OverflowError, OSError, ValueError):
+        return None
+    if when > now + timedelta(minutes=1) or when < now - OFFLINE_MAX_AGE:
+        return None
+    return when
 
 
 def record_return(line: Expense, amount: Decimal, note: str = "") -> SubExpense:

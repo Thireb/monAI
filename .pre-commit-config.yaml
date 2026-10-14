@@ -61,6 +61,8 @@ repos:
     hooks:
       - id: prettier
         types_or: [javascript, css]
+        # Third-party minified files are kept exactly as published.
+        exclude: ^static/app/vendor/
         additional_dependencies:
           - prettier@3.2.5
 

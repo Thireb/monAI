@@ -129,6 +129,15 @@ class SpendTests(AppViewTestBase):
         self.assertContains(response, "Added!")
         self.assertContains(response, "9,500 left")
 
+    def test_spend_saved_offline_keeps_its_time(self) -> None:
+        when = timezone.now() - timezone.timedelta(hours=3)
+        response = self.spend(
+            amount="250", line=str(self.groceries.pk), spent_at=str(int(when.timestamp() * 1000))
+        )
+        self.assertContains(response, "toast--added")
+        spend = SubExpense.objects.get()
+        self.assertAlmostEqual(spend.created_at.timestamp(), when.timestamp(), delta=1)
+
     def test_spend_from_text(self) -> None:
         response = self.spend(text="groc 1.5k #cash")
         self.assertContains(response, "Added!")

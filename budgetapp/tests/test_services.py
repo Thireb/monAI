@@ -22,7 +22,13 @@ from budgetapp.models import (
 from budgetapp.services.bills import coming_up, month_bills
 from budgetapp.services.month import build_month_snapshot
 from budgetapp.services.months import create_month
-from budgetapp.services.quick_add import QuickAddError, match_lines, parse_amount, parse_spend_text
+from budgetapp.services.quick_add import (
+    QuickAddError,
+    match_lines,
+    parse_amount,
+    parse_spend_text,
+    parse_spent_at,
+)
 
 User = get_user_model()
 D = Decimal
@@ -181,6 +187,16 @@ class QuickAddParseTests(TestCase):
         self.assertEqual(parsed.amount, D("2500.00"))
         self.assertEqual(parsed.words, "eating out")
         self.assertEqual(parsed.account, "cash")
+
+    def test_spent_at_from_offline_saves(self) -> None:
+        now = timezone.make_aware(datetime(2026, 10, 14, 12, 0))
+        two_hours_ago = int((now.timestamp() - 7200) * 1000)
+        self.assertEqual(
+            parse_spent_at(str(two_hours_ago), now).timestamp(), now.timestamp() - 7200
+        )
+        for raw in ("", "abc", str(int(now.timestamp() * 1000) + 3_600_000), "1000", "9" * 30):
+            with self.subTest(raw=raw):
+                self.assertIsNone(parse_spent_at(raw, now))
 
     def test_text_needs_exactly_one_amount(self) -> None:
         with self.assertRaises(QuickAddError):

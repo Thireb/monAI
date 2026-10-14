@@ -17,6 +17,7 @@ from budgetapp.services.quick_add import (
     match_lines,
     parse_amount,
     parse_spend_text,
+    parse_spent_at,
     record_spend,
 )
 
@@ -66,7 +67,8 @@ class SpendCreateView(LoginRequiredMixin, View):
         except QuickAddError as exc:
             return _result(request, str(exc))
 
-        spend = record_spend(line, amount, note)
+        spent_at = parse_spent_at(request.POST.get("spent_at", ""), timezone.now())
+        spend = record_spend(line, amount, note, spent_at)
         snap = build_month_snapshot(budget, timezone.localdate())
         line_view = next((item for item in snap.lines if item.id == line.id), None)
         response = render(

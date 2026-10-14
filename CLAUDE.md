@@ -144,11 +144,12 @@ Give each module by name:
   budgetapp.tests.test_app_goals budgetapp.tests.test_app_browser
 ```
 
-On 2026-10-14, all 153 tests passed (about 2 minutes).
+On 2026-10-14, all 156 tests passed (about 2 minutes).
 Logs with `🔴 400` in the output are normal. Some tests check error responses.
 
-`test_budget_page_browser`, `test_pwa_offline` and `test_app_browser` drive headless Chromium with Playwright. It needs network
-access, because the page loads jQuery and anime.js from CDNs. It is skipped when
+`test_budget_page_browser`, `test_pwa_offline` and `test_app_browser` drive headless Chromium with Playwright. The classic pages need network
+access, because they load jQuery and anime.js from CDNs. The new UI loads HTMX and
+anime.js from `static/app/vendor/`. It is skipped when
 Playwright is missing. To set it up: `uv sync --extra dev`, then
 `.venv/bin/python -m playwright install chromium`.
 

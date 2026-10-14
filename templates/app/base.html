@@ -77,8 +77,10 @@
             <div id="line-sheet-body"></div>
         </dialog>
         <div id="toasts" class="toasts" aria-live="polite"></div>
-        <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+        <div id="outbox" class="outbox" role="status" hidden></div>
+        <script src="{% static 'app/vendor/htmx-2.0.4.min.js' %}"></script>
+        <script src="{% static 'app/vendor/anime-3.2.1.min.js' %}"></script>
+        <script src="{% versioned_static 'app/js/outbox.js' %}"></script>
         <script src="{% versioned_static 'app/js/app.js' %}"></script>
         <script src="{% versioned_static 'js/pwa-register.js' %}"></script>
         {% block page_js %}{% endblock page_js %}

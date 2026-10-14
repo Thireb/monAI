@@ -1,7 +1,7 @@
 """Browser tests for the new UI (/app/) with Playwright and headless Chromium.
 
-Like the other browser tests, they need network access for the CDN scripts (HTMX, anime.js)
-and are skipped when Playwright or its Chromium build is missing.
+HTMX and anime.js come from ``static/app/vendor/``, so only the web fonts need the network.
+The tests are skipped when Playwright or its Chromium build is missing.
 """
 
 from __future__ import annotations
@@ -227,3 +227,23 @@ class AppBrowserTests(StaticLiveServerTestCase):
         page.wait_for_selector(f"#debt-{debt.pk} >> text=Repaid 1,000 of 3,000 borrowed")
         line = Expense.objects.get(tag_foreign_key=debt.debt_tag)
         self.assertEqual((line.budget, line.amount), (self.budget, D("1000")))
+
+    def test_offline_quick_add_is_sent_when_online(self) -> None:
+        page = self.open(reverse("app:home"))
+        self.context.set_offline(True)
+        page.keyboard.press("/")
+        page.fill("#quick-add [name=amount]", "700")
+        page.click(f"label[for=qa-line-{self.groceries.pk}]")
+        page.click("#quick-add button[type=submit]")
+        page.wait_for_selector("text=Saved on this device")
+        page.wait_for_selector("#outbox >> text=1 spend waits for the network")
+        self.assertFalse(SubExpense.objects.exists())
+
+        self.context.set_offline(False)
+        page.wait_for_selector("text=Sent 1 spend saved offline.")
+        page.wait_for_selector("#outbox", state="hidden")
+        spend = SubExpense.objects.get()
+        self.assertEqual((spend.expense, spend.amount), (self.groceries, D("700")))
+        page.wait_for_function(
+            "document.querySelector('#home-panel').innerText.includes('30,300 left')"
+        )

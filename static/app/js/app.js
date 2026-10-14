@@ -57,6 +57,90 @@
     return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
   }
 
+  // ---------- Offline quick add ----------
+
+  function quickAddForm() {
+    const dialog = sheet();
+    return dialog ? dialog.querySelector('form') : null;
+  }
+
+  // A toast made in the browser (the server makes the others). Text only, no HTML.
+  function localToast(message, isError) {
+    const box = document.getElementById('toasts');
+    if (!box) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast' + (isError ? ' toast--error' : '');
+    toast.setAttribute('role', isError ? 'alert' : 'status');
+    toast.setAttribute('data-autoclose', isError ? '8000' : '5000');
+    const text = document.createElement('span');
+    text.textContent = message;
+    toast.appendChild(text);
+    box.appendChild(toast);
+    scheduleToast(toast);
+  }
+
+  function showOutboxCount(count) {
+    const pill = document.getElementById('outbox');
+    if (!pill) return;
+    pill.hidden = !count;
+    pill.textContent =
+      count === 1 ? '1 spend waits for the network' : count + ' spends wait for the network';
+  }
+
+  function refreshOutboxCount() {
+    if (window.monaiOutbox) window.monaiOutbox.count().then(showOutboxCount);
+  }
+
+  // Keep the quick-add form in the outbox. Return false if it is not complete enough.
+  function queueQuickAdd(form) {
+    const data = new FormData(form);
+    const fields = {};
+    data.forEach((value, key) => {
+      fields[key] = String(value).trim();
+    });
+    const result = form.querySelector('#quick-add-result');
+    if (!fields.text && !(fields.amount && fields.line)) {
+      if (result) {
+        result.innerHTML = '';
+        const message = document.createElement('p');
+        message.className = 'form-error';
+        message.textContent = 'You are offline. Type an amount and pick a line.';
+        result.appendChild(message);
+      }
+      return false;
+    }
+    window.monaiOutbox
+      .add(form.getAttribute('hx-post'), fields)
+      .then(count => {
+        closeSheet();
+        showOutboxCount(count);
+        localToast('Saved on this device. monAI sends it when you are online.');
+      })
+      .catch(() => localToast('This browser cannot save the spend offline.', true));
+    return true;
+  }
+
+  function sendOutbox() {
+    if (!window.monaiOutbox || !navigator.onLine) return;
+    window.monaiOutbox
+      .send()
+      .then(report => {
+        refreshOutboxCount();
+        if (report.sent) {
+          localToast(
+            report.sent === 1
+              ? 'Sent 1 spend saved offline.'
+              : 'Sent ' + report.sent + ' spends saved offline.'
+          );
+          if (window.htmx) window.htmx.trigger(document.body, 'monthChanged');
+        }
+        report.failed.forEach(label => {
+          localToast('Could not add "' + label + '". Please add it again.', true);
+        });
+      })
+      .catch(() => {});
+  }
+
   // ---------- Line sheet ----------
 
   function lineSheet() {
@@ -198,6 +282,25 @@
 
   document.body.addEventListener('htmx:confirm', confirmTap);
 
+  // Offline: keep quick-add spends on the device instead of sending them.
+  document.body.addEventListener('htmx:beforeRequest', event => {
+    const form = quickAddForm();
+    if (!form || event.detail.elt !== form || navigator.onLine) return;
+    event.preventDefault();
+    queueQuickAdd(form);
+  });
+
+  // The network can fail while the browser still says "online".
+  document.body.addEventListener('htmx:sendError', event => {
+    const form = quickAddForm();
+    if (form && event.detail.elt === form) queueQuickAdd(form);
+  });
+
+  window.addEventListener('online', sendOutbox);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') sendOutbox();
+  });
+
   // Sent with a goal milestone or a paid-off debt.
   document.body.addEventListener('celebrate', celebrate);
 
@@ -216,4 +319,6 @@
   // Toasts arrive out of band, so check the whole page after each swap.
   document.body.addEventListener('htmx:afterSettle', () => scheduleToasts(document));
   scheduleToasts(document);
+  refreshOutboxCount();
+  sendOutbox();
 })();

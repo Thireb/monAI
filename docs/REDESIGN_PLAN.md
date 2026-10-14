@@ -68,7 +68,7 @@ This removes about 5,900 lines of Dart and about 2,100 lines of mobile sync code
 - [x] Progress rings for goals; a payoff date for each debt (`/app/goals/`, with add money, repay and borrow)
 - [x] Bill timeline on the home page and on the month page, with "Add bills to this month"
 - [ ] Web Push notifications for bill reminders
-- [ ] Offline quick add: save to IndexedDB, send when the network comes back
+- [x] Offline quick add: save to IndexedDB, send when the network comes back
 - [ ] Move all other pages to the components
 - [ ] **Gate:** no jQuery page code remains · Bootstrap removed · every page works in dark mode
 
