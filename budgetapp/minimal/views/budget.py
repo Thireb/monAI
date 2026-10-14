@@ -213,13 +213,16 @@ class BudgetCreateView(LoginRequiredView):
             else:
                 target_month_date = timezone.now().date().replace(day=1)
 
-        if Budget.objects.filter(
-            user=request.user, month=target_month_date, is_archived=False
-        ).exists():
+        existing = Budget.objects.filter(user=request.user, month=target_month_date).first()
+        if existing is not None:
+            suffix = " (archived)" if existing.is_archived else ""
             return JsonResponse(
                 {
                     "status": "error",
-                    "message": f"Budget for {target_month_date.strftime('%B %Y')} already exists.",
+                    "message": (
+                        f"Budget for {target_month_date.strftime('%B %Y')} "
+                        f"already exists{suffix}."
+                    ),
                 },
                 status=400,
             )

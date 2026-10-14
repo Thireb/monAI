@@ -76,6 +76,23 @@ class MobileBudgetPushView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        taken_ids: list[int] = []
+        for item in ser.validated_data:
+            budget_id = item.get("id")
+            if budget_id is None:
+                continue
+            clash = Budget.objects.filter(user=user, month=item["month"]).exclude(pk=budget_id)
+            if clash.exists():
+                taken_ids.append(budget_id)
+        if taken_ids:
+            return Response(
+                {
+                    "detail": "Another budget already uses that month.",
+                    "conflicting_ids": taken_ids,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         created_ids: list[int] = []
         updated_ids: list[int] = []
         server_ids: list[int] = []
@@ -87,14 +104,17 @@ class MobileBudgetPushView(APIView):
                 currency = item["currency"]
                 is_archived = item.get("is_archived", False)
                 if budget_id is None:
-                    b = Budget.objects.create(
+                    # A month that already exists is updated, not duplicated.
+                    b, created = Budget.objects.update_or_create(
                         user=user,
                         month=month,
-                        income=income,
-                        currency=currency,
-                        is_archived=is_archived,
+                        defaults={
+                            "income": income,
+                            "currency": currency,
+                            "is_archived": is_archived,
+                        },
                     )
-                    created_ids.append(b.id)
+                    (created_ids if created else updated_ids).append(b.id)
                     server_ids.append(b.id)
                 else:
                     try:

@@ -39,6 +39,13 @@ class Budget(models.Model):
         indexes = [
             models.Index(fields=["-month"]),
         ]
+        constraints = [
+            # One budget per user per month, archived or not.
+            models.UniqueConstraint(
+                fields=["user", "month"],
+                name="unique_budget_month_per_user",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.month.strftime("%B %Y")
