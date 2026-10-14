@@ -1,0 +1,18 @@
+{% extends "app/base.html" %}
+{% block title %}monAI · Home{% endblock title %}
+{% block month_link %}{{ month_url }}{% endblock month_link %}
+{% block content %}
+    {% if snap %}
+        {% include "app/partials/home_panel.html" %}
+    {% else %}
+        <section class="card empty">
+            <h1>{{ today|date:"F Y" }} has no budget yet</h1>
+            <p>Start the month to see what you can spend each day.</p>
+            <form method="post" action="{% url 'app:month_create' year=today.year month=today.month %}" class="row">
+                {% csrf_token %}
+                <button type="submit" name="copy" value="1" class="btn btn--primary">Copy last month</button>
+                <button type="submit" name="copy" value="0" class="btn">Start empty</button>
+            </form>
+        </section>
+    {% endif %}
+{% endblock content %}

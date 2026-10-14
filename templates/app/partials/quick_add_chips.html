@@ -1,0 +1,20 @@
+{% load app_format %}
+{# Line chips of the quick-add sheet. Refreshes itself after each change. #}
+<div class="chips"
+     id="quick-add-chips"
+     hx-get="{% url 'app:month_panel' year=budget.month.year month=budget.month.month %}?view=sheet"
+     hx-trigger="monthChanged from:body"
+     hx-swap="outerHTML">
+    {% for line in lines %}
+        <input class="chip-input"
+               type="radio"
+               name="line"
+               id="qa-line-{{ line.id }}"
+               value="{{ line.id }}">
+        <label class="chip" for="qa-line-{{ line.id }}">
+            {{ line.name }} <span class="muted small">{{ line.left|money }} left</span>
+        </label>
+    {% empty %}
+        <p class="muted small">This month has no lines yet. Add one on the month page.</p>
+    {% endfor %}
+</div>

@@ -35,19 +35,21 @@ A well-built web app can do the app's job on its own. The web already holds all 
 
 ### Phase 1 · Foundation
 
-- [ ] Colour tokens on `:root` with a dark set; a tabular-figure font for money values
-- [ ] Template components: card, money value, progress bar, modal, toast, empty state
-- [ ] Add HTMX; load 1 JS file per page; `base.html` loads only shared code
-- [ ] **Gate:** `base.html` loads shared JS only · the components work on 1 real page · light and dark themes both read well
+- [x] Colour tokens on `:root` with a dark set; tabular figures for money values (`static/app/css/tokens.css`)
+- [x] Template components: card, money value, progress bar, ring, sheet, toast, empty state (`templates/app/components/`, `static/app/css/components.css`)
+- [x] Add HTMX; the new `templates/app/base.html` loads only shared code (`static/app/js/app.js`)
+- [x] Service layer for all money figures (`budgetapp/services/`), with unit tests
+- [x] **Gate:** `base.html` loads shared JS only · the components work on 1 real page · light and dark themes both read well
 
 ### Phase 2 · Home, budget month, quick add
 
-- [ ] Home: *Safe to spend today*, the month ring and the next 3 bills
-- [ ] Budget month: account cards with fill bars, lines grouped by category, HTMX partials
-- [ ] Day-by-day spend chart against the daily limit (from direction B)
-- [ ] Quick add: command bar (`/` or `+`, then `groceries 2500 #cash`) and the phone sheet
-- [ ] "Added!" reward moment with Undo (from direction C)
-- [ ] Phone-first layout: bottom navigation bar and a floating + button
+- [x] Home (`/app/`): *Safe to spend today*, streak, the month ring, accounts, day-to-day lines, the next 3 bills, goals
+- [x] Budget month (`/app/month/<y>/<m>/`): stats, account cards, lines grouped by category, add-a-line form, HTMX partials
+- [x] "Day-to-day" flag on lines (`Expense.is_daily`), toggled on the month page; Safe to spend today uses it
+- [x] Day-by-day spend chart against the daily limit (from direction B)
+- [x] Quick add: `/` or `+` opens the sheet; amount + line chips, or type `groceries 2500 #cash`
+- [x] "Added!" reward moment with confetti and Undo (from direction C)
+- [x] Phone-first layout: bottom navigation bar and a floating + button; the installed app opens on `/app/`
 - [ ] **Gate:** add an expense in 5 s or less · no money math in JavaScript · the owner uses it for 2 weeks
 
 ### Retire the Flutter app (after Phase 2)
@@ -164,8 +166,8 @@ The biggest gain is less typing: most budget apps lose users at data entry, not 
 | --- | --- | --- |
 | Mobile client | Drop the Flutter app; the web (PWA) is the only client | Decided 2026-10-14 |
 | UI look | A · Soft Garden, plus B's daily chart and C's reward moment | Decided 2026-10-14 |
-| Front-end stack | HTMX + Alpine.js (default), or a full SPA such as React | Open |
-| Remote access | Tailscale (default), or a public HTTPS server | Open |
+| Front-end stack | HTMX + small vanilla JS (Alpine.js not needed so far) | Decided 2026-10-14 (default) |
+| Remote access | Tailscale, with `tailscale serve` for HTTPS | Decided 2026-10-14 |
 | Who uses monAI | Only the owner and family (default), or public users | Open |
 | Bootstrap | Remove it in Phase 3 (default), or keep it and only restyle | Open |
 | Flutter code | Delete it from the repo (default), or move it to an archive branch first | Open |

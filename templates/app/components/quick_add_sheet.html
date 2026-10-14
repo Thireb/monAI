@@ -1,0 +1,44 @@
+{% load app_format %}
+{# Quick-add sheet. Context: quick_add = {budget, lines, action}. #}
+<dialog id="quick-add" class="sheet" aria-labelledby="quick-add-title">
+    <div class="sheet__grip" aria-hidden="true"></div>
+    <form class="stack"
+          hx-post="{{ quick_add.action }}"
+          hx-target="#quick-add-result"
+          hx-swap="innerHTML"
+          hx-disabled-elt="find button[type='submit']">
+        <input type="hidden" name="budget" value="{{ quick_add.budget.pk }}">
+        <div class="row">
+            <h2 id="quick-add-title">Add a spend</h2>
+            <button type="button" class="icon-btn" data-close-quick-add aria-label="Close">✕</button>
+        </div>
+        <label class="sheet__amount">
+            <span class="small muted">{{ quick_add.budget.currency }}</span>
+            <input name="amount"
+                   inputmode="decimal"
+                   autocomplete="off"
+                   placeholder="0"
+                   aria-label="Amount">
+        </label>
+        <fieldset class="stack">
+            <legend class="field">Line</legend>
+            {% include "app/partials/quick_add_chips.html" with lines=quick_add.lines budget=quick_add.budget %}
+        </fieldset>
+        <label class="field">
+            Note (optional)
+            <input name="note" maxlength="200" autocomplete="off" placeholder="What was it?">
+        </label>
+        <label class="field">
+            Or just type it
+            <input name="text"
+                   autocomplete="off"
+                   placeholder="groceries 2500 #cash"
+                   aria-describedby="quick-add-text-help">
+        </label>
+        <p id="quick-add-text-help" class="small muted">
+            Typed text wins: name a line, an amount, and #account if 2 lines share a name.
+        </p>
+        <div id="quick-add-result" aria-live="polite"></div>
+        <button type="submit" class="btn btn--primary btn--block">Add spend</button>
+    </form>
+</dialog>

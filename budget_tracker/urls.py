@@ -35,4 +35,5 @@ urlpatterns: list[URLPattern | URLResolver] = [
     # Redirect root to minimal theme
     path("", redirect_to_minimal, name="root_redirect"),
     path("minimal/", include("budgetapp.minimal.urls", namespace="minimal")),
+    path("app/", include("budgetapp.app.urls", namespace="app")),
 ]

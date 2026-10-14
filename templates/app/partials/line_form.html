@@ -1,0 +1,25 @@
+{# Add-a-line form. Context: line_form, budget, optional saved_name. #}
+<form id="line-form"
+      class="line-form"
+      hx-post="{% url 'app:line_create' year=budget.month.year month=budget.month.month %}"
+      hx-target="this"
+      hx-swap="outerHTML">
+    {% if saved_name %}
+        <p class="form-ok" role="status">Added the line "{{ saved_name }}".</p>
+    {% endif %}
+    {% if line_form.non_field_errors %}<p class="form-error">{{ line_form.non_field_errors|join:" " }}</p>{% endif %}
+    <div class="line-form__fields">
+        {% for field in line_form %}
+            {% if field.field.widget.input_type == "checkbox" %}
+                <label class="check">{{ field }} {{ field.label }}</label>
+            {% else %}
+                <label class="field">
+                    {{ field.label }}
+                    {{ field }}
+                    {% for error in field.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                </label>
+            {% endif %}
+        {% endfor %}
+    </div>
+    <button type="submit" class="btn btn--primary">Add line</button>
+</form>

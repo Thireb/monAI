@@ -1,0 +1,20 @@
+{% load app_format %}
+{# Message inside the quick-add sheet. Context: message, choices (lines), amount. #}
+<div class="quick-add-message" role="alert">
+    <p class="form-error">{{ message }}</p>
+    {% if choices %}
+        <div class="chips">
+            {% for line in choices %}
+                <button type="button"
+                        class="chip"
+                        hx-post="{% url 'app:spend_create' %}"
+                        hx-include="closest form"
+                        hx-vals='{"line": "{{ line.pk }}", "amount": "{{ amount }}", "text": ""}'
+                        hx-target="#quick-add-result">
+                    {{ line.name }}
+                    {% if line.tag_foreign_key %}<span class="muted small">{{ line.tag_foreign_key.name }}</span>{% endif %}
+                </button>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>

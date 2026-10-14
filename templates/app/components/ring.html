@@ -1,0 +1,12 @@
+{# Ring chart. Parameters: pct (0-100), value (text in the middle), caption, label, small, sun. #}
+<!-- djlint:off H021 -->
+<div class="ring{% if small %} ring--small{% endif %}{% if sun %} ring--sun{% endif %}"
+     role="img"
+     aria-label="{{ label }}"
+     style="--pct: {{ pct }}">
+    <!-- djlint:on -->
+    <div class="ring__hole">
+        <span class="ring__value">{{ value }}</span>
+        {% if caption %}<span class="small muted">{{ caption }}</span>{% endif %}
+    </div>
+</div>

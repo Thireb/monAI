@@ -1,0 +1,11 @@
+{# Progress bar. Parameters: pct (0-100), status (ok, close, done, over), label, thick (optional). #}
+<div class="bar{% if thick %} bar--thick{% endif %}"
+     role="progressbar"
+     aria-valuenow="{{ pct }}"
+     aria-valuemin="0"
+     aria-valuemax="100"
+     aria-label="{{ label }}">
+    <!-- djlint:off H021 -->
+    <div class="bar__fill" data-status="{{ status }}" style="--pct: {{ pct }}"></div>
+    <!-- djlint:on -->
+</div>

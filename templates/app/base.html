@@ -1,0 +1,79 @@
+{% load static static_version %}<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+        <meta name="description"
+              content="monAI: a personal budget tracker. See what you can spend today.">
+        <meta name="keywords" content="budget, expenses, income, savings">
+        <title>
+            {% block title %}monAI{% endblock title %}
+        </title>
+        <meta name="theme-color" content="#2E8B57">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="monAI">
+        <link rel="manifest" href="{% static 'material/favicon/site.webmanifest' %}">
+        <link rel="icon" type="image/svg+xml" href="{% static 'material/favicon/monai-icon.svg' %}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{% static 'material/favicon/apple-touch-icon.png' %}">
+        <script src="{% versioned_static 'app/js/theme-init.js' %}"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap"
+              rel="stylesheet">
+        <link rel="stylesheet" href="{% versioned_static 'app/css/tokens.css' %}">
+        <link rel="stylesheet" href="{% versioned_static 'app/css/components.css' %}">
+        <link rel="stylesheet" href="{% versioned_static 'app/css/pages.css' %}">
+        {% block page_css %}{% endblock page_css %}
+    </head>
+    <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+        <a class="visually-hidden" href="#main">Skip to content</a>
+        <div class="app-shell">
+            <header class="app-header">
+                <div class="app-header__left">
+                    <a class="logo" href="{% url 'app:home' %}">mon<span>AI</span></a>
+                    {% block month_nav %}{% endblock month_nav %}
+                </div>
+                <div class="app-header__right">
+                    {% if quick_add %}
+                        <button type="button" class="btn btn--primary hide-phone" data-open-quick-add>
+                            + Add spend <span class="btn__hint">press /</span>
+                        </button>
+                    {% endif %}
+                    <button type="button"
+                            class="icon-btn hide-phone"
+                            data-theme-toggle
+                            aria-label="Switch between light and dark theme">
+                        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+                        </svg>
+                    </button>
+                    <a class="btn btn--small hide-phone" href="{% url 'minimal:home' %}">Classic view</a>
+                </div>
+            </header>
+            <main id="main" class="stack">
+                {% block content %}{% endblock content %}
+            </main>
+        </div>
+        <nav class="bottom-nav" aria-label="Main">
+            <a href="{% url 'app:home' %}" {% if nav == 'home' %}aria-current="page"{% endif %}>Home</a>
+            <a href="{% block month_link %}{% url 'app:home' %}{% endblock month_link %}"
+               {% if nav == 'month' %}aria-current="page"{% endif %}>Month</a>
+            {% if quick_add %}
+                <button type="button" class="bottom-nav__add" data-open-quick-add aria-label="Add a spend">+</button>
+            {% else %}
+                <span aria-hidden="true"></span>
+            {% endif %}
+            <a href="{% url 'minimal:goal_list' %}">Goals</a>
+            <a href="{% url 'minimal:home' %}">Classic</a>
+        </nav>
+        {% if quick_add %}
+            {% include "app/components/quick_add_sheet.html" %}
+        {% endif %}
+        <div id="toasts" class="toasts" aria-live="polite"></div>
+        <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+        <script src="{% versioned_static 'app/js/app.js' %}"></script>
+        <script src="{% versioned_static 'js/pwa-register.js' %}"></script>
+        {% block page_js %}{% endblock page_js %}
+    </body>
+</html>

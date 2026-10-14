@@ -1,0 +1,102 @@
+{% load app_format %}
+{# Month panel: refreshes after each change (monthChanged). Context: snap, budget. #}
+<div id="month-panel"
+     class="stack"
+     hx-get="{% url 'app:month_panel' year=budget.month.year month=budget.month.month %}?view=month"
+     hx-trigger="monthChanged from:body"
+     hx-swap="outerHTML">
+    <section class="stat-strip" aria-label="Month at a glance">
+        {% if snap.safe_today is not None %}
+            <div class="stat {% if snap.over_today %}stat--over{% else %}stat--good{% endif %}">
+                <span class="small">Safe to spend today</span>
+                {% if snap.over_today %}
+                    <span class="money money--big">−{{ snap.over_today|money_whole:'up' }}</span>
+                    <span class="small">over today</span>
+                {% else %}
+                    <span class="money money--big">{{ snap.safe_today|money_whole }}</span>
+                    <span class="small">{{ snap.days_left }} day{{ snap.days_left|pluralize }} to go</span>
+                {% endif %}
+            </div>
+        {% endif %}
+        <div class="stat">
+            <span class="small muted">Income</span>
+            <span class="money money--big">{{ snap.income|money }}</span>
+            <span class="small muted">{{ budget.currency }}</span>
+        </div>
+        <div class="stat">
+            <span class="small muted">Given to lines</span>
+            <span class="money money--big">{{ snap.gross|money }}</span>
+            <span class="small muted">{{ snap.allocated_pct }}% of income</span>
+        </div>
+        <div class="stat">
+            <span class="small muted">Spent</span>
+            <span class="money money--big">{{ snap.spent|money }}</span>
+            {% if snap.returns %}
+                <span class="small muted">{{ snap.returns|money }} returned</span>
+            {% else %}
+                <span class="small muted">this month</span>
+            {% endif %}
+        </div>
+        <div class="stat">
+            <span class="small muted">Not yet given a job</span>
+            <span class="money money--big money--good">{{ snap.unallocated|money }}</span>
+            <span class="small muted">{{ budget.currency }}</span>
+        </div>
+    </section>
+    {% if snap.has_daily_lines %}
+        <section class="card stack" aria-labelledby="daily-chart-title">
+            <div class="row">
+                <h2 id="daily-chart-title">Day-to-day spend by day</h2>
+                <span class="small muted">Line = daily limit of {{ snap.daily_limit|money_whole }}</span>
+            </div>
+            <div class="day-chart"
+                 role="img"
+                 aria-label="Day-to-day spending for each day of {{ budget.month|date:'F' }}">
+                <!-- djlint:off H021 -->
+                <div class="day-chart__limit" style="--pct: {{ snap.limit_line_pct }}"></div>
+                {% for bar in snap.days %}
+                    <div class="day-chart__bar{% if bar.is_over %} is-over{% endif %}{% if bar.is_today %} is-today{% endif %}{% if bar.is_future %} is-future{% endif %}"
+                         style="--pct: {{ bar.height_pct }}"
+                         title="{{ bar.day }} {{ budget.month|date:'M' }}: {{ bar.spent|money }}"></div>
+                {% endfor %}
+                <!-- djlint:on -->
+            </div>
+            <div class="row small muted">
+                <span>1 {{ budget.month|date:"M" }}</span>
+                {% if snap.is_current %}<span>{{ today|date:"j M" }} · today</span>{% endif %}
+                <span>{{ snap.days_in_month }} {{ budget.month|date:"M" }}</span>
+            </div>
+        </section>
+    {% endif %}
+    {% if snap.accounts %}
+        <section class="grid grid--accounts" aria-label="Accounts">
+            {% for account in snap.accounts %}
+                {% include "app/partials/account_card.html" %}
+            {% endfor %}
+        </section>
+    {% endif %}
+    <section id="lines" class="card stack" aria-labelledby="lines-title">
+        <div class="row">
+            <h2 id="lines-title">Lines</h2>
+            <span class="small muted">Tap "Day-to-day" on lines like groceries and transport.</span>
+        </div>
+        {% for group in snap.categories %}
+            <div class="line-group">
+                <div class="line-group__head">
+                    <span class="account-card__name">
+                        <!-- djlint:off H021 -->
+                        <span class="swatch" style="--swatch: {{ group.color }}"></span>
+                        <!-- djlint:on -->
+                        {{ group.name }}
+                    </span>
+                    <span class="small muted">{{ group.left|money }} left of {{ group.amount|money }}</span>
+                </div>
+                {% for line in group.lines %}
+                    {% include "app/partials/line_row.html" with show_toggle=True %}
+                {% endfor %}
+            </div>
+        {% empty %}
+            <p class="muted">No lines yet. Add your first line below.</p>
+        {% endfor %}
+    </section>
+</div>

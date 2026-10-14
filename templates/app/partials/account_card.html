@@ -1,0 +1,18 @@
+{% load app_format %}
+{# One account card. Context: account (AccountView), budget. #}
+<div class="card stack account-card">
+    <div class="row">
+        <span class="account-card__name">
+            <!-- djlint:off H021 -->
+            <span class="swatch" style="--swatch: {{ account.color }}"></span>
+            <!-- djlint:on -->
+            {{ account.name }}
+        </span>
+        <span class="small muted">{{ account.used_pct }}% used</span>
+    </div>
+    {% include "app/components/progress.html" with pct=account.used_pct status=account.status thick=True label=account.name %}
+    <div class="row small">
+        <span class="muted">{{ budget.currency }} {{ account.used|money }} used</span>
+        <span class="money">of {{ account.total|money }}</span>
+    </div>
+</div>

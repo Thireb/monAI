@@ -1,0 +1,33 @@
+{% load app_format %}
+{# One expense line. Context: line (LineView), optional show_toggle. #}
+<div class="line-row" data-line-id="{{ line.id }}">
+    <!-- djlint:off H021 -->
+    <span class="line-row__icon" style="--swatch: {{ line.category_color }}" aria-hidden="true">{{ line.name|slice:":1"|upper }}</span>
+    <!-- djlint:on -->
+    <div class="line-row__body">
+        <div class="line-row__title">
+            <span class="line-row__name">{{ line.name }}</span>
+            <span class="badge">{{ line.account_name }}</span>
+            {% if show_toggle %}
+                <button type="button"
+                        class="chip chip--tiny"
+                        aria-pressed="{% if line.is_daily %}true{% else %}false{% endif %}"
+                        hx-post="{% url 'app:line_daily' pk=line.id %}"
+                        hx-swap="none">Day-to-day</button>
+            {% endif %}
+        </div>
+        {% include "app/components/progress.html" with pct=line.used_pct status=line.status label=line.name %}
+    </div>
+    <div class="line-row__numbers">
+        {% if line.status == "done" %}
+            <span class="money">Done</span>
+            <span class="small muted">paid {{ line.amount|money }}</span>
+        {% elif line.status == "over" %}
+            <span class="money money--over">{{ line.left|absolute|money }} over</span>
+            <span class="small muted">of {{ line.amount|money }}</span>
+        {% else %}
+            <span class="money">{{ line.left|money }} left</span>
+            <span class="small muted">of {{ line.amount|money }}</span>
+        {% endif %}
+    </div>
+</div>

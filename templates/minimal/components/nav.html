@@ -9,6 +9,9 @@
             <ul class="navbar-nav ms-auto">
                 {% if user.is_authenticated %}
                 <li class="nav-item">
+                    <a class="nav-link fw-bold" href="{% url 'app:home' %}">New design</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'budget_detail' %}active{% endif %}"
                         aria-current="{% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'budget_detail' %}page{% endif %}"
                         href="{% url 'minimal:home' %}">Home</a>

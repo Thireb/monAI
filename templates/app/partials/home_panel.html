@@ -1,0 +1,121 @@
+{% load app_format %}
+{# Home panel: refreshes after each change (monthChanged). Context: snap, budget, month_url, daily_lines, bills, goals. #}
+<div id="home-panel"
+     class="stack"
+     hx-get="{% url 'app:month_panel' year=budget.month.year month=budget.month.month %}?view=home"
+     hx-trigger="monthChanged from:body"
+     hx-swap="outerHTML">
+    <section class="grid grid--hero" aria-label="Today">
+        {% if snap.safe_today is not None %}
+            <div class="card {% if snap.over_today %}card--over{% else %}card--soft{% endif %} span-2 stack">
+                <div class="row">
+                    <h1 class="h-label">Safe to spend today</h1>
+                    {% if snap.streak %}
+                        <span class="badge badge--streak">
+                            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-3 2-4 2-7 2 1 3 3 3 5" />
+                            </svg>
+                            {{ snap.streak }}-day streak under budget
+                        </span>
+                    {% endif %}
+                </div>
+                {% if snap.over_today %}
+                    <span class="money money--hero money--over" data-testid="safe-today">−{{ budget.currency }} {{ snap.over_today|money_whole:'up' }}</span>
+                    <p class="hero-sub">You are over today's {{ snap.allowance_today|money_whole }}. Tomorrow's amount gets a little smaller.</p>
+                {% else %}
+                    <span class="money money--hero" data-testid="safe-today">{{ budget.currency }} {{ snap.safe_today|money_whole }}</span>
+                    <p class="hero-sub">{{ snap.daily_left|money }} left in day-to-day lines · {{ snap.days_left }} day{{ snap.days_left|pluralize }} to go</p>
+                {% endif %}
+                {% if snap.recent_days %}
+                    <div class="week-strip" aria-label="Last {{ snap.recent_days|length }} days">
+                        {% for bar in snap.recent_days %}
+                            <div class="week-strip__day">
+                                <span class="week-strip__dot{% if bar.is_over %} week-strip__dot--over{% endif %}"
+                                      title="{{ bar.label }}: {{ bar.spent|money }}"></span>
+                                <span class="week-strip__label">{{ bar.label }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% elif snap.is_current %}
+            <div class="card card--sun span-2 stack">
+                <h1 class="h-label">Safe to spend today</h1>
+                <p>
+                    Mark your day-to-day lines, like groceries and transport. Then monAI shows what you can spend each day.
+                </p>
+                <a class="btn btn--primary" href="{{ month_url }}#lines">Choose day-to-day lines</a>
+            </div>
+        {% endif %}
+        <div class="card ring-card">
+            {% include "app/components/ring.html" with pct=snap.allocated_pct value=snap.allocated_pct|stringformat:"d"|add:"%" caption="allocated" label="Share of income given to lines" %}
+            <div class="stack">
+                <div>
+                    <div class="small muted">Income</div>
+                    <div class="money money--big">{{ budget.currency }} {{ snap.income|money }}</div>
+                </div>
+                <div>
+                    <div class="small muted">Not yet given a job</div>
+                    <div class="money money--big money--good">{{ budget.currency }} {{ snap.unallocated|money }}</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% if snap.accounts %}
+        <section class="grid grid--accounts" aria-label="Accounts">
+            {% for account in snap.accounts %}
+                {% include "app/partials/account_card.html" %}
+            {% endfor %}
+        </section>
+    {% endif %}
+    <section class="split">
+        <div class="split__main">
+            <div class="card stack">
+                <div class="row">
+                    <h2>Day-to-day lines</h2>
+                    <a class="btn btn--small" href="{{ month_url }}">All lines</a>
+                </div>
+                {% for line in daily_lines %}
+                    {% include "app/partials/line_row.html" %}
+                {% empty %}
+                    <p class="muted">No day-to-day lines yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <aside class="split__side">
+            <div class="card card--sun stack">
+                <h2>Coming up</h2>
+                {% for bill in bills %}
+                    <div class="bill">
+                        <div>
+                            <div class="bill__name">{{ bill.name }}</div>
+                            <div class="small muted">
+                                {% if bill.days_until == 0 %}
+                                    today
+                                {% else %}
+                                    in {{ bill.days_until }} day{{ bill.days_until|pluralize }}
+                                {% endif %}
+                                · {{ bill.due|date:"j M" }}
+                            </div>
+                        </div>
+                        <span class="money">{{ bill.amount|money }}</span>
+                    </div>
+                {% empty %}
+                    <p class="muted small">No bills due soon.</p>
+                {% endfor %}
+            </div>
+            {% for goal in goals %}
+                <a class="card goal-card" href="{% url 'minimal:goal_detail' goal_id=goal.id %}">
+                    {% include "app/components/ring.html" with pct=goal.pct value=goal.pct|stringformat:"d"|add:"%" small=True sun=True label="Goal progress" %}
+                    <div class="stack goal-card__text">
+                        <h3>{{ goal.name }}</h3>
+                        <span class="small">{{ goal.current|money }} of {{ goal.target|money }}</span>
+                        {% if goal.monthly_needed %}
+                            <span class="small muted">{{ goal.monthly_needed|money }} a month to reach it</span>
+                        {% endif %}
+                    </div>
+                </a>
+            {% endfor %}
+        </aside>
+    </section>
+</div>

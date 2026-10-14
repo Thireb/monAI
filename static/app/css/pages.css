@@ -1,0 +1,334 @@
+/* Page parts of the new UI: hero, week strip, lines, accounts, stats, day chart, forms. */
+
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+legend {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+/* ---------- Home hero ---------- */
+
+.h-label {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.hero-sub {
+  margin: 0;
+  font-size: 16px;
+}
+
+.week-strip {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.week-strip__day {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.week-strip__dot {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--green);
+}
+
+.week-strip__dot--over {
+  background: var(--sun);
+}
+
+.week-strip__label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ring-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Bills and goals ---------- */
+
+.bill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
+.bill__name {
+  font-weight: 700;
+}
+
+.goal-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.goal-card__text {
+  gap: 4px;
+}
+
+/* ---------- Accounts ---------- */
+
+.account-card__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 17px;
+}
+
+/* ---------- Lines ---------- */
+
+.line-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.line-group + .line-group {
+  margin-top: 12px;
+}
+
+.line-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+
+.line-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.line-row__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--swatch, var(--done)) 28%, var(--surface));
+}
+
+.line-row__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.line-row__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.line-row__name {
+  font-weight: 700;
+}
+
+.line-row__numbers {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+
+.chip--tiny {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+/* An unmarked "Day-to-day" toggle stays quiet; a marked one is green. */
+.chip--tiny[aria-pressed='false'] {
+  background: transparent;
+  border: 2px dashed var(--line);
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .line-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .line-row__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+  }
+
+  .line-row__numbers {
+    grid-column: 2;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+}
+
+/* ---------- Accounts row: scrolls sideways on phones ---------- */
+
+@media (max-width: 720px) {
+  .grid--accounts {
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: minmax(240px, 80%);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    margin: 0 -16px;
+    padding: 4px 16px 8px;
+  }
+
+  .grid--accounts > * {
+    scroll-snap-align: start;
+  }
+}
+
+/* ---------- Month stats ---------- */
+
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .stat-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat--good,
+  .stat--over {
+    grid-column: span 2;
+  }
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+
+.stat--good {
+  background: var(--green-soft);
+  color: var(--green-soft-ink);
+  box-shadow: none;
+}
+
+.stat--over {
+  background: var(--red-soft);
+  color: var(--red-ink);
+  box-shadow: none;
+}
+
+/* ---------- Day-by-day chart ---------- */
+
+.day-chart {
+  position: relative;
+  height: 140px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.day-chart__bar {
+  flex: 1;
+  min-height: 4px;
+  height: calc(var(--pct, 0) * 1%);
+  border-radius: 4px 4px 0 0;
+  background: var(--green);
+}
+
+.day-chart__bar.is-over {
+  background: var(--sun);
+}
+
+.day-chart__bar.is-today {
+  background: var(--green-ink);
+}
+
+.day-chart__bar.is-today.is-over {
+  background: var(--sun-ink);
+}
+
+.day-chart__bar.is-future {
+  background: var(--surface-2);
+}
+
+.day-chart__limit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--pct, 0) * 1%);
+  border-top: 2px dashed var(--ink-2);
+  pointer-events: none;
+}
+
+/* ---------- Forms ---------- */
+
+.line-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.line-form__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.form-ok {
+  margin: 0;
+  color: var(--green-ink);
+  font-weight: 700;
+}
+
+.quick-add-message {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quick-add-message p {
+  margin: 0;
+}

@@ -1,0 +1,32 @@
+{% load app_format %}
+{# Answer to a saved spend: clears the sheet message and adds the "Added!" card. #}
+<div hx-swap-oob="beforeend:#toasts">
+    <div class="toast toast--added" data-autoclose="{{ undo_ms }}" role="status">
+        <div class="row">
+            <span class="toast__title">Added!</span>
+            <button type="button" class="icon-btn" data-close-toast aria-label="Close">✕</button>
+        </div>
+        <span>{{ budget.currency }} {{ spend.amount|money }} to {{ spend.expense.name }}</span>
+        {% if line %}
+            <span class="small muted">
+                {% if line.status == "over" %}
+                    {{ line.name }} is {{ line.left|absolute|money }} over its amount.
+                {% else %}
+                    {{ line.name }} has {{ line.left|money }} left.
+                {% endif %}
+                {% if snap.safe_today is not None %}
+                    {% if snap.over_today %}
+                        You are {{ snap.over_today|money_whole:'up' }} over today.
+                    {% else %}
+                        Safe to spend today: {{ snap.safe_today|money_whole }}.
+                    {% endif %}
+                {% endif %}
+            </span>
+        {% endif %}
+        <button type="button"
+                class="btn btn--small"
+                hx-post="{% url 'app:spend_undo' pk=spend.pk %}"
+                hx-target="closest .toast"
+                hx-swap="outerHTML">Undo</button>
+    </div>
+</div>

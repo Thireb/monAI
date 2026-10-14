@@ -1,0 +1,87 @@
+/* monAI design tokens: "Soft Garden" (light) and its dark set.
+   Colour means status: green = on track, sun = close to the limit, red = over. */
+
+:root {
+  --font-display: 'Quicksand', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+
+  --bg: #fbf7ef;
+  --surface: #ffffff;
+  --surface-2: #f3eee3;
+  --line: #ece6d9;
+  --ink: #23302a;
+  --ink-2: #5e6b63;
+
+  --green: #2e8b57;
+  --green-ink: #1f5c39;
+  --green-soft: #e3f2e8;
+  --green-soft-ink: #2d5a41;
+  --sun: #f2b33d;
+  --sun-soft: #fff3d6;
+  --sun-ink: #8a5a00;
+  --red: #d9534f;
+  --red-soft: #fbe3dc;
+  --red-ink: #9a2f1f;
+  --done: #b9c4bd;
+  --on-accent: #ffffff;
+
+  --shadow: 0 1px 3px rgba(35, 48, 42, 0.08);
+  --shadow-lift: 0 -8px 30px rgba(35, 48, 42, 0.14);
+  --radius-sm: 12px;
+  --radius: 16px;
+  --radius-lg: 28px;
+  --gap: 20px;
+  --tap: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #121614;
+    --surface: #1b201d;
+    --surface-2: #252b27;
+    --line: #2c332f;
+    --ink: #e8ede9;
+    --ink-2: #a3aea7;
+
+    --green: #4cc285;
+    --green-ink: #8fe0b4;
+    --green-soft: #1e3328;
+    --green-soft-ink: #a8e6c4;
+    --sun: #f2b33d;
+    --sun-soft: #3a2e14;
+    --sun-ink: #f5c96a;
+    --red: #f0776c;
+    --red-soft: #3a2020;
+    --red-ink: #f5a49b;
+    --done: #56605a;
+    --on-accent: #0f1a14;
+
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-lift: 0 -8px 30px rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #121614;
+  --surface: #1b201d;
+  --surface-2: #252b27;
+  --line: #2c332f;
+  --ink: #e8ede9;
+  --ink-2: #a3aea7;
+
+  --green: #4cc285;
+  --green-ink: #8fe0b4;
+  --green-soft: #1e3328;
+  --green-soft-ink: #a8e6c4;
+  --sun: #f2b33d;
+  --sun-soft: #3a2e14;
+  --sun-ink: #f5c96a;
+  --red: #f0776c;
+  --red-soft: #3a2020;
+  --red-ink: #f5a49b;
+  --done: #56605a;
+  --on-accent: #0f1a14;
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 -8px 30px rgba(0, 0, 0, 0.5);
+}

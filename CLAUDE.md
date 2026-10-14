@@ -38,14 +38,17 @@ The `AGENTS.md` paths (`/workspace/venv`) are for Cursor Cloud. On this machine:
 | `budget_tracker/` | Settings. `config.py` loads `config.yaml`. |
 | `accounts/` | Custom user model and profile. Each user has a Resend key. |
 | `budgetapp/models.py` | All domain models. |
-| `budgetapp/minimal/views/` | Web UI views, 1 file per feature. |
+| `budgetapp/app/` | **New UI** at `/app/` (namespace `app`): views, forms, urls. New UI work goes here. |
+| `budgetapp/services/` | Money logic for the new UI: `month.py` (month figures, Safe to spend today), `quick_add.py`, `months.py`, `home.py`. |
+| `budgetapp/minimal/views/` | Classic web UI views (`/minimal/`), 1 file per feature. |
 | `budgetapp/minimal/urls.py` | Web UI routes, namespace `minimal`. |
 | `budgetapp/api_urls.py` | REST and mobile sync routes under `/api/`. |
 | `budgetapp/api_mobile_*.py` | Mobile pull/push views. |
 | `budgetapp/serializers_mobile.py` | Mobile sync serializers and `save_*_for_user` helpers. |
 | `budgetapp/tests/` | Django tests. |
 | `script_runner/` | Versioned management scripts. `registry.py` lists them. |
-| `templates/minimal/`, `static/{css,js}/minimal-*/` | Web UI templates and assets, by feature. |
+| `templates/app/`, `static/app/` | New UI templates (components, partials) and its CSS tokens and JS. |
+| `templates/minimal/`, `static/{css,js}/minimal-*/` | Classic UI templates and assets, by feature. |
 | `mobile/budget_mobile/lib/` | Flutter: `database/`, `repositories/`, `services/`, `screens/`. |
 | `docs/` | Project docs. `docs/agent_intent/` has the LLM action schemas. |
 
@@ -73,6 +76,11 @@ The `AGENTS.md` paths (`/workspace/venv`) are for Cursor Cloud. On this machine:
 Use `Budget.get_summary_display_strings()` and
 `Budget.get_tag_account_breakdown()`. Do not calculate these values again in
 views, templates or Dart. Use `Decimal` for money in Python.
+
+The new UI gets every figure from `build_month_snapshot()` in
+`budgetapp/services/month.py`. Its docstring defines a line's `left`
+(amount − spent − returned) and **Safe to spend today**, which uses only lines
+with `is_daily=True`. Add new figures there, with a test in `test_services.py`.
 
 ## Project rules
 
@@ -132,13 +140,14 @@ Give each module by name:
   budgetapp.tests.test_tag_transfers budgetapp.tests.test_bill_reminders \
   budgetapp.tests.test_budget_summary budgetapp.tests.test_user_resend_email \
   budgetapp.tests.test_budget_month_unique budgetapp.tests.test_budget_page_browser \
-  budgetapp.tests.test_pwa_offline
+  budgetapp.tests.test_pwa_offline budgetapp.tests.test_services budgetapp.tests.test_app_views \
+  budgetapp.tests.test_app_browser
 ```
 
-On 2026-10-14, all 79 tests passed (about 60 seconds).
+On 2026-10-14, all 124 tests passed (about 2 minutes).
 Logs with `🔴 400` in the output are normal. Some tests check error responses.
 
-`test_budget_page_browser` and `test_pwa_offline` drive headless Chromium with Playwright. It needs network
+`test_budget_page_browser`, `test_pwa_offline` and `test_app_browser` drive headless Chromium with Playwright. It needs network
 access, because the page loads jQuery and anime.js from CDNs. It is skipped when
 Playwright is missing. To set it up: `uv sync --extra dev`, then
 `.venv/bin/python -m playwright install chromium`.

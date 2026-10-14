@@ -1,0 +1,41 @@
+{% extends "app/base.html" %}
+{% block title %}monAI · {{ first_day|date:"F Y" }}{% endblock title %}
+{% block month_link %}{% url 'app:month' year=first_day.year month=first_day.month %}{% endblock month_link %}
+{% block month_nav %}
+    <nav class="month-nav" aria-label="Month">
+        <a class="icon-btn" href="{{ prev_url }}" aria-label="Previous month">‹</a>
+        <span class="month-nav__label">{{ first_day|date:"F Y" }}</span>
+        <a class="icon-btn" href="{{ next_url }}" aria-label="Next month">›</a>
+    </nav>
+{% endblock month_nav %}
+{% block content %}
+    {% if snap %}
+        {% include "app/partials/month_panel.html" %}
+        <section class="card stack" aria-labelledby="add-line-title">
+            <h2 id="add-line-title">Add a line</h2>
+            {% include "app/partials/line_form.html" %}
+            <p class="small muted">
+                To edit or delete a line, use the
+                <a href="{% url 'minimal:budget_detail' year=first_day.year month=first_day.month %}">classic month page</a>.
+            </p>
+        </section>
+    {% else %}
+        <section class="card empty">
+            <h1>{{ first_day|date:"F Y" }} has no budget yet</h1>
+            {% if previous_budget %}
+                <p>
+                    Copy the income and the repeating lines of {{ previous_budget.month|date:"F Y" }}, or start with an empty month.
+                </p>
+            {% else %}
+                <p>Start an empty month, then add your income and lines.</p>
+            {% endif %}
+            <form method="post" action="{% url 'app:month_create' year=first_day.year month=first_day.month %}" class="row">
+                {% csrf_token %}
+                {% if previous_budget %}
+                    <button type="submit" name="copy" value="1" class="btn btn--primary">Copy last month</button>
+                {% endif %}
+                <button type="submit" name="copy" value="0" class="btn">Start empty</button>
+            </form>
+        </section>
+    {% endif %}
+{% endblock content %}

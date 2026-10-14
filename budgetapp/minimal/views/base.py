@@ -52,14 +52,15 @@ class OfflineView(TemplateView):
 class OfflineUrlsView(LoginRequiredMixin, View):
     """List the pages the service worker should cache for offline use.
 
-    The list holds the home page, the offline page and, for each recent
-    budget month, its page and the partials that page loads after it opens.
+    The list holds the home pages, the offline page and, for each recent
+    budget month, its pages (new and classic) and the partials they load.
     """
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> JsonResponse:
         """Return ``{"urls": [...]}`` for the logged-in user."""
         year = timezone.now().year
         urls = [
+            reverse("app:home"),
             reverse("minimal:home"),
             reverse("minimal:offline"),
             reverse("minimal:calendar_content", kwargs={"year": year}),
@@ -67,6 +68,7 @@ class OfflineUrlsView(LoginRequiredMixin, View):
         budgets = Budget.objects.filter(user=request.user, is_archived=False)
         for budget in budgets.order_by("-month")[:OFFLINE_BUDGET_MONTHS]:
             ym = {"year": budget.month.year, "month": budget.month.month}
+            urls.append(reverse("app:month", kwargs=ym))
             for name in ("budget_detail", "summary_cards", "category_stats", "tag_stats"):
                 urls.append(reverse(f"minimal:{name}", kwargs=ym))
         return JsonResponse({"urls": urls})
