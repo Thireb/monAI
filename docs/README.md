@@ -513,6 +513,22 @@ Debt
 ## Deployment
 
 Self-hosted deployment is supported via **Docker** (`Dockerfile`, `docker-compose.yml`) or any WSGI host.
+For Docker, follow "Self-host with Docker" in the main [README](../README.md).
+
+Without `config.yaml`, these environment variables configure the app (Docker sets them from `.env`):
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `SECRET_KEY` | (required) | 50+ random characters |
+| `DEBUG` | `false` | Debug mode |
+| `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Host names, separated by commas |
+| `CSRF_TRUSTED_ORIGINS` | (empty) | Full HTTPS origins, separated by commas |
+| `HTTPS_ONLY` | `true` | `false` turns off the HTTPS redirect, HSTS and secure cookies (only to try the app) |
+| `ALLOW_SIGNUP` | `true` | `false` closes sign-up (also `app.allow_signup` in `config.yaml`) |
+| `TIMEZONE` | `Asia/Karachi` | Server time zone |
+| `DB_ENGINE`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | `mysql`, `monai`, `root`, empty, `127.0.0.1`, `3306` | Database |
+| `REDIS_CACHE_URL` | (empty: in-memory cache) | Redis cache URL |
+| `LOG_DIR` | the project folder | Folder for `debug.log` and `app.log` |
 
 Typical production steps:
 

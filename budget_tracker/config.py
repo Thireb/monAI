@@ -123,20 +123,22 @@ except FileNotFoundError:
             "local": "http://localhost:8000",
             "ngrok": "",
         },
+        # Docker (docker-compose.yml) sets these DB_* variables.
         "database": {
-            "engine": "mysql",
-            "name": "monai",
-            "user": "root",
-            "password": "",
-            "host": "127.0.0.1",
-            "port": 3306,
+            "engine": os.getenv("DB_ENGINE", "mysql"),
+            "name": os.getenv("DB_NAME", "monai"),
+            "user": os.getenv("DB_USER", "root"),
+            "password": os.getenv("DB_PASSWORD", ""),
+            "host": os.getenv("DB_HOST", "127.0.0.1"),
+            "port": int(os.getenv("DB_PORT", "3306")),
         },
         "celery": {
             "broker_url": "redis://localhost:6379/0",
             "result_backend": "redis://localhost:6379/0",
         },
+        # An empty REDIS_CACHE_URL uses the in-memory cache (no Redis needed).
         "redis": {
-            "cache_url": "redis://localhost:6379/1",
+            "cache_url": os.getenv("REDIS_CACHE_URL", ""),
             "cache_timeout_seconds": 3600,
         },
         "email": {

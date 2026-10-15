@@ -169,6 +169,6 @@ The biggest gain is less typing: most budget apps lose users at data entry, not 
 | UI look | A · Soft Garden, plus B's daily chart and C's reward moment | Decided 2026-10-14 |
 | Front-end stack | HTMX + small vanilla JS (Alpine.js not needed so far) | Decided 2026-10-14 (default) |
 | Remote access | Tailscale, with `tailscale serve` for HTTPS | Decided 2026-10-14 |
-| Who uses monAI | Only the owner and family (default), or public users | Open |
+| Who uses monAI | The owner and family, on a self-hosted server (Docker). The repo is public. A hosted version with extra features may come later | Decided 2026-10-15 |
 | Bootstrap | Remove it in Phase 3 (default), or keep it and only restyle | Removed with the classic UI (2026-10-15) |
 | Flutter code | Delete it from the repo (default), or move it to an archive branch first | Deleted 2026-10-15; the git tag `flutter-final` keeps it |

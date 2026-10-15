@@ -1,80 +1,63 @@
-# =============================================================================
-# Dockerfile – build an image that runs this Django project on Arch Linux
-# =============================================================================
-# Each instruction adds a "layer". Layers are cached, so order matters:
-# change code often → put COPY code last; change deps rarely → install deps first.
-# =============================================================================
+# monAI: the web app image. See README.md ("Self-host with Docker").
+#
+# Stage 1 builds the Python packages from uv.lock. Stage 2 has only what the
+# app needs to run: the packages, the WeasyPrint (PDF) libraries and the code.
 
-# Base image: Arch Linux (rolling release).
-FROM archlinux:latest
+FROM python:3.13-slim-trixie AS build
 
-# -----------------------------------------------------------------------------
-# Venv path: use /opt/venv so a bind mount of . → /app doesn't hide the venv
-# -----------------------------------------------------------------------------
-ARG VENV_PATH=/opt/venv
-ENV VENV_PATH=${VENV_PATH}
+COPY --from=ghcr.io/astral-sh/uv:0.13.1 /uv /usr/local/bin/uv
 
-# -----------------------------------------------------------------------------
-# 1. Install system packages (one RUN = one layer; combine to keep image smaller)
-# -----------------------------------------------------------------------------
-# - pacman-key: init + populate so package signatures are trusted.
-# - Sy archlinux-keyring first: sync DB and install latest keyring so newer
-#   package signers (e.g. libseccomp) are trusted before full upgrade.
-# - Su: upgrade rest of system; then S: install app + WeasyPrint deps.
-# -----------------------------------------------------------------------------
-RUN rm -rf /var/cache/pacman/pkg/* 2>/dev/null || true && \
-    pacman-key --init && \
-    pacman-key --populate archlinux && \
-    pacman -Sy archlinux-keyring --noconfirm && \
-    pacman -Su --noconfirm && \
-    pacman -S --noconfirm \
-        base-devel \
-        python \
-        python-pip \
-        cairo \
-        pango \
-        gdk-pixbuf2 \
-    && pacman -Scc --noconfirm
+# mysqlclient and pycairo compile against the MariaDB client and cairo libraries.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential pkg-config default-libmysqlclient-dev libcairo2-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# -----------------------------------------------------------------------------
-# 2. Set working directory inside the container
-# -----------------------------------------------------------------------------
-# All following commands run from /app. When the container runs, the app lives here.
-# -----------------------------------------------------------------------------
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv
+
+WORKDIR /src
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+
+FROM python:3.13-slim-trixie
+
+# libmariadb3: MySQL/MariaDB client. pango, harfbuzz, cairo, gdk-pixbuf and a
+# font: WeasyPrint for the PDF report.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libmariadb3 libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 \
+        libcairo2 libgdk-pixbuf-2.0-0 fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --uid 1000 monai
+
+ENV PATH=/opt/venv/bin:$PATH \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    LOG_DIR=/app/logs
+
+COPY --from=build /opt/venv /opt/venv
+
 WORKDIR /app
+COPY --chown=monai:monai . .
 
-# -----------------------------------------------------------------------------
-# 3. Copy only requirements first → better cache: code changes don't re-run pip
-# -----------------------------------------------------------------------------
-COPY requirements.txt .
+# collectstatic needs settings to load; this key is used only in this build step.
+RUN mkdir -p /app/logs \
+    && SECRET_KEY=build-only-key-not-used-at-run-time-0123456789abcdef \
+    python manage.py collectstatic --noinput \
+    && rm -f /app/logs/*.log \
+    && chown -R monai:monai /app/staticfiles /app/logs
 
-# -----------------------------------------------------------------------------
-# 4. Create virtualenv and install Python dependencies
-# -----------------------------------------------------------------------------
-# We use Python's built-in venv (no need for the "virtualenv" package).
-# -----------------------------------------------------------------------------
-RUN python -m venv ${VENV_PATH} && \
-    ${VENV_PATH}/bin/pip install --no-cache-dir --upgrade pip && \
-    ${VENV_PATH}/bin/pip install --no-cache-dir -r requirements.txt
+USER monai
 
-# -----------------------------------------------------------------------------
-# 5. Copy the rest of the project into the image
-# -----------------------------------------------------------------------------
-# .dockerignore excludes venv, .git, __pycache__, config.yaml, etc.
-# Mount config.yaml at runtime (docker compose bind-mounts the project dir).
-# -----------------------------------------------------------------------------
-COPY . /app
-
-# -----------------------------------------------------------------------------
-# 6. Expose port 8000 (documentation only; mapping is done by run/compose)
-# -----------------------------------------------------------------------------
 EXPOSE 8000
 
-# -----------------------------------------------------------------------------
-# 7. Run migrations then start Django development server on 0.0.0.0:8000
-# -----------------------------------------------------------------------------
-# Migrate on every start (safe, idempotent) so the DB is ready. Then runserver.
-# 0.0.0.0 = listen on all interfaces so you can open http://localhost:8000
-# from your host.
-# -----------------------------------------------------------------------------
-CMD ["/bin/sh", "-c", "${VENV_PATH}/bin/python manage.py migrate --noinput && ${VENV_PATH}/bin/python manage.py runserver 0.0.0.0:8000"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/', timeout=4)"
+
+ENTRYPOINT ["/app/docker/entrypoint.sh"]
+CMD ["gunicorn", "budget_tracker.wsgi:application", "--bind", "0.0.0.0:8000", \
+     "--workers", "3", "--access-logfile", "-"]

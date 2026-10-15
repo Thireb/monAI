@@ -82,4 +82,6 @@ Assume any secret that touched git is compromised, even after removal from the l
 
 **Per-user Resend keys** are stored in the database on self-hosted instances. Treat database backups as sensitive.
 
-**Docker builds:** `config.yaml` is excluded from the Docker build context (`.dockerignore`). Mount or copy your local `config.yaml` at runtime — e.g. `docker compose` bind-mounts the project directory. Never bake real secrets into an image layer.
+**Docker builds:** `.dockerignore` keeps `config.yaml`, `.env`, keystores, backups and logs out of the image. `docker compose` reads the secrets from `.env` at run time (see `.env.example`). The app runs as a user that is not root. Never bake real secrets into an image layer.
+
+**Sign-up:** anyone who can open the app can make an account. After the family accounts exist, set `ALLOW_SIGNUP=false` (Docker `.env`) or `app.allow_signup: false` (`config.yaml`).

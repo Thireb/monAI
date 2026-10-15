@@ -16,8 +16,8 @@ A self-hosted personal budget tracker built with Django. Manage monthly budgets,
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/Thireb/django_budget_tracker.git
-cd django_budget_tracker
+git clone https://github.com/Thireb/monAI.git
+cd monAI
 
 python -m venv venv
 source venv/bin/activate   # Windows: venv\Scripts\activate
@@ -82,20 +82,64 @@ Open the app on the phone over HTTPS (for example with `tailscale serve`) and us
 The Flutter Android app was removed on 2026-10-15. Its last code is at the git tag
 `flutter-final`.
 
-## Docker (optional)
+## Self-host with Docker
 
-Create `config.yaml` from the example (see step 2 above). It is **not** copied into the image at build time; `docker compose` bind-mounts your project directory so the container reads `config.yaml` from the host.
+This is the easiest way to run monAI on a home server for you and your family.
+You need Docker with the `compose` plugin. You do not need `config.yaml`.
+
+1. Get the code and make the settings file:
+
+   ```bash
+   git clone https://github.com/Thireb/monAI.git
+   cd monAI
+   cp .env.example .env
+   ```
+
+2. Edit `.env`. Set `SECRET_KEY` and `DB_PASSWORD` to long random strings.
+   The file tells you how to make them. Git ignores `.env`, so it stays on your machine.
+
+3. Start monAI:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+   This starts 3 services: `web` (the app), `db` (MariaDB) and `alerts` (the daily
+   bill alerts). The app applies the database migrations when it starts.
+
+4. Put HTTPS in front of the app. Login, the PWA and Web Push need HTTPS.
+   With Tailscale, on the same machine:
+
+   ```bash
+   tailscale serve --bg 8000
+   ```
+
+   Then add the Tailscale host name to `ALLOWED_HOSTS`, and its `https://` address to
+   `CSRF_TRUSTED_ORIGINS`, in `.env`. Run `docker compose up -d` again.
+
+   To try monAI first without HTTPS, set `HTTPS_ONLY=false` and open http://localhost:8000.
+
+5. Open the app and sign up. Make an account for each person in the family.
+   Then set `ALLOW_SIGNUP=false` in `.env` and run `docker compose up -d`.
+   Nobody else can make an account after that.
+
+**Admin user (optional):** `docker compose exec web python manage.py setup_superuser`
+
+**Update:** `git pull`, then `docker compose up -d --build`.
+
+**Backup:** this command saves the whole database to `monai.sql` on your machine:
 
 ```bash
-docker compose up --build
+docker compose exec db sh -c 'mariadb-dump -u monai -p"$MARIADB_PASSWORD" monai' > monai.sql
 ```
 
-App at **http://localhost:8000**. Redis is started for calendar cache; SQLite is mounted from the host by default.
+The data is in the Docker volume `monai_db-data`. `docker compose down` keeps it.
+`docker compose down -v` **deletes it**.
 
 ## Project layout
 
 ```
-django_budget_tracker/
+monAI/
 ├── accounts/           # User model and profile (incl. per-user Resend)
 ├── budgetapp/          # Models, the web UI (app/), services, REST API
 ├── budget_tracker/     # Django settings and config loader
@@ -128,7 +172,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 | File | Purpose |
 |------|---------|
-| `Dockerfile` / `docker-compose.yml` | Containerized local or server run |
+| `Dockerfile` / `docker-compose.yml` / `.env.example` | Self-host with Docker (see above) |
 | `Procfile` | Generic Heroku-style `gunicorn` start command |
 
 ## License

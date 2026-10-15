@@ -1,30 +1,73 @@
-# =============================================================================
-# docker-compose.yml – run the Django app (and later: DB, Redis, etc.) in containers
-# =============================================================================
-# Usage:
-#   docker compose up --build    # build image and start; app at http://localhost:8000
-#   docker compose up -d          # same, in background
-#   docker compose down           # stop and remove containers
-# =============================================================================
+# monAI with Docker. See README.md ("Self-host with Docker").
+#
+#   cp .env.example .env      # then edit .env
+#   docker compose up -d --build
+#
+# Services: web (the app), db (MariaDB) and alerts (the daily bill alerts).
 name: monai
-services:
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
 
-  # One service = one container (you can add more later: db, celery…)
-  budget_tracker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      # "host:container" – host 8000 maps to container 8000
-      - "8000:8000"
-    # Optional: run as your app directory so paths match (handy for learning)
-    working_dir: /app
+x-app-env: &app-env
+  SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+  ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+  CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+  HTTPS_ONLY: ${HTTPS_ONLY:-true}
+  ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}
+  TIMEZONE: ${TIMEZONE:-UTC}
+  DEBUG: "false"
+  DB_ENGINE: mysql
+  DB_HOST: db
+  DB_PORT: "3306"
+  DB_NAME: monai
+  DB_USER: monai
+  DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: monai
+      MARIADB_USER: monai
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
     volumes:
-      # Live code: host project dir → /app (changes reflect without rebuild)
-      - .:/app
-      # Reuse host DB (optional; comment out if you want a fresh DB in the container)
-      - ./db.sqlite3:/app/db.sqlite3
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    image: monai:latest
+    restart: unless-stopped
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # 127.0.0.1 keeps the app off the network. Put HTTPS in front of it
+      # (for example "tailscale serve"), or set MONAI_BIND=0.0.0.0.
+      - "${MONAI_BIND:-127.0.0.1}:${MONAI_PORT:-8000}:8000"
+    volumes:
+      - logs:/app/logs
+
+  alerts:
+    image: monai:latest
+    restart: unless-stopped
+    command: ["/app/docker/bill-alerts.sh"]
+    healthcheck:
+      disable: true
+    environment:
+      <<: *app-env
+      BILL_ALERT_TIME: ${BILL_ALERT_TIME:-09:00}
+    depends_on:
+      web:
+        condition: service_healthy
+    volumes:
+      - logs:/app/logs
+
+volumes:
+  db-data:
+  logs:

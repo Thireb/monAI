@@ -9,6 +9,8 @@ app:
   version: "1.0.0"
   debug: true
   secret_key: "change-me-use-a-long-random-string-in-production"
+  # false: nobody can make a new account (make the family accounts first)
+  allow_signup: true
 
 server:
   allowed_hosts:

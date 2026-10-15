@@ -199,3 +199,6 @@ android-sdk/
 /keystore/
 *.apk
 *.aab
+
+# The example settings for docker-compose.yml (no secrets)
+!.env.example

@@ -1,45 +1,39 @@
-# -----------------------------------------------------------------------------
-# .dockerignore – files/folders NOT sent to the Docker build context
-# -----------------------------------------------------------------------------
-# This keeps builds faster and images smaller. Only what you need gets copied.
-# (Like .gitignore, but for "docker build". config.yaml is NOT here so it
-# gets copied if present on your machine.)
-# -----------------------------------------------------------------------------
+# Files that "docker build" does not copy into the image.
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-.venv
-venv/
-env/
-ENV/
-*.egg-info/
-.eggs/
-*.egg
-
-# Git and IDE
-.git/
-.gitignore
-.idea/
-.vscode/
-.cursor/
-
-# Local/dev files
-*.log
-db.sqlite3
-db.sqlite3-journal
+# Secrets and local data: never put them in an image
 config.yaml
 new_config.yaml
 .env
-.cache
-.coverage
-htmlcov/
-.pytest_cache/
-.mypy_cache/
+.env.*
+keystore/
+keystore.properties
+*.jks
+*.keystore
+*.pem
+*.p12
+backup_*.json
+*.backup.json
+*.log
+db.sqlite3
+db.sqlite3-journal
+mobile/
 
-# Docs and scripts (optional: remove these lines if you want them in the image)
-# docs/
-# scripts/
+# Python, tools and caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.cache/
+htmlcov/
+.coverage
+staticfiles/
+node_modules/
+
+# Git and editors
+.git/
+.claude/
+.cursor/
+.idea/
+.vscode/

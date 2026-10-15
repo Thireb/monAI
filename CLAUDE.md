@@ -15,7 +15,9 @@ monAI is a self-hosted personal budget tracker:
   Its last code is at the git tag `flutter-final`. The untracked `mobile/` folder on
   this machine is leftover build output and signing keys: do not read or commit it.
 
-The owner uses it with PKR as the default currency.
+The owner uses it with PKR as the default currency. It is for the owner and family,
+self-hosted. **The GitHub repo is public**: never put secrets or private host names in
+tracked files.
 
 ## Current work
 
@@ -46,6 +48,7 @@ The `AGENTS.md` paths (`/workspace/venv`) are for Cursor Cloud. On this machine:
 | `script_runner/` | Versioned management scripts. `registry.py` lists them. |
 | `templates/app/`, `static/app/` | New UI templates (components, partials, `pdf/`) and its CSS tokens and JS. |
 | `static/js/service-worker.js`, `static/js/pwa-register.js` | The PWA service worker (offline pages, Web Push) and its registration. |
+| `Dockerfile`, `docker-compose.yml`, `docker/`, `.env.example` | Self-host with Docker: web (gunicorn), MariaDB, daily bill alerts. Settings come from `.env`. |
 | `docs/` | Project docs. `docs/agent_intent/` has the LLM action schemas. |
 
 ## Domain model
@@ -114,7 +117,7 @@ Run all tests:
 
 To run 1 module, give its name, for example `budgetapp.tests.test_services`.
 
-On 2026-10-15, all 150 tests passed (about 80 seconds).
+On 2026-10-15, all 152 tests passed (about 80 seconds).
 Logs with `🔴 400` or `🔥 EXCEPTION` (404) in the output are normal. Some tests check
 error responses.
 

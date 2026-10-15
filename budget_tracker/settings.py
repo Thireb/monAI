@@ -100,8 +100,14 @@ if _csrf_env:
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
 
-if not DEBUG:
+# HTTPS_ONLY=false turns off the HTTPS rules below, to try the app over plain HTTP
+# (for example http://localhost:8000). Login, the PWA and Web Push need HTTPS in real use.
+HTTPS_ONLY = os.environ.get("HTTPS_ONLY", "true").strip().lower() in ("true", "1", "yes")
+
+if not DEBUG and HTTPS_ONLY:
     SECURE_SSL_REDIRECT = True
+    # The Docker health check calls this path over plain HTTP inside the container.
+    SECURE_REDIRECT_EXEMPT = [r"^api/health/$"]
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -188,6 +194,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "accounts.context_processors.signup",
             ],
         },
     },
@@ -263,6 +270,9 @@ STATICFILES_DIRS = [
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# The folder for debug.log and app.log. Docker sets LOG_DIR to a volume.
+LOG_DIR = Path(os.environ.get("LOG_DIR", "") or BASE_DIR)
+
 # =============================================================================
 # Logging Configuration
 # =============================================================================
@@ -309,13 +319,13 @@ LOGGING = {
         "file": {
             "level": "ERROR",
             "class": "logging.FileHandler",
-            "filename": BASE_DIR / "debug.log",
+            "filename": LOG_DIR / "debug.log",
             "formatter": "verbose",
         },
         "app_file": {
             "level": "DEBUG" if DEBUG else "INFO",
             "class": "logging.handlers.RotatingFileHandler",
-            "filename": BASE_DIR / "app.log",
+            "filename": LOG_DIR / "app.log",
             "maxBytes": 1024 * 1024 * 5,  # 5 MB
             "backupCount": 5,
             "formatter": "verbose",
@@ -364,20 +374,21 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # =============================================================================
-# Redis cache (calendar HTML and dashboard payloads)
+# Cache: Redis when redis.cache_url is set, else in memory
 # =============================================================================
 
+_cache_url = redis_config.get("cache_url", "redis://localhost:6379/1")
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": redis_config.get("cache_url", "redis://localhost:6379/1"),
+        "LOCATION": _cache_url,
         "KEY_PREFIX": "monai",
         "TIMEOUT": redis_config.get("cache_timeout_seconds", 3600),
     }
 }
 
 # Unit tests should not require a running Redis instance.
-if "test" in sys.argv:
+if not _cache_url or "test" in sys.argv:
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -398,6 +409,15 @@ ACCOUNT_EMAIL_VERIFICATION = "optional"  # Change to "mandatory" for production
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGOUT_ON_GET = True  # Allow logout via GET request
 ACCOUNT_SESSION_REMEMBER = True
+ACCOUNT_ADAPTER = "accounts.adapters.AccountAdapter"
+
+# Sign-up: app.allow_signup in config.yaml; the ALLOW_SIGNUP environment variable wins.
+# Close it after the family accounts exist.
+_signup_env = os.environ.get("ALLOW_SIGNUP", "").strip().lower()
+if _signup_env:
+    ACCOUNT_ALLOW_SIGNUP = _signup_env in ("true", "1", "yes")
+else:
+    ACCOUNT_ALLOW_SIGNUP = bool(app_config.get("allow_signup", True))
 
 # Redirects
 LOGIN_REDIRECT_URL = "app:home"
