@@ -85,3 +85,8 @@ If secrets were ever committed, follow [SECURITY.md](SECURITY.md#if-secrets-were
 - Keep changes focused and minimal.
 - Update documentation when behavior changes.
 - Ensure CI passes (Python lint, type check, tests).
+
+## License of contributions
+
+monAI uses the AGPL-3.0 license (see [LICENSE](LICENSE)). When you send a pull request,
+you agree that your contribution is under the same license.

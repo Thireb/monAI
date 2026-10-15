@@ -177,4 +177,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+monAI is free software under the **GNU Affero General Public License v3.0** (AGPL-3.0).
+See [LICENSE](LICENSE). If you run a changed copy of monAI as a service for other people,
+the AGPL requires that you give those users the source code of your changes.
