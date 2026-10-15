@@ -87,7 +87,8 @@ class GoalForm(forms.ModelForm):
         """Set the input hints."""
         super().__init__(*args, **kwargs)
         for name in ("target_amount", "saved"):
-            self.fields[name].widget.attrs.update({"inputmode": "decimal", "min": "0"})
+            if name in self.fields:
+                self.fields[name].widget.attrs.update({"inputmode": "decimal", "min": "0"})
         self.fields["name"].widget.attrs.update({"autocomplete": "off"})
 
     def clean(self) -> dict[str, Any]:
@@ -100,8 +101,10 @@ class GoalForm(forms.ModelForm):
             self.add_error("target_amount", "The target must be more than 0.")
         if target and saved and saved > target:
             self.add_error("saved", "The saved amount cannot be more than the target.")
-        if target_date and target_date <= timezone.localdate():
-            self.add_error("target_date", "Pick a date in the future.")
+        # An old date may stay when other fields change; a new date must be in the future.
+        if target_date and "target_date" in self.changed_data:
+            if target_date <= timezone.localdate():
+                self.add_error("target_date", "Pick a date in the future.")
         return cleaned
 
 
@@ -125,7 +128,8 @@ class DebtForm(forms.ModelForm):
         """Set the input hints."""
         super().__init__(*args, **kwargs)
         for name in ("total_amount", "borrowed"):
-            self.fields[name].widget.attrs.update({"inputmode": "decimal", "min": "0"})
+            if name in self.fields:
+                self.fields[name].widget.attrs.update({"inputmode": "decimal", "min": "0"})
         self.fields["name"].widget.attrs.update({"autocomplete": "off"})
 
     def clean(self) -> dict[str, Any]:
@@ -313,3 +317,22 @@ class TransferForm(forms.ModelForm):
             self.fields[name].queryset = accounts
             self.fields[name].empty_label = "Pick an account"
         self.fields["amount"].widget.attrs.update({"inputmode": "decimal", "min": "0"})
+
+
+class GoalEditForm(GoalForm):
+    """Edit a goal. The saved amount comes from its contributions, so it is not a field here."""
+
+    saved = None  # type: ignore[assignment]
+
+
+class DebtEditForm(DebtForm):
+    """Edit a debt. The borrowed amount comes from its borrowings, so it is not a field here."""
+
+    borrowed = None  # type: ignore[assignment]
+
+    def clean_total_amount(self) -> Decimal:
+        """The limit cannot be below what is already borrowed."""
+        limit = self.cleaned_data["total_amount"]
+        if limit is not None and limit < self.instance.borrowed_amount:
+            raise forms.ValidationError("This is less than what is already borrowed.")
+        return limit

@@ -816,3 +816,13 @@ a {
 .row--start {
   justify-content: flex-start;
 }
+
+/* A button that looks like a text link. */
+.link-btn {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-decoration: underline;
+}

@@ -1,0 +1,49 @@
+{% load app_format %}
+{# A goal's edit sheet. Context: goal, form, contributions, message. #}
+<div class="stack">
+    <div class="row">
+        <h2 id="edit-sheet-title">{{ goal.name }}</h2>
+        <button type="button" class="icon-btn" data-close-edit-sheet aria-label="Close">✕</button>
+    </div>
+    {% if message %}<p class="form-ok" role="status">{{ message }}</p>{% endif %}
+    <section class="stack" aria-labelledby="goal-history-title">
+        <h3 id="goal-history-title">Money added</h3>
+        {% for contribution in contributions %}
+            <div class="spend-row">
+                <div>
+                    <div class="spend-row__name">{{ contribution.source|default:"Added" }}</div>
+                    <div class="small muted">{{ contribution.date|date:"j M Y" }}</div>
+                </div>
+                <span class="money money--good">+{{ contribution.amount|money }}</span>
+                <button type="button"
+                        class="btn btn--small btn--ghost"
+                        hx-post="{% url 'app:contribution_delete' pk=contribution.pk %}"
+                        hx-target="#edit-sheet-body"
+                        hx-swap="innerHTML"
+                        data-confirm-tap="Tap again"
+                        aria-label="Delete this contribution">Delete</button>
+            </div>
+        {% empty %}
+            <p class="muted small">Nothing added yet.</p>
+        {% endfor %}
+    </section>
+    <details class="line-sheet__edit" {% if form.errors %}open{% endif %}>
+        <summary>Edit the goal</summary>
+        <form class="stack"
+              hx-post="{% url 'app:goal_sheet' pk=goal.pk %}"
+              hx-target="#edit-sheet-body"
+              hx-swap="innerHTML"
+              hx-disabled-elt="find button[type='submit']">
+            {% include "app/components/form_fields.html" %}
+            <div class="row">
+                <button type="submit" class="btn btn--primary">Save changes</button>
+                <button type="button"
+                        class="btn btn--danger"
+                        hx-post="{% url 'app:goal_delete' pk=goal.pk %}"
+                        hx-target="#edit-sheet-body"
+                        hx-swap="innerHTML"
+                        data-confirm-tap="Tap again to delete the goal">Delete goal</button>
+            </div>
+        </form>
+    </details>
+</div>

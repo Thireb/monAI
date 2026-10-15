@@ -5,7 +5,13 @@ from __future__ import annotations
 from django.urls import URLPattern, path
 
 from .views.goals import (
+    BorrowingDeleteView,
+    ContributionDeleteView,
     DebtBorrowView,
+    DebtDeleteView,
+    DebtSheetView,
+    GoalDeleteView,
+    GoalSheetView,
     DebtCreateView,
     DebtRepayView,
     GoalContributeView,
@@ -70,6 +76,16 @@ urlpatterns: list[URLPattern] = [
     path("goals/panel/", GoalsPanelView.as_view(), name="goals_panel"),
     path("goals/new/", GoalCreateView.as_view(), name="goal_create"),
     path("goals/<int:pk>/contribute/", GoalContributeView.as_view(), name="goal_contribute"),
+    path("goals/<int:pk>/", GoalSheetView.as_view(), name="goal_sheet"),
+    path("goals/<int:pk>/delete/", GoalDeleteView.as_view(), name="goal_delete"),
+    path(
+        "contributions/<int:pk>/delete/",
+        ContributionDeleteView.as_view(),
+        name="contribution_delete",
+    ),
+    path("debts/<int:pk>/", DebtSheetView.as_view(), name="debt_sheet"),
+    path("debts/<int:pk>/delete/", DebtDeleteView.as_view(), name="debt_delete"),
+    path("borrowings/<int:pk>/delete/", BorrowingDeleteView.as_view(), name="borrowing_delete"),
     path("debts/new/", DebtCreateView.as_view(), name="debt_create"),
     path("debts/<int:pk>/repay/", DebtRepayView.as_view(), name="debt_repay"),
     path("debts/<int:pk>/borrow/", DebtBorrowView.as_view(), name="debt_borrow"),

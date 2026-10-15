@@ -20,7 +20,7 @@ from budgetapp.models import Budget, Expense, SubExpense
 from budgetapp.services.month import build_month_snapshot
 from budgetapp.services.quick_add import QuickAddError, parse_amount, record_return, record_spend
 
-from .base import month_date
+from .base import month_date, sheet_done
 
 
 def editable_line(request: HttpRequest, pk: int) -> Expense:
@@ -128,11 +128,7 @@ class LineDeleteView(LoginRequiredMixin, View):
         line = editable_line(request, pk)
         name = line.name
         line.delete()
-        response = render(
-            request, "app/partials/sheet_done.html", {"message": f'Deleted the line "{name}".'}
-        )
-        response["HX-Trigger"] = "monthChanged"
-        return response
+        return sheet_done(request, f'Deleted the line "{name}".', "monthChanged")
 
 
 class LineSpendCreateView(LoginRequiredMixin, View):

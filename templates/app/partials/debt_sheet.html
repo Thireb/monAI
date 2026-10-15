@@ -1,0 +1,63 @@
+{% load app_format %}
+{# A debt's edit sheet. Context: debt, form, borrowings, repayments, message. #}
+<div class="stack">
+    <div class="row">
+        <h2 id="edit-sheet-title">{{ debt.name }}</h2>
+        <button type="button" class="icon-btn" data-close-edit-sheet aria-label="Close">✕</button>
+    </div>
+    {% if message %}<p class="form-ok" role="status">{{ message }}</p>{% endif %}
+    <section class="stack" aria-labelledby="debt-borrowed-title">
+        <h3 id="debt-borrowed-title">Borrowed</h3>
+        {% for borrowing in borrowings %}
+            <div class="spend-row">
+                <div>
+                    <div class="spend-row__name">{{ borrowing.notes|default:"Borrowed" }}</div>
+                    <div class="small muted">{{ borrowing.date|date:"j M Y" }}</div>
+                </div>
+                <span class="money money--over">{{ borrowing.amount|money }}</span>
+                <button type="button"
+                        class="btn btn--small btn--ghost"
+                        hx-post="{% url 'app:borrowing_delete' pk=borrowing.pk %}"
+                        hx-target="#edit-sheet-body"
+                        hx-swap="innerHTML"
+                        data-confirm-tap="Tap again"
+                        aria-label="Delete this borrowing">Delete</button>
+            </div>
+        {% empty %}
+            <p class="muted small">Nothing borrowed yet.</p>
+        {% endfor %}
+    </section>
+    <section class="stack" aria-labelledby="debt-repaid-title">
+        <h3 id="debt-repaid-title">Repaid</h3>
+        {% for line in repayments %}
+            <div class="spend-row spend-row--two">
+                <div>
+                    <div class="spend-row__name">{{ line.name }}</div>
+                    <div class="small muted">{{ line.budget.month|date:"F Y" }}</div>
+                </div>
+                <span class="money money--good">{{ line.amount|money }}</span>
+            </div>
+        {% empty %}
+            <p class="muted small">No repayments yet. "Repay this month" on the Goals page adds one.</p>
+        {% endfor %}
+    </section>
+    <details class="line-sheet__edit" {% if form.errors %}open{% endif %}>
+        <summary>Edit the debt</summary>
+        <form class="stack"
+              hx-post="{% url 'app:debt_sheet' pk=debt.pk %}"
+              hx-target="#edit-sheet-body"
+              hx-swap="innerHTML"
+              hx-disabled-elt="find button[type='submit']">
+            {% include "app/components/form_fields.html" %}
+            <div class="row">
+                <button type="submit" class="btn btn--primary">Save changes</button>
+                <button type="button"
+                        class="btn btn--danger"
+                        hx-post="{% url 'app:debt_delete' pk=debt.pk %}"
+                        hx-target="#edit-sheet-body"
+                        hx-swap="innerHTML"
+                        data-confirm-tap="Tap again: repayment lines keep their amounts">Delete debt</button>
+            </div>
+        </form>
+    </details>
+</div>

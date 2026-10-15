@@ -11,7 +11,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from budgetapp.models import Budget, Debt, DebtTransaction, Expense, Goal, GoalContribution
+from budgetapp.models import Budget, Debt, DebtTransaction, Expense, Goal, GoalContribution, Tag
 from budgetapp.services.goals import add_repayment, debt_view, goal_views, milestone_passed
 
 User = get_user_model()
@@ -216,3 +216,96 @@ class GoalsViewTests(TestCase):
                 self.assertEqual(self.client.post(url, {"amount": "5"}).status_code, 404)
         self.assertFalse(GoalContribution.objects.exists())
         self.assertNotContains(self.client.get(reverse("app:goals")), "Theirs")
+
+
+class GoalAndDebtSheetTests(TestCase):
+    """History, edit and delete of goals and debts."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user(
+            username="sheet", email="sheet@example.com", password="testpassword"
+        )
+        self.client = Client()
+        self.client.force_login(self.user)
+        self.goal = Goal.objects.create(user=self.user, name="Trip", target_amount=D("1000"))
+        self.contribution = GoalContribution.objects.create(goal=self.goal, amount=D("300"))
+        self.debt = Debt.objects.create(user=self.user, name="Laptop", total_amount=D("5000"))
+        self.borrowing = DebtTransaction.objects.create(debt=self.debt, amount=D("3000"))
+        self.debt.refresh_from_db()
+
+    def test_goal_sheet_edit_and_contribution_delete(self) -> None:
+        url = reverse("app:goal_sheet", kwargs={"pk": self.goal.pk})
+        self.assertContains(self.client.get(url), "+300")
+        response = self.client.post(url, {"goal-name": "Big trip", "goal-target_amount": "2000"})
+        self.assertContains(response, "Saved.")
+        self.assertEqual(response["HX-Trigger"], "goalsChanged")
+        self.goal.refresh_from_db()
+        self.assertEqual((self.goal.name, self.goal.target_amount), ("Big trip", D("2000")))
+        url = reverse("app:contribution_delete", kwargs={"pk": self.contribution.pk})
+        self.assertContains(self.client.post(url), "Deleted the contribution.")
+        self.goal.refresh_from_db()
+        self.assertEqual(self.goal.current_amount, D("0"))
+
+    def test_goal_with_old_date_can_still_be_renamed(self) -> None:
+        Goal.objects.filter(pk=self.goal.pk).update(target_date=date(2020, 1, 1))
+        url = reverse("app:goal_sheet", kwargs={"pk": self.goal.pk})
+        response = self.client.post(
+            url,
+            {
+                "goal-name": "Renamed",
+                "goal-target_amount": "1000",
+                "goal-target_date": "2020-01-01",
+            },
+        )
+        self.assertContains(response, "Saved.")
+
+    def test_delete_goal(self) -> None:
+        response = self.client.post(reverse("app:goal_delete", kwargs={"pk": self.goal.pk}))
+        self.assertContains(response, "data-sheet-done")
+        self.assertFalse(Goal.objects.exists())
+        self.assertFalse(GoalContribution.objects.exists())
+
+    def test_debt_sheet_edit_and_borrowing_delete(self) -> None:
+        url = reverse("app:debt_sheet", kwargs={"pk": self.debt.pk})
+        self.assertContains(self.client.get(url), "3,000")
+        response = self.client.post(url, {"debt-name": "Laptop", "debt-total_amount": "2000"})
+        self.assertContains(response, "less than what is already borrowed")
+        response = self.client.post(url, {"debt-name": "PC", "debt-total_amount": "8000"})
+        self.assertContains(response, "Saved.")
+        url = reverse("app:borrowing_delete", kwargs={"pk": self.borrowing.pk})
+        self.assertContains(self.client.post(url), "Deleted the borrowing.")
+        self.debt.refresh_from_db()
+        self.assertEqual((self.debt.name, self.debt.borrowed_amount), ("PC", D("0")))
+
+    def test_delete_debt_removes_its_account_and_keeps_lines(self) -> None:
+        budget = Budget.objects.create(user=self.user, month=date(2026, 10, 1))
+        line = Expense.objects.create(
+            budget=budget, name="Repay", amount=D("500"), tag_foreign_key=self.debt.debt_tag
+        )
+        tag_id = self.debt.debt_tag_id
+        self.client.post(reverse("app:debt_delete", kwargs={"pk": self.debt.pk}))
+        self.assertFalse(Debt.objects.exists())
+        self.assertFalse(Tag.objects.filter(pk=tag_id).exists())
+        line.refresh_from_db()
+        self.assertEqual((line.amount, line.tag_foreign_key), (D("500"), None))
+
+    def test_other_users_goal_and_debt_sheets_are_404(self) -> None:
+        other = Client()
+        other.force_login(
+            User.objects.create_user(
+                username="other", email="other@example.com", password="testpassword"
+            )
+        )
+        urls = [
+            reverse("app:goal_sheet", kwargs={"pk": self.goal.pk}),
+            reverse("app:goal_delete", kwargs={"pk": self.goal.pk}),
+            reverse("app:contribution_delete", kwargs={"pk": self.contribution.pk}),
+            reverse("app:debt_sheet", kwargs={"pk": self.debt.pk}),
+            reverse("app:debt_delete", kwargs={"pk": self.debt.pk}),
+            reverse("app:borrowing_delete", kwargs={"pk": self.borrowing.pk}),
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertEqual(other.post(url, {"goal-name": "x"}).status_code, 404)
+        self.assertTrue(Goal.objects.filter(pk=self.goal.pk).exists())
+        self.assertTrue(Debt.objects.filter(pk=self.debt.pk).exists())

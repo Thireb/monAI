@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date
 from typing import Any
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import Http404
+from django.http import Http404, HttpRequest, HttpResponse
+from django.shortcuts import render
 from django.urls import reverse
 from django.views.generic import TemplateView
 
@@ -42,6 +44,14 @@ def quick_add_context(budget: Budget | None, snap: MonthSnapshot | None) -> dict
         "lines": [line for line in snap.lines if line.status != "done"] or snap.lines,
         "action": reverse("app:spend_create"),
     }
+
+
+def sheet_done(request: HttpRequest, message: str, *events: str) -> HttpResponse:
+    """Close the edit sheet with a toast, and trigger ``events`` so panels refresh."""
+    response = render(request, "app/partials/sheet_done.html", {"message": message})
+    if events:
+        response["HX-Trigger"] = json.dumps({event: True for event in events})
+    return response
 
 
 class AppTemplateView(LoginRequiredMixin, TemplateView):

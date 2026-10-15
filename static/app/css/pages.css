@@ -614,3 +614,7 @@ details[open] > .card__summary::after,
 a.chip {
   text-decoration: none;
 }
+
+.spend-row--two {
+  grid-template-columns: minmax(0, 1fr) auto;
+}

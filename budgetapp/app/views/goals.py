@@ -16,8 +16,8 @@ from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.views import View
 
-from budgetapp.app.forms import DebtForm, GoalForm
-from budgetapp.models import Budget, Debt, DebtTransaction, Goal, GoalContribution
+from budgetapp.app.forms import DebtEditForm, DebtForm, GoalEditForm, GoalForm
+from budgetapp.models import Budget, Debt, DebtTransaction, Expense, Goal, GoalContribution
 from budgetapp.services.goals import (
     add_repayment,
     debt_view,
@@ -31,7 +31,7 @@ from budgetapp.services.month import build_month_snapshot
 from budgetapp.services.quick_add import QuickAddError, parse_amount
 from budgetapp.templatetags.app_format import money
 
-from .base import AppTemplateView, month_url, quick_add_context
+from .base import AppTemplateView, month_url, quick_add_context, sheet_done
 
 
 def panel_context(request: HttpRequest) -> dict[str, Any]:
@@ -211,3 +211,129 @@ class DebtBorrowView(LoginRequiredMixin, View):
         DebtTransaction.objects.create(debt=debt, amount=amount)
         debt.recalculate_borrowed_amount()
         return toast(request, f"Recorded {money(amount)} borrowed for {debt.name}.")
+
+
+def render_goal_sheet(
+    request: HttpRequest, goal: Goal, form: GoalEditForm | None = None, message: str = ""
+) -> HttpResponse:
+    """The goal's edit sheet: its form, its contributions and the delete button."""
+    context = {
+        "goal": goal,
+        "form": form or GoalEditForm(instance=goal, prefix="goal"),
+        "contributions": goal.contributions.order_by("-date", "-id"),
+        "message": message,
+    }
+    return render(request, "app/partials/goal_sheet.html", context)
+
+
+def render_debt_sheet(
+    request: HttpRequest, debt: Debt, form: DebtEditForm | None = None, message: str = ""
+) -> HttpResponse:
+    """The debt's edit sheet: its form, its borrowings, its repayment lines and delete."""
+    repayments = (
+        Expense.objects.filter(tag_foreign_key=debt.debt_tag, budget__user=request.user)
+        .select_related("budget")
+        .order_by("-budget__month")
+        if debt.debt_tag
+        else Expense.objects.none()
+    )
+    context = {
+        "debt": debt,
+        "form": form or DebtEditForm(instance=debt, prefix="debt"),
+        "borrowings": debt.transactions.order_by("-date", "-id"),
+        "repayments": repayments,
+        "message": message,
+    }
+    return render(request, "app/partials/debt_sheet.html", context)
+
+
+def changed(response: HttpResponse) -> HttpResponse:
+    """Mark a sheet answer as a change, so the goals panel refreshes."""
+    response["HX-Trigger"] = "goalsChanged"
+    return response
+
+
+class GoalSheetView(LoginRequiredMixin, View):
+    """A goal's edit sheet: GET shows it, POST saves the goal."""
+
+    def get(self, request: HttpRequest, pk: int) -> HttpResponse:
+        """Show the sheet."""
+        return render_goal_sheet(request, get_object_or_404(Goal, pk=pk, user=request.user))
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        """Save the goal, or show the form errors."""
+        goal = get_object_or_404(Goal, pk=pk, user=request.user)
+        form = GoalEditForm(request.POST, instance=goal, prefix="goal")
+        if not form.is_valid():
+            return render_goal_sheet(request, goal, form=form)
+        goal = form.save()
+        return changed(render_goal_sheet(request, goal, message="Saved."))
+
+
+class GoalDeleteView(LoginRequiredMixin, View):
+    """Delete a goal and its contributions."""
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        """Delete the goal and close the sheet."""
+        goal = get_object_or_404(Goal, pk=pk, user=request.user)
+        name = goal.name
+        goal.delete()
+        return sheet_done(request, f'Deleted the goal "{name}".', "goalsChanged")
+
+
+class ContributionDeleteView(LoginRequiredMixin, View):
+    """Delete one contribution of a goal."""
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        """Delete it, update the goal's amount and show the sheet again."""
+        contribution = get_object_or_404(
+            GoalContribution.objects.select_related("goal"), pk=pk, goal__user=request.user
+        )
+        goal = contribution.goal
+        contribution.delete()
+        sync_goal_amount(goal)
+        return changed(render_goal_sheet(request, goal, message="Deleted the contribution."))
+
+
+class DebtSheetView(LoginRequiredMixin, View):
+    """A debt's edit sheet: GET shows it, POST saves the debt."""
+
+    def get(self, request: HttpRequest, pk: int) -> HttpResponse:
+        """Show the sheet."""
+        return render_debt_sheet(request, get_object_or_404(Debt, pk=pk, user=request.user))
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        """Save the debt, or show the form errors."""
+        debt = get_object_or_404(Debt, pk=pk, user=request.user)
+        form = DebtEditForm(request.POST, instance=debt, prefix="debt")
+        if not form.is_valid():
+            return render_debt_sheet(request, debt, form=form)
+        debt = form.save()
+        return changed(render_debt_sheet(request, debt, message="Saved."))
+
+
+class DebtDeleteView(LoginRequiredMixin, View):
+    """Delete a debt, and its account when no other debt uses it (as on the classic page)."""
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        """Delete the debt and close the sheet. Repayment lines stay, without the account."""
+        debt = get_object_or_404(Debt, pk=pk, user=request.user)
+        name, tag = debt.name, debt.debt_tag
+        debt.delete()
+        if tag and not tag.debts.exists():
+            tag.delete()
+        return sheet_done(request, f'Deleted the debt "{name}".', "goalsChanged", "monthChanged")
+
+
+class BorrowingDeleteView(LoginRequiredMixin, View):
+    """Delete one borrowing of a debt."""
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        """Delete it, update the borrowed amount and show the sheet again."""
+        borrowing = get_object_or_404(
+            DebtTransaction.objects.select_related("debt"), pk=pk, debt__user=request.user
+        )
+        debt = borrowing.debt
+        borrowing.delete()
+        debt.recalculate_borrowed_amount()
+        return changed(render_debt_sheet(request, debt, message="Deleted the borrowing."))

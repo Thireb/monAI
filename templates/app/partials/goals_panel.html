@@ -50,7 +50,11 @@
                                 <button type="submit" class="btn btn--primary btn--small">Add money</button>
                             </form>
                         {% endif %}
-                        <a class="small link" href="{% url 'minimal:goal_detail' goal_id=goal.id %}">History and edit</a>
+                        <button type="button"
+                                class="link-btn small link"
+                                hx-get="{% url 'app:goal_sheet' pk=goal.id %}"
+                                hx-target="#edit-sheet-body"
+                                hx-swap="innerHTML">History and edit</button>
                     </article>
                 {% endfor %}
             </div>
@@ -117,7 +121,11 @@
                                 </form>
                             </details>
                         {% endif %}
-                        <a class="small link" href="{% url 'minimal:debt_detail' debt_id=debt.id %}">History and edit</a>
+                        <button type="button"
+                                class="link-btn small link"
+                                hx-get="{% url 'app:debt_sheet' pk=debt.id %}"
+                                hx-target="#edit-sheet-body"
+                                hx-swap="innerHTML">History and edit</button>
                     </article>
                 {% endfor %}
             </div>

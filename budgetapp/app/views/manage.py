@@ -1,13 +1,12 @@
 """The "More" page of the new UI: accounts, categories and bill reminders.
 
-Each item opens in the edit sheet. Saving or deleting closes the sheet, shows a toast and
-triggers ``manageChanged`` (the lists refresh) and ``monthChanged`` (month figures that use
-the item refresh too).
+Each item opens in the edit sheet. Saving or deleting closes the sheet (``sheet_done``),
+shows a toast and triggers ``manageChanged`` (the lists refresh) and ``monthChanged``
+(month figures that use the item refresh too).
 """
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,7 +21,7 @@ from budgetapp.app.forms import AccountForm, BillForm, CategoryForm
 from budgetapp.models import BillReminder, Budget, Category, Tag
 from budgetapp.services.month import build_month_snapshot
 
-from .base import AppTemplateView, month_url, quick_add_context
+from .base import AppTemplateView, month_url, quick_add_context, sheet_done
 
 
 @dataclass(frozen=True)
@@ -81,13 +80,6 @@ def delete_note(kind_name: str, item: models.Model) -> str:
         if lines:
             return f"Tap again: {lines} line{'s' if lines != 1 else ''} lose this category"
     return "Tap again to delete"
-
-
-def done(request: HttpRequest, message: str) -> HttpResponse:
-    """Close the edit sheet with a toast, and refresh the lists and the month figures."""
-    response = render(request, "app/partials/sheet_done.html", {"message": message})
-    response["HX-Trigger"] = json.dumps({"manageChanged": True, "monthChanged": True})
-    return response
 
 
 class ManageView(AppTemplateView):
@@ -155,7 +147,8 @@ class ItemSheetView(LoginRequiredMixin, View):
         if not form.is_valid():
             return self.render_sheet(request, kind, form, item)
         saved = form.save()
-        return done(request, f'Saved the {config.noun} "{saved.name}".')
+        message = f'Saved the {config.noun} "{saved.name}".'
+        return sheet_done(request, message, "manageChanged", "monthChanged")
 
 
 class ItemDeleteView(LoginRequiredMixin, View):
@@ -170,4 +163,5 @@ class ItemDeleteView(LoginRequiredMixin, View):
             return render(request, "app/partials/toast.html", {"message": message, "error": True})
         name = item.name  # type: ignore[attr-defined]
         item.delete()
-        return done(request, f'Deleted the {config.noun} "{name}".')
+        message = f'Deleted the {config.noun} "{name}".'
+        return sheet_done(request, message, "manageChanged", "monthChanged")
