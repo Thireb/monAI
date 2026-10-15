@@ -69,8 +69,8 @@ This removes about 5,900 lines of Dart and about 2,100 lines of mobile sync code
 - [x] Bill timeline on the home page and on the month page, with "Add bills to this month"
 - [x] Web Push notifications for bill reminders (see `docs/WEB_PUSH.md`; needs a daily timer)
 - [x] Offline quick add: save to IndexedDB, send when the network comes back
-- [ ] Move all other pages to the components. Done: accounts, categories and bill reminders (`/app/more/`), all months (`/app/months/`), income, transfers, PDF email and delete on the month page; goal and debt history, edit and delete; `/` now opens `/app/`. Left: the profile page (allauth)
-- [ ] **Gate:** no jQuery page code remains · Bootstrap removed · every page works in dark mode
+- [x] Move all other pages to the components: accounts, categories and bill reminders (`/app/more/`), all months (`/app/months/`), income, transfers, PDF email and delete on the month page, goal and debt history, sign-in pages and profile. `/` and the login now open `/app/`
+- [ ] **Gate:** no jQuery page code remains · Bootstrap removed · every page works in dark mode. The new UI and the sign-in pages meet it. The classic UI (`/minimal/`) still uses jQuery and Bootstrap: removing it is the owner's decision (see Decisions)
 
 ### Phase 4 · Fun and reward
 

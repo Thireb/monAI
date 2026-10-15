@@ -1,0 +1,23 @@
+{% extends "app/base.html" %}
+{% block title %}monAI · Edit profile{% endblock title %}
+{% block content %}
+    <h1>Edit profile</h1>
+    <form method="post" class="card line-form">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<p class="form-error">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+        <div class="line-form__fields">
+            {% for field in form %}
+                <label class="field">
+                    {{ field.label }}
+                    {{ field }}
+                    {% if field.help_text %}<span class="small muted help-text">{{ field.help_text }}</span>{% endif %}
+                    {% for error in field.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                </label>
+            {% endfor %}
+        </div>
+        <div class="row row--start">
+            <button type="submit" class="btn btn--primary">Save</button>
+            <a class="btn" href="{% url 'accounts:profile' %}">Cancel</a>
+        </div>
+    </form>
+{% endblock content %}

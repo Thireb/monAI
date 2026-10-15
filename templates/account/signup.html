@@ -62,7 +62,7 @@
                    placeholder="Create a password"
                    required>
             <button type="button" class="password-toggle" aria-label="Toggle password visibility">
-                <i class="bi bi-eye"></i>
+                Show
             </button>
             {% if form.password1.errors %}
             <div class="invalid-feedback">
@@ -82,7 +82,7 @@
                    placeholder="Confirm your password"
                    required>
             <button type="button" class="password-toggle" aria-label="Toggle password visibility">
-                <i class="bi bi-eye"></i>
+                Show
             </button>
             {% if form.password2.errors %}
             <div class="invalid-feedback">
@@ -101,18 +101,3 @@
     <p>Already have an account? <a href="{% url 'account_login' %}">Sign in</a></p>
 </div>
 {% endblock content %}
-
-{% block extra_js %}
-<script>
-    // Form animation
-    anime({
-        targets: '.form-group',
-        opacity: [0, 1],
-        translateY: [20, 0],
-        delay: anime.stagger(100, {start: 300}),
-        duration: 500,
-        easing: 'easeOutCubic'
-    });
-</script>
-{% endblock extra_js %}
-

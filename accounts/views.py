@@ -19,7 +19,7 @@ from .forms import ProfileUpdateForm
 class ProfileView(LoginRequiredMixin, TemplateView):
     """Display the authenticated user's profile."""
 
-    template_name = "minimal/accounts/profile.html"
+    template_name = "app/profile.html"
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Add Resend configuration status for the profile page."""
@@ -38,7 +38,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     """Update the authenticated user's profile fields."""
 
     form_class = ProfileUpdateForm
-    template_name = "minimal/accounts/profile_update.html"
+    template_name = "app/profile_update.html"
     success_url = reverse_lazy("accounts:profile")
 
     def get_object(self, queryset: Any = None) -> CustomUser:

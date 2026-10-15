@@ -1,103 +1,43 @@
-<!DOCTYPE html>
+{% load static static_version %}<!DOCTYPE html>
 <html lang="en">
-    {% load static static_version %}
-
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="description" content="monAI - Personal Budget Tracker">
-        <title>{% block title %}monAI{% endblock title %}</title>
-        <!-- PWA Meta Tags -->
-        <meta name="theme-color" content="#2196F3">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+        <meta name="description" content="monAI: a personal budget tracker. See what you can spend today.">
+        <meta name="keywords" content="budget, expenses, income, savings">
+        <title>
+            {% block title %}monAI{% endblock title %}
+        </title>
+        <meta name="theme-color" content="#2E8B57">
         <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <meta name="apple-mobile-web-app-title" content="monAI">
-        <!-- Favicons -->
         <link rel="manifest" href="{% static 'material/favicon/site.webmanifest' %}">
+        <link rel="icon" type="image/svg+xml" href="{% static 'material/favicon/monai-icon.svg' %}">
         <link rel="apple-touch-icon" sizes="180x180" href="{% static 'material/favicon/apple-touch-icon.png' %}">
-        <link rel="icon" type="image/png" sizes="32x32" href="{% static 'material/favicon/favicon-32x32.png' %}">
-        <link rel="icon" type="image/png" sizes="16x16" href="{% static 'material/favicon/favicon-16x16.png' %}">
-        <link rel="shortcut icon" href="{% static 'material/favicon/favicon.ico' %}">
-        <!-- Fonts -->
-        <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
-        <!-- Bootstrap -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-        <!-- Bootstrap Icons -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-        <!-- Theme CSS -->
-        <link rel="stylesheet" href="{% versioned_static 'css/minimal-css/theme/theme.css' %}">
-        <link rel="stylesheet" href="{% versioned_static 'css/minimal-css/accounts/auth.css' %}">
+        <script src="{% versioned_static 'app/js/theme-init.js' %}"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap"
+              rel="stylesheet">
+        <link rel="stylesheet" href="{% versioned_static 'app/css/tokens.css' %}">
+        <link rel="stylesheet" href="{% versioned_static 'app/css/components.css' %}">
+        <link rel="stylesheet" href="{% versioned_static 'app/css/auth.css' %}">
         {% block extra_css %}{% endblock extra_css %}
     </head>
-
     <body class="auth-page">
-        <div class="auth-container">
+        <main class="auth-container">
             <div class="auth-card">
-                <!-- Logo -->
-                <div class="auth-logo">
-                    <span class="logo-text">monAI</span>
-                </div>
-
+                <a class="logo auth-logo" href="{% url 'app:home' %}">mon<span>AI</span></a>
                 {% if messages %}
-                <div class="auth-messages">
-                    {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <div class="auth-messages" role="status">
+                        {% for message in messages %}<p class="alert alert-{{ message.tags }}">{{ message }}</p>{% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
                 {% endif %}
-
                 {% block content %}{% endblock content %}
             </div>
-        </div>
-
-        <!-- Scripts -->
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-        <script>
-            // Page load animation
-            document.addEventListener('DOMContentLoaded', function() {
-                anime({
-                    targets: '.auth-card',
-                    opacity: [0, 1],
-                    translateY: [30, 0],
-                    duration: 600,
-                    easing: 'easeOutCubic'
-                });
-
-                anime({
-                    targets: '.auth-logo',
-                    scale: [0.8, 1],
-                    opacity: [0, 1],
-                    duration: 800,
-                    easing: 'easeOutElastic(1, .6)'
-                });
-
-                // Password visibility toggle
-                document.querySelectorAll('.password-toggle').forEach(function(button) {
-                    button.addEventListener('click', function() {
-                        var wrapper = this.closest('.password-wrapper');
-                        var input = wrapper.querySelector('input');
-                        var icon = this.querySelector('i');
-
-                        if (input.type === 'password') {
-                            input.type = 'text';
-                            icon.classList.remove('bi-eye');
-                            icon.classList.add('bi-eye-slash');
-                        } else {
-                            input.type = 'password';
-                            icon.classList.remove('bi-eye-slash');
-                            icon.classList.add('bi-eye');
-                        }
-                    });
-                });
-            });
-        </script>
+        </main>
+        <script src="{% static 'app/vendor/anime-3.2.1.min.js' %}"></script>
+        <script src="{% versioned_static 'app/js/auth.js' %}"></script>
         {% block extra_js %}{% endblock extra_js %}
     </body>
 </html>
-

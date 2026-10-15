@@ -1,0 +1,42 @@
+{% extends "app/base.html" %}
+{% block title %}monAI · Profile{% endblock title %}
+{% block content %}
+    <h1>Profile</h1>
+    <section class="card stack" aria-labelledby="profile-title">
+        <div class="goal-tile__head">
+            <span class="line-row__icon profile-avatar" aria-hidden="true">{{ user.username|slice:":1"|upper }}</span>
+            <div class="stack goal-card__text">
+                <h2 id="profile-title">
+                    {% if user.first_name or user.last_name %}
+                        {{ user.first_name }} {{ user.last_name }}
+                    {% else %}
+                        {{ user.username }}
+                    {% endif %}
+                </h2>
+                <span class="small muted">{{ user.email }}</span>
+                <span class="small muted">Joined {{ user.date_joined|date:"j F Y" }}</span>
+            </div>
+        </div>
+        <div class="row row--start">
+            <a class="btn btn--primary btn--small" href="{% url 'accounts:profile_update' %}">Edit profile</a>
+            <a class="btn btn--small" href="{% url 'account_change_password' %}">Change password</a>
+            <a class="btn btn--small" href="{% url 'account_email' %}">Email addresses</a>
+        </div>
+    </section>
+    <section class="card stack" aria-labelledby="resend-title">
+        <h2 id="resend-title">Email reports</h2>
+        {% if resend_configured %}
+            <p class="small">
+                <span class="badge badge--good">On</span> monAI sends the month PDF from {{ resend_from_email }}.
+            </p>
+        {% else %}
+            <p class="small">
+                <span class="badge badge--warn">Off</span> To get the month PDF by email, add your Resend API key and a sender address in "Edit profile".
+            </p>
+        {% endif %}
+    </section>
+    <form method="post" action="{% url 'account_logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--danger">Log out</button>
+    </form>
+{% endblock content %}

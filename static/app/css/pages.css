@@ -640,3 +640,15 @@ a.chip {
 .recap .btn {
   align-self: flex-start;
 }
+
+.profile-avatar {
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+  background: var(--green-soft);
+  color: var(--green-soft-ink);
+}
+
+.help-text {
+  font-weight: 600;
+}

@@ -25,6 +25,7 @@
         <input type="email"
                name="login"
                id="id_login"
+               value="{{ form.login.value|default:'' }}"
                class="form-control {% if form.login.errors %}is-invalid{% endif %}"
                placeholder="your@email.com"
                required
@@ -46,7 +47,7 @@
                    placeholder="Enter your password"
                    required>
             <button type="button" class="password-toggle" aria-label="Toggle password visibility">
-                <i class="bi bi-eye"></i>
+                Show
             </button>
             {% if form.password.errors %}
             <div class="invalid-feedback">
@@ -73,18 +74,3 @@
     <p>Don't have an account? <a href="{% url 'account_signup' %}">Sign up</a></p>
 </div>
 {% endblock content %}
-
-{% block extra_js %}
-<script>
-    // Form animation
-    anime({
-        targets: '.form-group',
-        opacity: [0, 1],
-        translateY: [20, 0],
-        delay: anime.stagger(100, {start: 300}),
-        duration: 500,
-        easing: 'easeOutCubic'
-    });
-</script>
-{% endblock extra_js %}
-

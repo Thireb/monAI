@@ -1,0 +1,294 @@
+/* monAI sign-in and account pages (allauth templates in templates/account/).
+   They use the tokens and components of the new UI; this file styles their own classes. */
+
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+
+.auth-container {
+  width: min(440px, 100%);
+}
+
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.auth-logo {
+  align-self: center;
+  font-size: 28px;
+}
+
+.auth-header {
+  text-align: center;
+}
+
+.auth-title {
+  margin: 0 0 4px;
+  font-size: 26px;
+}
+
+.auth-subtitle,
+.auth-footer,
+.auth-info,
+.text-muted {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.auth-footer,
+.auth-info {
+  text-align: center;
+}
+
+.auth-footer a,
+.auth-info a,
+.forgot-password-link {
+  color: var(--green-ink);
+  font-weight: 700;
+}
+
+.auth-form,
+.auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+.form-control {
+  width: 100%;
+  min-height: 48px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--line);
+  padding: 0 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+.form-control.is-invalid {
+  border-color: var(--red);
+}
+
+.invalid-feedback {
+  color: var(--red-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper .form-control {
+  padding-right: 76px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.form-check-group {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.form-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap);
+  font-weight: 700;
+}
+
+.form-check-input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--green);
+}
+
+/* Bootstrap-named buttons in these templates, drawn as .btn of the new UI. */
+.btn-primary,
+.btn-auth {
+  background: var(--green);
+  color: var(--on-accent);
+}
+
+.btn-auth {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 16px;
+  font-size: 16px;
+}
+
+.btn-sm {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.btn-outline-primary,
+.btn-outline-secondary {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.btn-outline-danger {
+  background: var(--red-soft);
+  color: var(--red-ink);
+}
+
+.alert {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--green-soft);
+  color: var(--green-soft-ink);
+  font-weight: 700;
+}
+
+.alert-danger,
+.alert-error {
+  background: var(--red-soft);
+  color: var(--red-ink);
+}
+
+.alert-warning {
+  background: var(--sun-soft);
+  color: var(--sun-ink);
+}
+
+.auth-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.logout-icon,
+.email-sent-icon,
+.success-icon {
+  display: grid;
+  place-items: center;
+  color: var(--green);
+}
+
+/* Email addresses page (templates/account/email.html). */
+
+.email-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.email-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.email-info,
+.email-badges,
+.email-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.email-address {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.badge-primary-email,
+.badge-verified,
+.badge-unverified {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge-primary-email,
+.badge-verified {
+  background: var(--green-soft);
+  color: var(--green-soft-ink);
+}
+
+.badge-unverified {
+  background: var(--sun-soft);
+  color: var(--sun-ink);
+}
+
+.add-email-section {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.add-email-section h3 {
+  margin: 0 0 12px;
+}
+
+.no-emails {
+  text-align: center;
+  padding: 24px;
+  color: var(--ink-2);
+}
+
+.alert p {
+  margin: 0;
+}
+
+form.inline {
+  display: inline;
+}

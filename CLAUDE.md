@@ -145,7 +145,7 @@ Give each module by name:
   budgetapp.tests.test_app_browser
 ```
 
-On 2026-10-15, all 193 tests passed (about 2 minutes).
+On 2026-10-15, all 195 tests passed (about 2 minutes).
 Logs with `🔴 400` in the output are normal. Some tests check error responses.
 
 `test_budget_page_browser`, `test_pwa_offline` and `test_app_browser` drive headless Chromium with Playwright. The classic pages need network

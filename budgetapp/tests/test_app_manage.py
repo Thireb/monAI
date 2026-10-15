@@ -257,3 +257,25 @@ class RootRedirectTests(ManageBase):
 
     def test_root_opens_the_new_ui(self) -> None:
         self.assertRedirects(self.client.get("/"), reverse("app:home"))
+
+
+class ProfilePageTests(ManageBase):
+    """The profile pages use the new UI."""
+
+    def test_profile_and_update(self) -> None:
+        page = self.client.get(reverse("accounts:profile"))
+        self.assertTemplateUsed(page, "app/profile.html")
+        self.assertContains(page, "more@example.com")
+        response = self.client.post(
+            reverse("accounts:profile_update"),
+            {"username": "more", "email": "more@example.com", "first_name": "Sana"},
+            follow=True,
+        )
+        self.assertContains(response, "Profile updated successfully!")
+        self.assertContains(response, "Sana")
+
+    def test_login_page_has_no_bootstrap(self) -> None:
+        page = Client().get(reverse("account_login"))
+        self.assertContains(page, "app/css/auth.css")
+        self.assertNotContains(page, "bootstrap")
+        self.assertNotContains(page, "jquery")

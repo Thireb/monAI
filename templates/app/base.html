@@ -81,7 +81,16 @@
             <div class="sheet__grip" aria-hidden="true"></div>
             <div id="edit-sheet-body"></div>
         </dialog>
-        <div id="toasts" class="toasts" aria-live="polite"></div>
+        <div id="toasts" class="toasts" aria-live="polite">
+            {% for message in messages %}
+                <div class="toast{% if message.level >= 40 %} toast--error{% endif %}"
+                     data-autoclose="5000"
+                     role="status">
+                    <span>{{ message }}</span>
+                    <button type="button" class="icon-btn" data-close-toast aria-label="Close">✕</button>
+                </div>
+            {% endfor %}
+        </div>
         <div id="outbox" class="outbox" role="status" hidden></div>
         <script src="{% static 'app/vendor/htmx-2.0.4.min.js' %}"></script>
         <script src="{% static 'app/vendor/anime-3.2.1.min.js' %}"></script>
