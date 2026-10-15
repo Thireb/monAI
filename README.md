@@ -135,9 +135,7 @@ pre-commit install
 pre-commit run --all-files
 
 python -m mypy budgetapp budget_tracker accounts script_runner
-python manage.py test budgetapp.tests.test_goals \
-  budgetapp.tests.test_debt_tag_and_pdf_context \
-  budgetapp.tests.test_mobile_sync
+python manage.py test budgetapp.tests
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details.

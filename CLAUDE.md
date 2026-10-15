@@ -130,20 +130,13 @@ Use `TagTransfer` as the model to copy. Commit `62f0a7e` shows the full change.
 
 ## Tests
 
-**Warning:** `manage.py test budgetapp.tests` fails with a `TypeError`.
-The cause is that `budgetapp/tests.py` and `budgetapp/tests/` both exist.
-Give each module by name:
+Run all tests:
 
 ```fish
-.venv/bin/python manage.py test budgetapp.tests.test_goals \
-  budgetapp.tests.test_debt_tag_and_pdf_context budgetapp.tests.test_mobile_sync \
-  budgetapp.tests.test_tag_transfers budgetapp.tests.test_bill_reminders \
-  budgetapp.tests.test_budget_summary budgetapp.tests.test_user_resend_email \
-  budgetapp.tests.test_budget_month_unique budgetapp.tests.test_budget_page_browser \
-  budgetapp.tests.test_pwa_offline budgetapp.tests.test_services budgetapp.tests.test_app_views \
-  budgetapp.tests.test_app_goals budgetapp.tests.test_app_manage budgetapp.tests.test_push \
-  budgetapp.tests.test_encrypted_field budgetapp.tests.test_app_browser
+.venv/bin/python manage.py test budgetapp.tests
 ```
+
+To run 1 module, give its name, for example `budgetapp.tests.test_services`.
 
 On 2026-10-15, all 200 tests passed (about 2 minutes).
 Logs with `🔴 400` in the output are normal. Some tests check error responses.

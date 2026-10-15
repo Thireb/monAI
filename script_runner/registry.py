@@ -147,14 +147,6 @@ register_script(Script(
     run_on_deploy=False,
 ))
 
-register_script(Script(
-    name="assign_data_to_user",
-    description="Assign orphaned data to a specific user",
-    category="User Management",
-    example="assign_data_to_user --email user@example.com",
-    run_on_deploy=False,
-))
-
 # Setup Scripts (run on deploy)
 register_script(Script(
     name="create_default_categories",
@@ -165,29 +157,6 @@ register_script(Script(
     order=10,
 ))
 
-# Migration Scripts (version-specific)
-register_script(Script(
-    name="create_tags_from_expenses",
-    description="Create tags from existing expense tag values",
-    category="Migration",
-    example="create_tags_from_expenses",
-    min_version="1.0.0",
-    max_version="1.1.0",
-    run_on_deploy=True,
-    order=20,
-))
-
-register_script(Script(
-    name="migrate_expense_tags_to_foreign_key",
-    description="Migrate expense tags to foreign key references",
-    category="Migration",
-    example="migrate_expense_tags_to_foreign_key",
-    min_version="1.0.0",
-    max_version="1.1.0",
-    run_on_deploy=True,
-    order=21,
-))
-
 # Maintenance
 register_script(Script(
     name="archive_old_budgets",
@@ -196,22 +165,3 @@ register_script(Script(
     example="archive_old_budgets",
     run_on_deploy=False,
 ))
-
-register_script(Script(
-    name="cleanup_budgets",
-    description="Cleanup empty or invalid budgets",
-    category="Maintenance",
-    example="cleanup_budgets",
-    run_on_deploy=False,
-))
-
-# Database (dangerous)
-register_script(Script(
-    name="cleanup_migrations",
-    description="Drop database tables (DANGEROUS - development only)",
-    category="Database",
-    example="cleanup_migrations --dry-run",
-    dangerous=True,
-    run_on_deploy=False,
-))
-

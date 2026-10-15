@@ -31,8 +31,8 @@ For **voice or text → structured actions** (English-first), see
 - **Lint (flake8):** `python -m flake8 --max-line-length=100 budgetapp/ budget_tracker/ accounts/ script_runner/`
 - **Lint (black check):** `python -m black --check --line-length=100 budgetapp/ budget_tracker/ accounts/ script_runner/`
 - **Type check (mypy):** `python -m mypy budgetapp budget_tracker accounts script_runner`
-- **Tests:** `python manage.py test budgetapp.tests.test_goals budgetapp.tests.test_debt_tag_and_pdf_context budgetapp.tests.test_mobile_sync`
-  - Note: `python manage.py test` with no label discovers zero tests; always specify the module path.
+- **Tests:** `python manage.py test budgetapp.tests`
+  - Note: `python manage.py test` with no label discovers zero tests; give the `budgetapp.tests` label.
 - **Build (collectstatic):** `python manage.py collectstatic --noinput`
 - **Pre-commit (all hooks):** `pre-commit run --all-files`
 

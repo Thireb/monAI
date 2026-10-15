@@ -379,13 +379,8 @@ python manage.py run_scripts --list
 | `backup_data` | Data Management | No | Backup to JSON |
 | `restore_data` | Data Management | No | Restore from JSON |
 | `setup_superuser` | User Management | No | Create superuser |
-| `assign_data_to_user` | User Management | No | Assign orphaned data |
 | `create_default_categories` | Setup | **Yes** | Create default categories |
-| `create_tags_from_expenses` | Migration | **Yes** | Migrate tags (v1.0-1.1) |
-| `migrate_expense_tags_to_foreign_key` | Migration | **Yes** | Migrate FK (v1.0-1.1) |
 | `archive_old_budgets` | Maintenance | No | Archive old budgets |
-| `cleanup_budgets` | Maintenance | No | Clean invalid budgets |
-| `cleanup_migrations` | Database | No | Drop tables (⚠️ DANGEROUS) |
 
 ### Version-Based Execution
 
@@ -394,8 +389,8 @@ Scripts can be version-specific:
 ```python
 # In script_runner/registry.py
 register_script(Script(
-    name="migrate_expense_tags_to_foreign_key",
-    description="Migrate expense tags to foreign key references",
+    name="fix_old_data",  # an example name
+    description="Fix data written by old versions",
     category="Migration",
     min_version="1.0.0",  # Only run for >= 1.0.0
     max_version="1.1.0",  # Only run for <= 1.1.0

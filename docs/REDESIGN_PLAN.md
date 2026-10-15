@@ -157,7 +157,7 @@ The biggest gain is less typing: most budget apps lose users at data entry, not 
 | 4 | Add browser smoke tests (Playwright) for the budget page | They catch double modals and wrong labels. The Django tests do not test the UI. | Medium | [x] |
 | 5 | Use `Decimal` for money in all views | 37 `float()` calls in `budgetapp/minimal/views/` can make totals differ by a small amount from the PDF | Small | [ ] |
 | 6 | Encrypt `resend_api_key` in the database | It is a plain `CharField` in `accounts/models.py` | Small | [x] |
-| 7 | Remove the old one-time commands and `budgetapp/tests.py` | Old migration helpers add noise. `tests.py` breaks `manage.py test budgetapp.tests`. | Small | [ ] |
+| 7 | Remove the old one-time commands and `budgetapp/tests.py` | Old migration helpers add noise. `tests.py` breaks `manage.py test budgetapp.tests`. | Small | [x] |
 | 8 | Later: import a bank statement (CSV) to suggest expenses | The user checks a list of suggested expenses and taps "Add". This is much less typing. | Large | [ ] |
 | 9 | Measure use before you build more | The request middleware already logs each view. Count which pages people open, then cut or improve. | Small | [ ] |
 
