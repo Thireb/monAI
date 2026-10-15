@@ -7,6 +7,8 @@ from typing import Any
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 
+from accounts.fields import EncryptedCharField
+
 
 class CustomUserManager(BaseUserManager["CustomUser"]):
     """Custom user manager where email is the unique identifier."""
@@ -57,10 +59,10 @@ class CustomUser(AbstractUser):
             "unique": "A user with that email already exists.",
         },
     )
-    resend_api_key = models.CharField(
+    resend_api_key = EncryptedCharField(
         max_length=255,
         blank=True,
-        help_text="Resend API key for budget PDF emails.",
+        help_text="Resend API key for budget PDF emails. Kept encrypted in the database.",
     )
     resend_from_email = models.EmailField(
         blank=True,

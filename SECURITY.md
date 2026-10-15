@@ -26,7 +26,7 @@ Include:
 - Android keystores (`*.jks`, `key.properties`)
 - API keys or passwords
 
-**Budget PDF email:** each user stores their own Resend API key and from address on their profile. These live in your database on self-hosted instances — protect database backups accordingly.
+**Budget PDF email:** each user stores their own Resend API key and from address on their profile. The API key is encrypted in the database (`accounts/fields.py`, Fernet with a key derived from Django's `secret_key`). If you change `secret_key`, the stored keys can no longer be read: each user must enter their Resend key again. Protect database backups and `config.yaml` together, because the key and the data are both needed to read the Resend keys.
 
 **Django system mail** (password reset, etc.) uses `email.backend` in `config.yaml` (`console` or `smtp`).
 

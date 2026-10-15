@@ -79,6 +79,8 @@ class ProfileUpdateForm(forms.ModelForm):
         """Apply Bootstrap classes to labels/help text."""
         super().__init__(*args, **kwargs)
         self.fields["resend_api_key"].required = False
+        # Validation copies the blank field onto the instance, so keep the old key now.
+        self.saved_resend_api_key = self.instance.resend_api_key if self.instance.pk else ""
 
     def clean_email(self) -> str:
         """Ensure the email is unique among all users except the current one."""
@@ -93,8 +95,8 @@ class ProfileUpdateForm(forms.ModelForm):
         """Persist profile fields; keep existing API key when the password field is left blank."""
         user = super().save(commit=False)
         new_key = self.cleaned_data.get("resend_api_key", "")
-        if not new_key and self.instance.pk and self.instance.resend_api_key:
-            user.resend_api_key = self.instance.resend_api_key
+        if not new_key and self.saved_resend_api_key:
+            user.resend_api_key = self.saved_resend_api_key
         if commit:
             user.save()
         return user
