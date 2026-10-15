@@ -54,7 +54,7 @@ A well-built web app can do the app's job on its own. The web already holds all 
 
 ### Retire the Flutter app (after Phase 2)
 
-- [ ] Stop the APK releases. Add a note to the last GitHub release that points Obtainium users to the web app.
+- [x] Stop the APK releases. No note needed: the GitHub repo has no releases (checked 2026-10-15). The old script built the APK only on this machine.
 - [x] Move the agent intent mapping in `docs/agent_intent/README.md` off `/api/mobile/…`. It now maps to the REST API and to `budgetapp/services/`.
 - [x] Remove `mobile/budget_mobile/`, `scripts/release_mobile_apk.sh`, `scripts/build_flutter_apk.sh`, `docs/OBTAINIUM.md` and `docs/PLAY_STORE.md` (2026-10-15; the last code is at the git tag `flutter-final`).
 - [x] Remove the `/api/mobile/*` views, `serializers_mobile.py` and `test_mobile_sync.py`. `/api/health/` stays.
