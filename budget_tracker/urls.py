@@ -32,8 +32,7 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("accounts/", include("allauth.urls")),
     # Profile URLs
     path("accounts/", include("accounts.urls", namespace="accounts")),
-    # Redirect root to minimal theme
+    # The root opens the home page of the new UI
     path("", redirect_to_app, name="root_redirect"),
-    path("minimal/", include("budgetapp.minimal.urls", namespace="minimal")),
     path("app/", include("budgetapp.app.urls", namespace="app")),
 ]

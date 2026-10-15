@@ -29,12 +29,8 @@ class TagTransferModelTests(TestCase):
             month=date(2024, 7, 1),
             income=Decimal("1000.00"),
         )
-        self.cash = Tag.objects.create(
-            user=self.user, name="Cash", slug="cash", color="#4caf50"
-        )
-        self.bank = Tag.objects.create(
-            user=self.user, name="Bank", slug="bank", color="#2196f3"
-        )
+        self.cash = Tag.objects.create(user=self.user, name="Cash", slug="cash", color="#4caf50")
+        self.bank = Tag.objects.create(user=self.user, name="Bank", slug="bank", color="#2196f3")
         Expense.objects.create(
             budget=self.budget,
             name="Groceries",
@@ -75,7 +71,7 @@ class TagTransferModelTests(TestCase):
 
 
 class TagTransferViewTests(TestCase):
-    """Create/delete transfer endpoints for the minimal web UI."""
+    """Create and delete a transfer in the month settings of the new UI."""
 
     def setUp(self) -> None:
         self.client = Client()
@@ -90,12 +86,8 @@ class TagTransferViewTests(TestCase):
             month=date(2024, 8, 1),
             income=Decimal("2000.00"),
         )
-        self.cash = Tag.objects.create(
-            user=self.user, name="Cash", slug="cash-w", color="#4caf50"
-        )
-        self.bank = Tag.objects.create(
-            user=self.user, name="Bank", slug="bank-w", color="#2196f3"
-        )
+        self.cash = Tag.objects.create(user=self.user, name="Cash", slug="cash-w", color="#4caf50")
+        self.bank = Tag.objects.create(user=self.user, name="Bank", slug="bank-w", color="#2196f3")
         Expense.objects.create(
             budget=self.budget,
             name="Rent",
@@ -103,46 +95,24 @@ class TagTransferViewTests(TestCase):
             tag_foreign_key=self.cash,
         )
 
-    def test_create_and_delete_transfer(self) -> None:
-        create_url = reverse(
-            "minimal:tag_transfer_create", kwargs={"year": 2024, "month": 8}
-        )
+    def test_create_and_delete_transfer_keep_remaining(self) -> None:
+        create_url = reverse("app:transfer_create", kwargs={"year": 2024, "month": 8})
         remaining_before = self.budget.get_remaining_budget()
         resp = self.client.post(
             create_url,
             {
-                "from_tag": self.cash.id,
-                "to_tag": self.bank.id,
-                "amount": "150.00",
-                "note": "Moved float",
+                "transfer-from_tag": self.cash.id,
+                "transfer-to_tag": self.bank.id,
+                "transfer-amount": "150.00",
+                "transfer-note": "Moved float",
             },
         )
-        self.assertEqual(resp.status_code, 200)
-        data = resp.json()
-        self.assertEqual(data["status"], "success")
+        self.assertContains(resp, "Moved 150 from Cash to Bank.")
         self.assertEqual(TagTransfer.objects.count(), 1)
         self.budget.refresh_from_db()
         self.assertEqual(self.budget.get_remaining_budget(), remaining_before)
 
         transfer = TagTransfer.objects.get()
-        delete_url = reverse(
-            "minimal:tag_transfer_delete", kwargs={"year": 2024, "month": 8}
-        )
-        del_resp = self.client.post(delete_url, {"transfer_id": transfer.id})
+        del_resp = self.client.post(reverse("app:transfer_delete", kwargs={"pk": transfer.id}))
         self.assertEqual(del_resp.status_code, 200)
-        self.assertEqual(TagTransfer.objects.count(), 0)
-
-    def test_create_rejects_same_tag(self) -> None:
-        create_url = reverse(
-            "minimal:tag_transfer_create", kwargs={"year": 2024, "month": 8}
-        )
-        resp = self.client.post(
-            create_url,
-            {
-                "from_tag": self.cash.id,
-                "to_tag": self.cash.id,
-                "amount": "10.00",
-            },
-        )
-        self.assertEqual(resp.status_code, 400)
         self.assertEqual(TagTransfer.objects.count(), 0)

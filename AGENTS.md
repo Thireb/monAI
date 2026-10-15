@@ -13,7 +13,7 @@ For **voice or text → structured actions** (English-first), see
 
 | Service | How to run | Notes |
 |---------|-----------|-------|
-| Django dev server | `source venv/bin/activate && python manage.py runserver 0.0.0.0:8000` | Main app at http://127.0.0.1:8000, UI at /minimal/ |
+| Django dev server | `source venv/bin/activate && python manage.py runserver 0.0.0.0:8000` | Main app at http://127.0.0.1:8000, UI at /app/ |
 | Flutter mobile app | `cd mobile/budget_mobile && flutter pub get && flutter analyze` | Offline-first companion; runs tests headlessly |
 | Celery worker | `celery -A budget_tracker worker -l info` | Optional; requires Redis |
 | Redis | Not pre-installed | Only needed for Celery async tasks |
@@ -46,7 +46,7 @@ For **voice or text → structured actions** (English-first), see
 - Python packages must be installed in the venv (`/workspace/venv`); the system Python is externally-managed (PEP 668).
 - WeasyPrint system libraries (Cairo, Pango, GDK-Pixbuf) are already available in the VM image.
 - The `staticfiles/` directory warning during tests is harmless; tests still pass.
-- The root URL `/` redirects (302) to login; use `/accounts/login/` for the login form or `/minimal/` after authentication.
+- The root URL `/` redirects (302) to `/app/`, which asks for login first; the login form is at `/accounts/login/`.
 - Flutter requires `git config --global --add safe.directory /opt/flutter` (already done in setup).
 - Flutter `pubspec.yaml` requires Dart ^3.9.0; the installed Flutter 3.41.5 ships Dart 3.11.3 which satisfies this.
 - `DEBUG` defaults to `false` when `config.yaml` is absent; set `app.debug: true` in config or `DEBUG=true` for local dev.

@@ -70,14 +70,14 @@ This removes about 5,900 lines of Dart and about 2,100 lines of mobile sync code
 - [x] Web Push notifications for bill reminders (see `docs/WEB_PUSH.md`; needs a daily timer)
 - [x] Offline quick add: save to IndexedDB, send when the network comes back
 - [x] Move all other pages to the components: accounts, categories and bill reminders (`/app/more/`), all months (`/app/months/`), income, transfers, PDF email and delete on the month page, goal and debt history, sign-in pages and profile. `/` and the login now open `/app/`
-- [ ] **Gate:** no jQuery page code remains · Bootstrap removed · every page works in dark mode. The new UI and the sign-in pages meet it. The classic UI (`/minimal/`) still uses jQuery and Bootstrap: removing it is the owner's decision (see Decisions)
+- [x] **Gate:** no jQuery page code remains · Bootstrap removed · every page works in dark mode. The classic UI (`/minimal/`) was removed on 2026-10-15.
 
 ### Phase 4 · Fun and reward
 
 - [x] Streaks (the "days under budget" badge on the home page, done in Phase 2)
 - [x] Month recap: on the home page in the first 7 days of a month, and at `/app/month/<y>/<m>/recap/`
 - [x] Goal celebrations at 25 %, 50 %, 75 % and 100 %, and when a debt is paid off
-- [ ] Undo toast in place of confirm dialogs (the new UI uses Undo after a spend and "tap again" for deletes; the classic pages still use dialogs)
+- [x] Undo toast in place of confirm dialogs (Undo after a spend, "tap again" for deletes; no confirm dialogs remain)
 - [x] "Copy last month?" on a new, empty month (done in Phase 2)
 - [ ] **Gate:** used 5 days a week for 1 month
 
@@ -155,7 +155,7 @@ The biggest gain is less typing: most budget apps lose users at data entry, not 
 | 2 | Auto-copy recurring expenses into a new month | `Expense.is_recurring` exists but the user still builds each month by hand | Small | [x] |
 | 3 | Use 1 grammar for quick add, voice and the agent intent schema | `groceries 2500 #cash` can map to the `expense_upsert` action in `docs/agent_intent/` | Medium | [ ] |
 | 4 | Add browser smoke tests (Playwright) for the budget page | They catch double modals and wrong labels. The Django tests do not test the UI. | Medium | [x] |
-| 5 | Use `Decimal` for money in all views | 37 `float()` calls in `budgetapp/minimal/views/` can make totals differ by a small amount from the PDF | Small | [ ] |
+| 5 | Use `Decimal` for money in all views | 37 `float()` calls in `budgetapp/minimal/views/` can make totals differ by a small amount from the PDF. Done: the classic views are removed and the PDF report (`services/report.py`) uses `Decimal`. | Small | [x] |
 | 6 | Encrypt `resend_api_key` in the database | It is a plain `CharField` in `accounts/models.py` | Small | [x] |
 | 7 | Remove the old one-time commands and `budgetapp/tests.py` | Old migration helpers add noise. `tests.py` breaks `manage.py test budgetapp.tests`. | Small | [x] |
 | 8 | Later: import a bank statement (CSV) to suggest expenses | The user checks a list of suggested expenses and taps "Add". This is much less typing. | Large | [ ] |
@@ -170,5 +170,5 @@ The biggest gain is less typing: most budget apps lose users at data entry, not 
 | Front-end stack | HTMX + small vanilla JS (Alpine.js not needed so far) | Decided 2026-10-14 (default) |
 | Remote access | Tailscale, with `tailscale serve` for HTTPS | Decided 2026-10-14 |
 | Who uses monAI | Only the owner and family (default), or public users | Open |
-| Bootstrap | Remove it in Phase 3 (default), or keep it and only restyle | Open |
+| Bootstrap | Remove it in Phase 3 (default), or keep it and only restyle | Removed with the classic UI (2026-10-15) |
 | Flutter code | Delete it from the repo (default), or move it to an archive branch first | Open |

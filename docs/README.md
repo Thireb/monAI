@@ -43,7 +43,7 @@ monAI is a personal budget tracking application built with Django. It features:
 |-----------|------------|
 | Backend | Django 5.1, Python 3.13 |
 | Database | SQLite (development), PostgreSQL (production) |
-| Frontend | Django Templates, Alpine.js, Anime.js, Bootstrap 5 |
+| Frontend | Django Templates, HTMX, Anime.js (PWA with a service worker) |
 | Mobile | Flutter (Android) |
 | Task Queue | Celery + Redis |
 | Authentication | Django Allauth |
@@ -187,17 +187,8 @@ monAI/
 │
 ├── budgetapp/               # Main application
 │   ├── models.py            # Budget, Expense, Goal, Debt models
-│   ├── minimal/             # Minimal theme views
-│   │   └── views/           # Modular view package
-│   │       ├── base.py      # Base view classes
-│   │       ├── home.py      # Home & calendar
-│   │       ├── budget.py    # Budget CRUD
-│   │       ├── expense.py   # Expense CRUD
-│   │       ├── subexpense.py
-│   │       ├── category.py  # Category management
-│   │       ├── tag.py       # Tag management
-│   │       ├── debt.py      # Debt management
-│   │       └── stats.py     # Statistics views
+│   ├── app/                 # The web UI at /app/ (views, forms, urls)
+│   ├── services/            # Money logic: month figures, goals, bills, push, PDF report
 │   ├── api.py               # Budget API viewset
 │   ├── api_goals.py         # Goals API viewset
 │   └── management/commands/
@@ -249,7 +240,7 @@ budget = Budget.objects.create(
 remaining = budget.get_remaining_budget()
 ```
 
-**Summary numbers (web minimal UI, budget PDF, Flutter budget detail)** use the same `Budget` helpers in `budgetapp/models.py`:
+**Summary numbers (web UI, budget PDF, Flutter budget detail)** use the same `Budget` helpers in `budgetapp/models.py`:
 
 | Concept | Method | Meaning |
 |---------|--------|---------|
@@ -318,19 +309,19 @@ print(f"On track: {goal.is_on_track()}")
 
 ## Budget PDF Email
 
-Logged-in users can email a **WeasyPrint** PDF of a monthly budget from the UI. The handler is `BudgetEmailPDFView` in `budgetapp/minimal/views/budget.py`.
+Logged-in users can email a **WeasyPrint** PDF of a monthly budget from the month settings card. The view is `MonthEmailView` in `budgetapp/app/views/month_settings.py`. It calls `send_report` in `budgetapp/services/report.py`.
 
 **HTTP**
 
 | Item | Value |
 |------|--------|
 | Method | `POST` |
-| URL name | `minimal:budget_email_pdf` |
-| Path pattern | `/minimal/budget/<year>/<month>/email-pdf/` |
+| URL name | `app:month_email` |
+| Path pattern | `/app/month/<year>/<month>/email/` |
 
 **PDF contents**
 
-The PDF template `minimal/pdf/budget_report.html` receives context built in `_get_budget_context`, including:
+The PDF template `app/pdf/budget_report.html` receives context built in `report_context`, including:
 
 - Income, totals, and per-expense rows with sub-expenses
 - **Category breakdown** (`expenses_by_category`)
@@ -340,8 +331,7 @@ The PDF template `minimal/pdf/budget_report.html` receives context built in `_ge
 
 - PDF generation requires **WeasyPrint** (`pip install weasyprint` if missing).
 - Email uses the **Resend Python SDK** with the logged-in user’s profile credentials (Profile → Edit Profile).
-- If Resend is not configured on the profile, the UI shows a warning and the endpoint returns HTTP 400.
-- The user must have an **email address** on their account; otherwise the view returns HTTP 400.
+- If Resend is not configured on the profile, or the account has no **email address**, the view answers with an error toast and makes no PDF.
 
 ---
 
@@ -474,11 +464,11 @@ Never commit `.jks`, `keystore.properties`, or `key.properties`. See [SECURITY.m
 
 ### View Organization
 
-Views are organized in `budgetapp/minimal/views/`:
+Views are organized in `budgetapp/app/views/`, 1 file per feature. Money logic goes in `budgetapp/services/`:
 
 ```python
 # Always use class-based views
-class MyView(LoginRequiredView):
+class MyView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         # Implementation
         pass
@@ -503,10 +493,9 @@ register_script(Script(
 
 | Library | Use For |
 |---------|---------|
-| Alpine.js | Simple UI state, toggles, forms |
-| Anime.js | Complex animations |
-| jQuery | AJAX, DOM manipulation |
-| Bootstrap 5 | Layout, components |
+| HTMX | Server requests that swap parts of the page (`static/app/vendor/`) |
+| Anime.js | Animations (`static/app/vendor/`) |
+| `static/app/js/app.js` | Small vanilla JS: sheets, toasts, quick add |
 
 ---
 
@@ -613,7 +602,6 @@ The following legacy docs are kept for reference but may be outdated:
 - `ai_goal_assistant_*.md` - AI assistant planning docs
 - `goals_feature*.md` - Goals feature implementation
 - `planning_for_borrow_system.md` - Debt system planning
-- `minimal_theme_development_guidelines.md` - Theme guidelines
 
 ---
 

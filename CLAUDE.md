@@ -9,7 +9,8 @@ lint, test and build commands.
 
 monAI is a self-hosted personal budget tracker. It has 2 clients:
 
-- A Django web app (Django 5.1, DRF, allauth). The new UI is at `/app/` (`/` opens it). The classic UI is at `/minimal/`.
+- A Django web app (Django 5.1, DRF, allauth). The UI is at `/app/` (`/` opens it). It is a PWA
+  that also works offline. The classic UI (`/minimal/`) was removed on 2026-10-15.
 - A Flutter Android app in `mobile/budget_mobile/`. It is offline-first. It
   keeps data in SQLite (`sqflite`) and syncs with Django over HTTP.
 
@@ -39,16 +40,14 @@ The `AGENTS.md` paths (`/workspace/venv`) are for Cursor Cloud. On this machine:
 | `accounts/` | Custom user model and profile. Each user has a Resend key, encrypted in the database (`accounts/fields.py`). |
 | `budgetapp/models.py` | All domain models. |
 | `budgetapp/app/` | **New UI** at `/app/` (namespace `app`): views, forms, urls. New UI work goes here. |
-| `budgetapp/services/` | Money logic for the new UI: `month.py` (month figures, Safe to spend today), `quick_add.py`, `months.py`, `goals.py` (goals, debt payoff), `bills.py` (bill timeline), `push.py` (Web Push bill alerts), `recap.py` (month recap), `home.py`. |
-| `budgetapp/minimal/views/` | Classic web UI views (`/minimal/`), 1 file per feature. |
-| `budgetapp/minimal/urls.py` | Web UI routes, namespace `minimal`. |
+| `budgetapp/services/` | Money logic for the new UI: `month.py` (month figures, Safe to spend today), `quick_add.py`, `months.py`, `goals.py` (goals, debt payoff), `bills.py` (bill timeline), `push.py` (Web Push bill alerts), `recap.py` (month recap), `report.py` (PDF report email), `home.py`. |
 | `budgetapp/api_urls.py` | REST and mobile sync routes under `/api/`. |
 | `budgetapp/api_mobile_*.py` | Mobile pull/push views. |
 | `budgetapp/serializers_mobile.py` | Mobile sync serializers and `save_*_for_user` helpers. |
 | `budgetapp/tests/` | Django tests. |
 | `script_runner/` | Versioned management scripts. `registry.py` lists them. |
-| `templates/app/`, `static/app/` | New UI templates (components, partials) and its CSS tokens and JS. |
-| `templates/minimal/`, `static/{css,js}/minimal-*/` | Classic UI templates and assets, by feature. |
+| `templates/app/`, `static/app/` | New UI templates (components, partials, `pdf/`) and its CSS tokens and JS. |
+| `static/js/service-worker.js`, `static/js/pwa-register.js` | The PWA service worker (offline pages, Web Push) and its registration. |
 | `mobile/budget_mobile/lib/` | Flutter: `database/`, `repositories/`, `services/`, `screens/`. |
 | `docs/` | Project docs. `docs/agent_intent/` has the LLM action schemas. |
 
@@ -102,8 +101,9 @@ These rules come from `.cursorrules`, `.cursor/rules/*.mdc` and
    templates keep the styles in the HTML file.
 9. Templates only show data. Do calculations in the backend and send the
    result in the context.
-10. Web pages extend `minimal/base.html`. Use Alpine.js for state and
-    anime.js for animation. Put reusable parts in `templates/minimal/components/`.
+10. Web pages extend `app/base.html`. Use HTMX for server requests and anime.js
+    for animation. Put reusable parts in `templates/app/components/` and
+    `templates/app/partials/`. Use the CSS tokens in `static/app/css/tokens.css`.
 11. Use `blank=True` (not `null=True`) for `CharField` and `TextField`.
 12. Use the `TextChoices` enum values, not string literals.
 
@@ -138,13 +138,13 @@ Run all tests:
 
 To run 1 module, give its name, for example `budgetapp.tests.test_services`.
 
-On 2026-10-15, all 200 tests passed (about 2 minutes).
-Logs with `🔴 400` in the output are normal. Some tests check error responses.
+On 2026-10-15, all 186 tests passed (about 2 minutes).
+Logs with `🔴 400` or `🔥 EXCEPTION` (404) in the output are normal. Some tests check
+error responses.
 
-`test_budget_page_browser`, `test_pwa_offline` and `test_app_browser` drive headless Chromium with Playwright. The classic pages need network
-access, because they load jQuery and anime.js from CDNs. The new UI loads HTMX and
-anime.js from `static/app/vendor/`. It is skipped when
-Playwright is missing. To set it up: `uv sync --extra dev`, then
+`test_pwa_offline` and `test_app_browser` drive headless Chromium with Playwright.
+The UI loads HTMX and anime.js from `static/app/vendor/`, so no network is needed.
+These tests are skipped when Playwright is missing. To set it up: `uv sync --extra dev`, then
 `.venv/bin/python -m playwright install chromium`.
 
 For Flutter: `cd mobile/budget_mobile; and flutter analyze; and flutter test`.

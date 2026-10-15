@@ -1,28 +1,22 @@
 // Service Worker for the monAI PWA
 // Increment CACHE_VERSION to force a full cache clear.
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const STATIC_CACHE = `monai-static-${CACHE_VERSION}`;
 const PAGE_CACHE = `monai-pages-${CACHE_VERSION}`;
 
 // Offline fallback page
-const OFFLINE_URL = '/minimal/offline/';
+const OFFLINE_URL = '/app/offline/';
 
 // Lists the pages to keep ready offline (see OfflineUrlsView).
-const OFFLINE_URLS_ENDPOINT = '/minimal/offline/urls/';
+const OFFLINE_URLS_ENDPOINT = '/app/offline/urls/';
 
 // A page request waits this long for the network, then falls back to the cache.
 // Without it, a phone with Tailscale on but no network waits until the request times out.
 const NETWORK_TIMEOUT_MS = 4000;
 
-// CDNs the pages load libraries and fonts from. Cached so pages work offline.
-const CDN_HOSTS = [
-  'fonts.googleapis.com',
-  'fonts.gstatic.com',
-  'cdn.jsdelivr.net',
-  'cdnjs.cloudflare.com',
-  'unpkg.com',
-  'code.jquery.com',
-];
+// Hosts the pages load fonts from. Cached so pages work offline.
+// HTMX and anime.js are in static/app/vendor/, so no script comes from a CDN.
+const CDN_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 // Core assets to pre-cache on install (without version params)
 const CORE_ASSETS = [
@@ -172,7 +166,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Libraries and fonts from known CDNs: cache first, refresh in the background
+  // Fonts from the known hosts: cache first, refresh in the background
   if (url.origin !== location.origin) {
     if (CDN_HOSTS.includes(url.hostname)) {
       event.respondWith(cacheFirstCdn(request));

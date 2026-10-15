@@ -123,8 +123,8 @@ class GoalsViewTests(TestCase):
         self.assertEqual(response["HX-Trigger"], "goalsChanged")
         goal = Goal.objects.get(name="Phone")
         self.assertEqual((goal.user, goal.current_amount), (self.user, D("200")))
-        # The starting amount is a contribution, so the classic pages keep it.
-        self.client.get(reverse("minimal:goal_list"))
+        # The starting amount is a contribution, so the sum of contributions keeps it.
+        self.client.get(reverse("app:goals"))
         goal.refresh_from_db()
         self.assertEqual(goal.current_amount, D("200"))
 

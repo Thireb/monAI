@@ -6,7 +6,6 @@ the card again and triggers ``monthChanged``, so the month figures refresh too.
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -16,8 +15,8 @@ from django.urls import reverse
 from django.views import View
 
 from budgetapp.app.forms import IncomeForm, TransferForm
-from budgetapp.minimal.views.budget import BudgetEmailPDFView
 from budgetapp.models import Budget, IncomeHistory, TagTransfer
+from budgetapp.services.report import send_report
 from budgetapp.templatetags.app_format import money
 
 from .base import month_date
@@ -114,14 +113,12 @@ class TransferDeleteView(LoginRequiredMixin, View):
 
 
 class MonthEmailView(LoginRequiredMixin, View):
-    """Email the month's PDF report, with the classic report code; answer with a toast."""
+    """Email the month's PDF report; answer with a toast."""
 
     def post(self, request: HttpRequest, year: int, month: int) -> HttpResponse:
         """Send the report and show the result."""
-        editable_budget(request, year, month)
-        result = BudgetEmailPDFView.as_view()(request, year=year, month=month)
-        data = json.loads(result.content)
-        return toast(request, data.get("message", ""), error=data.get("status") != "success")
+        result = send_report(request.user, editable_budget(request, year, month))
+        return toast(request, result.message, error=not result.ok)
 
 
 class MonthDeleteView(LoginRequiredMixin, View):

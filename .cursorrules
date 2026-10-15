@@ -144,7 +144,7 @@
 
 ### JavaScript Standards
 - Follow established plugin patterns
-- Maintain jQuery compatibility where used
+- Use HTMX and small vanilla JS (no jQuery)
 - Proper error handling and logging
 - Clear function and variable naming
 - Comment complex logic

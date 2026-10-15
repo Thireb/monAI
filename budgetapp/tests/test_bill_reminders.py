@@ -1,4 +1,5 @@
-"""Tests for bill reminders, dashboard window, and budget auto-lines."""
+"""Tests for bill reminders: the start of the alert window and the lines added to a month."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -8,11 +9,8 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from budgetapp.bill_reminder_utils import (
-    apply_bill_reminders_to_budget,
-    should_show_dashboard_banner,
-)
-from budgetapp.models import BillReminder, Budget, Category, Expense, Tag
+from budgetapp.bill_reminder_utils import apply_bill_reminders_to_budget, reminder_start_date
+from budgetapp.models import BillReminder, Budget, Expense
 
 User = get_user_model()
 
@@ -25,29 +23,15 @@ class BillReminderUtilsTests(TestCase):
             username="bruser", email="br@example.com", password="pw-test-12"
         )
 
-    def test_dashboard_banner_visible_before_billing_month(self) -> None:
+    def test_reminder_starts_days_before_the_due_date(self) -> None:
         br = BillReminder(
             user=self.user,
             name="Tax",
             amount=Decimal("500"),
             next_bill_date=date(2026, 3, 20),
             remind_days_before=30,
-            severity=BillReminder.Severity.HIGH,
         )
-        today = date(2026, 2, 25)
-        self.assertTrue(should_show_dashboard_banner(br, today))
-
-    def test_dashboard_banner_hidden_in_billing_month(self) -> None:
-        br = BillReminder(
-            user=self.user,
-            name="Tax",
-            amount=Decimal("500"),
-            next_bill_date=date(2026, 3, 20),
-            remind_days_before=30,
-            severity=BillReminder.Severity.HIGH,
-        )
-        today = date(2026, 3, 1)
-        self.assertFalse(should_show_dashboard_banner(br, today))
+        self.assertEqual(reminder_start_date(br), date(2026, 2, 18))
 
     def test_apply_bill_reminder_creates_expense_and_advances(self) -> None:
         br = BillReminder.objects.create(
@@ -96,7 +80,7 @@ class BillReminderUtilsTests(TestCase):
 
 
 class BillReminderViewTests(TestCase):
-    """Integration tests for bill reminder minimal UI views."""
+    """Bill reminders in the new UI: the More page lists them, a new month gets their lines."""
 
     def setUp(self) -> None:
         self.client = Client()
@@ -105,19 +89,18 @@ class BillReminderViewTests(TestCase):
         )
         self.client.login(email="v@example.com", password="pw-test-12")
 
-    def test_bill_reminder_list_renders(self) -> None:
-        url = reverse("minimal:bill_reminder_list")
-        r = self.client.get(url)
-        self.assertEqual(r.status_code, 200)
+    def test_more_page_lists_bill_reminders(self) -> None:
+        BillReminder.objects.create(
+            user=self.user,
+            name="Car insurance",
+            amount=Decimal("120.00"),
+            next_bill_date=date(2030, 6, 1),
+        )
+        r = self.client.get(reverse("app:manage"))
         self.assertContains(r, "Bill reminders")
+        self.assertContains(r, "Car insurance")
 
-    def test_defaults_view_returns_json(self) -> None:
-        url = reverse("minimal:bill_reminder_defaults")
-        r = self.client.get(url, {"next_bill_date": "2029-06-01"})
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json()["remind_days_before"], 30)
-
-    def test_budget_create_applies_reminder(self) -> None:
+    def test_month_create_applies_reminder(self) -> None:
         BillReminder.objects.create(
             user=self.user,
             name="Property tax",
@@ -125,65 +108,8 @@ class BillReminderViewTests(TestCase):
             next_bill_date=date(2030, 4, 5),
             remind_days_before=7,
         )
-        url = reverse("minimal:budget_create")
-        r = self.client.post(
-            url,
-            {
-                "copy_recurring": "false",
-                "target_year": "2030",
-                "target_month": "4",
-            },
-        )
-        self.assertEqual(r.status_code, 200)
+        r = self.client.post(reverse("app:month_create", kwargs={"year": 2030, "month": 4}))
+        self.assertEqual(r.status_code, 302)
         b = Budget.objects.get(user=self.user, month=date(2030, 4, 1))
         self.assertEqual(b.expenses.count(), 1)
         self.assertEqual(b.expenses.first().name, "Property tax")
-
-
-class BillReminderExpenseSyncTests(TestCase):
-    """Tests for expense form sync with bill reminder records."""
-
-    def setUp(self) -> None:
-        self.client = Client()
-        self.user = User.objects.create_user(
-            username="euser", email="e@example.com", password="pw-test-12"
-        )
-        self.client.login(email="e@example.com", password="pw-test-12")
-        self.budget = Budget.objects.create(
-            user=self.user,
-            month=date(2031, 2, 1),
-            income=Decimal("3000"),
-        )
-        self.cat = Category.objects.create(
-            user=self.user, name="Bills", slug="bills", color="#111111"
-        )
-        self.tag = Tag.objects.create(user=self.user, name="Home", slug="home", color="#2196f3")
-
-    def test_expense_post_creates_reminder(self) -> None:
-        url = reverse(
-            "minimal:expense_create_update",
-            kwargs={"year": 2031, "month": 2},
-        )
-        r = self.client.post(
-            url,
-            {
-                "name": "Insurance",
-                "amount": "99.50",
-                "category": str(self.cat.id),
-                "tag": str(self.tag.id),
-                "bill_reminder_enabled": "on",
-                "bill_reminder_next_date": "2032-01-10",
-                "bill_reminder_days_before": "45",
-                "bill_reminder_severity": BillReminder.Severity.LOW,
-                "bill_reminder_recurrence_months": "12",
-            },
-        )
-        self.assertEqual(r.status_code, 200)
-        data = r.json()
-        self.assertEqual(data["status"], "success")
-        exp = Expense.objects.get(pk=data["expense"]["id"])
-        self.assertIsNotNone(exp.bill_reminder_id)
-        br = BillReminder.objects.get(pk=exp.bill_reminder_id)
-        self.assertEqual(br.name, "Insurance")
-        self.assertEqual(br.remind_days_before, 45)
-        self.assertEqual(br.next_bill_date, date(2032, 1, 10))

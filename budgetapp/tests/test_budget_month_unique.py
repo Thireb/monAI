@@ -45,12 +45,8 @@ class BudgetMonthUniqueTests(TestCase):
         Budget.objects.create(user=self.user, month=self.month, is_archived=True)
         client = Client()
         client.force_login(self.user)
-        response = client.post(
-            reverse("minimal:budget_create"),
-            {"target_year": "2024", "target_month": "5", "copy_recurring": "false"},
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("archived", response.json()["message"])
+        response = client.post(reverse("app:month_create", kwargs={"year": 2024, "month": 5}))
+        self.assertEqual(response.status_code, 302)
         self.assertEqual(Budget.objects.filter(user=self.user, month=self.month).count(), 1)
 
     def test_mobile_push_without_id_updates_existing_month(self) -> None:

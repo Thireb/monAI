@@ -8,7 +8,7 @@ A self-hosted personal budget tracker built with Django. Manage monthly budgets,
 
 - Monthly budgets with income, expenses, sub-expenses, and returns
 - Categories, tags, debts, bill reminders, and savings goals
-- Minimal web UI (Bootstrap, Alpine.js, Anime.js)
+- Web app and PWA at `/app/` (HTMX, anime.js): quick add, offline use, goals, bill alerts by Web Push
 - Budget PDF export and email (via your own [Resend](https://resend.com) account)
 - Flutter Android app with offline-first sync (`mobile/budget_mobile/`)
 
@@ -54,7 +54,7 @@ python manage.py setup_superuser
 python manage.py runserver
 ```
 
-Open **http://127.0.0.1:8000/** — log in, then use **/minimal/** for the dashboard.
+Open **http://127.0.0.1:8000/** and log in. The app opens at **/app/**.
 
 For phone access on your LAN:
 
@@ -112,7 +112,7 @@ App at **http://localhost:8000**. Redis is started for calendar cache; SQLite is
 ```
 django_budget_tracker/
 ├── accounts/           # User model and profile (incl. per-user Resend)
-├── budgetapp/          # Models, minimal UI, REST + mobile APIs
+├── budgetapp/          # Models, the web UI (app/), services, REST + mobile APIs
 ├── budget_tracker/     # Django settings and config loader
 ├── mobile/budget_mobile/   # Flutter companion app
 ├── script_runner/      # Versioned management scripts

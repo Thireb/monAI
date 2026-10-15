@@ -37,6 +37,7 @@ from .views.month import (
     MonthView,
     RecapView,
 )
+from .views.offline import OfflineUrlsView, OfflineView
 from .views.month_settings import (
     IncomeUpdateView,
     MonthDeleteView,
@@ -97,6 +98,8 @@ urlpatterns: list[URLPattern] = [
     path("more/<str:kind>/new/", ItemSheetView.as_view(), name="manage_new"),
     path("more/<str:kind>/<int:pk>/", ItemSheetView.as_view(), name="manage_item"),
     path("more/<str:kind>/<int:pk>/delete/", ItemDeleteView.as_view(), name="manage_delete"),
+    path("offline/", OfflineView.as_view(), name="offline"),
+    path("offline/urls/", OfflineUrlsView.as_view(), name="offline_urls"),
     path("push/key/", PushKeyView.as_view(), name="push_key"),
     path("push/subscribe/", PushSubscribeView.as_view(), name="push_subscribe"),
     path("push/unsubscribe/", PushUnsubscribeView.as_view(), name="push_unsubscribe"),

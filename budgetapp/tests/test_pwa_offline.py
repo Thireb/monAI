@@ -84,17 +84,17 @@ class PwaOfflineTests(StaticLiveServerTestCase):
         self.context.close()
 
     def _visit_home_online(self) -> None:
-        """Open the home page online and wait until recent budgets are cached."""
-        self.page.goto(self.live_server_url + reverse("minimal:home"), wait_until="load")
+        """Open the home page online and wait until the recent months are cached."""
+        self.page.goto(self.live_server_url + reverse("app:home"), wait_until="load")
         # pwa-register.js reloads the page when the new worker takes control.
         self.page.wait_for_function("navigator.serviceWorker.controller !== null", timeout=15000)
         self.page.wait_for_load_state("load")
-        budget_url = reverse("minimal:budget_detail", kwargs={"year": 2024, "month": 8})
+        month_url = reverse("app:month", kwargs={"year": 2024, "month": 8})
         # wait_for_function does not await a Promise, so poll the cache here.
         for _ in range(30):
             try:
                 cached = self.page.evaluate(
-                    "url => caches.match(url, {ignoreVary: true}).then(r => !!r)", budget_url
+                    "url => caches.match(url, {ignoreVary: true}).then(r => !!r)", month_url
                 )
             except PlaywrightError:
                 # The one-time controllerchange reload replaced the page; try again.
@@ -103,30 +103,35 @@ class PwaOfflineTests(StaticLiveServerTestCase):
                 self.page.wait_for_load_state("load")
                 return
             self.page.wait_for_timeout(500)
-        self.fail("The service worker did not cache the budget page.")
+        self.fail("The service worker did not cache the month page.")
 
     def test_home_opens_offline_with_styles_and_scripts(self) -> None:
         self._visit_home_online()
         self.context.set_offline(True)
-        self.page.goto(self.live_server_url + reverse("minimal:home"), wait_until="load")
+        self.page.goto(self.live_server_url + reverse("app:home"), wait_until="load")
 
-        self.assertEqual(self.page.locator(".offline-container").count(), 0)
-        self.assertTrue(self.page.evaluate("!!window.jQuery"), "jQuery did not load offline")
+        self.assertNotIn("You are offline", self.page.content())
+        self.assertTrue(self.page.evaluate("!!window.htmx"), "HTMX did not load offline")
         self.assertTrue(self.page.evaluate("!!window.anime"), "anime.js did not load offline")
-        bootstrap_css = self.page.evaluate(
-            "[...document.styleSheets].some(s => (s.href || '').includes('bootstrap'))"
+        tokens_css = self.page.evaluate(
+            "[...document.styleSheets].some(s => (s.href || '').includes('tokens.css'))"
         )
-        self.assertTrue(bootstrap_css, "Bootstrap CSS did not load offline")
+        self.assertTrue(tokens_css, "The app CSS did not load offline")
 
-    def test_budget_never_opened_still_opens_offline(self) -> None:
+    def test_month_never_opened_still_opens_offline(self) -> None:
         self._visit_home_online()
         self.context.set_offline(True)
-        url = self.live_server_url + reverse(
-            "minimal:budget_detail", kwargs={"year": 2024, "month": 8}
-        )
+        url = self.live_server_url + reverse("app:month", kwargs={"year": 2024, "month": 8})
         self.page.goto(url, wait_until="load")
         self.assertIn("Rent 8", self.page.content())
-        self.assertEqual(self.page.locator(".offline-container").count(), 0)
+        self.assertNotIn("You are offline", self.page.content())
+
+    def test_page_not_cached_shows_the_offline_page(self) -> None:
+        self._visit_home_online()
+        self.context.set_offline(True)
+        url = self.live_server_url + reverse("app:recap", kwargs={"year": 2024, "month": 8})
+        self.page.goto(url, wait_until="load")
+        self.assertIn("You are offline", self.page.content())
 
     def test_offline_urls_list_only_own_budgets(self) -> None:
         other = User.objects.create_user(
@@ -135,7 +140,7 @@ class PwaOfflineTests(StaticLiveServerTestCase):
         Budget.objects.create(user=other, month=date(2024, 1, 1))
         client = Client()
         client.force_login(self.user)
-        urls = client.get(reverse("minimal:offline_urls")).json()["urls"]
-        self.assertIn(reverse("minimal:budget_detail", kwargs={"year": 2024, "month": 9}), urls)
-        self.assertIn(reverse("minimal:tag_stats", kwargs={"year": 2024, "month": 8}), urls)
-        self.assertNotIn(reverse("minimal:budget_detail", kwargs={"year": 2024, "month": 1}), urls)
+        urls = client.get(reverse("app:offline_urls")).json()["urls"]
+        self.assertIn(reverse("app:month", kwargs={"year": 2024, "month": 9}), urls)
+        self.assertIn(reverse("app:offline"), urls)
+        self.assertNotIn(reverse("app:month", kwargs={"year": 2024, "month": 1}), urls)

@@ -29,7 +29,6 @@
         <div class="chips">
             <a class="btn btn--small" href="{% url 'app:months' %}">All months</a>
             <a class="btn btn--small" href="{% url 'accounts:profile' %}">Profile and email</a>
-            <a class="btn btn--small" href="{% url 'minimal:home' %}">Classic view</a>
             <button type="button" class="btn btn--small" data-theme-toggle>Light or dark theme</button>
             <form method="post" action="{% url 'account_logout' %}">
                 {% csrf_token %}
