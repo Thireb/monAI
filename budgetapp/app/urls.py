@@ -43,6 +43,7 @@ from .views.month_settings import (
     TransferCreateView,
     TransferDeleteView,
 )
+from .views.push import PushKeyView, PushSubscribeView, PushTestView, PushUnsubscribeView
 from .views.spend import SpendCreateView, SpendUndoView
 
 app_name = "app"
@@ -94,6 +95,10 @@ urlpatterns: list[URLPattern] = [
     path("more/<str:kind>/new/", ItemSheetView.as_view(), name="manage_new"),
     path("more/<str:kind>/<int:pk>/", ItemSheetView.as_view(), name="manage_item"),
     path("more/<str:kind>/<int:pk>/delete/", ItemDeleteView.as_view(), name="manage_delete"),
+    path("push/key/", PushKeyView.as_view(), name="push_key"),
+    path("push/subscribe/", PushSubscribeView.as_view(), name="push_subscribe"),
+    path("push/unsubscribe/", PushUnsubscribeView.as_view(), name="push_unsubscribe"),
+    path("push/test/", PushTestView.as_view(), name="push_test"),
     path("spends/", SpendCreateView.as_view(), name="spend_create"),
     path("spends/<int:pk>/undo/", SpendUndoView.as_view(), name="spend_undo"),
     path("spends/<int:pk>/delete/", SpendDeleteView.as_view(), name="spend_delete"),

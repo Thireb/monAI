@@ -67,7 +67,7 @@ This removes about 5,900 lines of Dart and about 2,100 lines of mobile sync code
 - [x] Edit and delete lines, and see, add and delete spends and returns, in a line sheet
 - [x] Progress rings for goals; a payoff date for each debt (`/app/goals/`, with add money, repay and borrow)
 - [x] Bill timeline on the home page and on the month page, with "Add bills to this month"
-- [ ] Web Push notifications for bill reminders
+- [x] Web Push notifications for bill reminders (see `docs/WEB_PUSH.md`; needs a daily timer)
 - [x] Offline quick add: save to IndexedDB, send when the network comes back
 - [ ] Move all other pages to the components. Done: accounts, categories and bill reminders (`/app/more/`), all months (`/app/months/`), income, transfers, PDF email and delete on the month page; goal and debt history, edit and delete; `/` now opens `/app/`. Left: the profile page (allauth)
 - [ ] **Gate:** no jQuery page code remains · Bootstrap removed · every page works in dark mode

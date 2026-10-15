@@ -1,9 +1,29 @@
 {% extends "app/base.html" %}
+{% load static_version %}
 {% block title %}monAI · More{% endblock title %}
 {% block month_link %}{{ month_url }}{% endblock month_link %}
 {% block content %}
     <h1>More</h1>
     {% include "app/partials/manage_panel.html" %}
+    <section class="card stack"
+             aria-labelledby="push-title"
+             data-push
+             data-key-url="{% url 'app:push_key' %}"
+             data-subscribe-url="{% url 'app:push_subscribe' %}"
+             data-unsubscribe-url="{% url 'app:push_unsubscribe' %}">
+        <h2 id="push-title">Bill alerts on this device</h2>
+        <p class="small muted" data-push-state role="status">Checking…</p>
+        <div class="row row--start">
+            <button type="button" class="btn btn--primary btn--small" data-push-on hidden>Turn on</button>
+            <button type="button"
+                    class="btn btn--small"
+                    data-push-test
+                    hidden
+                    hx-post="{% url 'app:push_test' %}"
+                    hx-swap="none">Send a test</button>
+            <button type="button" class="btn btn--small btn--ghost" data-push-off hidden>Turn off</button>
+        </div>
+    </section>
     <section class="card stack" aria-labelledby="links-title">
         <h2 id="links-title">Other pages</h2>
         <div class="chips">
@@ -18,3 +38,6 @@
         </div>
     </section>
 {% endblock content %}
+{% block page_js %}
+    <script src="{% versioned_static 'app/js/push.js' %}"></script>
+{% endblock page_js %}

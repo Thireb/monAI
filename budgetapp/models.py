@@ -834,3 +834,33 @@ class DebtTransaction(models.Model):
             self.debt.borrowed_amount += self.amount
             self.debt.save(update_fields=["borrowed_amount"])
         super().save(*args, **kwargs)
+
+
+class PushSubscription(models.Model):
+    """A browser (phone or PC) that asked for bill alerts by Web Push."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="push_subscriptions"
+    )
+    endpoint = models.URLField(max_length=500, unique=True)
+    p256dh = models.CharField(max_length=200)
+    auth = models.CharField(max_length=100)
+    user_agent = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_alert_on = models.DateField(
+        null=True, blank=True, help_text="The day the last bill alert went to this browser"
+    )
+
+    def __str__(self) -> str:
+        return f"Push subscription of {self.user} ({self.user_agent or 'browser'})"
+
+
+class WebPushKey(models.Model):
+    """The server's VAPID key pair for Web Push. monAI makes it on first use; there is 1 row."""
+
+    private_key = models.TextField(help_text="PEM. Keep it secret.")
+    public_key = models.CharField(max_length=200, help_text="URL-safe base64, for the browser")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"Web Push key from {self.created_at:%Y-%m-%d}"

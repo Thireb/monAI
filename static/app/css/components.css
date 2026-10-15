@@ -43,6 +43,11 @@ a {
   color: var(--green-ink);
 }
 
+/* Classes such as .btn set display, which would show an element with the hidden attribute. */
+[hidden] {
+  display: none !important;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -807,10 +812,6 @@ a {
   font-weight: 800;
   font-size: 13px;
   box-shadow: var(--shadow);
-}
-
-.outbox[hidden] {
-  display: none;
 }
 
 .row--start {

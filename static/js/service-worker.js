@@ -119,6 +119,43 @@ self.addEventListener('message', event => {
   }
 });
 
+// Bill alerts (Web Push). The server sends {title, body, url}; see budgetapp/services/push.py.
+self.addEventListener('push', event => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'monAI', {
+      body: data.body || '',
+      icon: '/static/material/favicon/android-chrome-192x192.png',
+      badge: '/static/material/favicon/android-chrome-192x192.png',
+      tag: 'monai-bills',
+      data: { url: data.url || '/app/' },
+    })
+  );
+});
+
+// A tap on the alert opens monAI, or focuses it when it is open.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = new URL((event.notification.data || {}).url || '/app/', self.location.origin);
+  if (target.origin !== self.location.origin) return;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windows => {
+      for (const client of windows) {
+        if (new URL(client.url).pathname.startsWith('/app/') && 'focus' in client) {
+          client.navigate(target.href);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(target.href);
+    })
+  );
+});
+
 // Fetch event - smart caching strategies
 self.addEventListener('fetch', event => {
   const { request } = event;

@@ -273,3 +273,9 @@ class AppBrowserTests(StaticLiveServerTestCase):
         page.wait_for_selector("#month-panel >> text=60,000")
         self.budget.refresh_from_db()
         self.assertEqual(self.budget.income, D("60000"))
+
+    def test_more_page_explains_bill_alerts_without_a_worker(self) -> None:
+        # The test browser blocks service workers, as plain HTTP does.
+        page = self.open(reverse("app:manage"))
+        page.wait_for_selector("[data-push-state] >> text=need monAI over HTTPS", timeout=10000)
+        self.assertFalse(page.is_visible("[data-push-on]"))
