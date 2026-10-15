@@ -1,4 +1,4 @@
-"""Health-check endpoints for mobile and monitoring clients."""
+"""Health-check endpoint for monitoring clients."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from rest_framework.response import Response
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
-def mobile_health(request: Request) -> Response:
-    """Lightweight liveness probe for the Flutter dev client.
+def health(request: Request) -> Response:
+    """Lightweight liveness probe for a monitor.
 
     No sensitive data is returned; LAN-only use is still recommended.
 

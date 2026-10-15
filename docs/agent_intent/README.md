@@ -2,16 +2,16 @@
 
 This document is a **design sketch** for English-only flows: speech or text
 describes what the user wants; a model (cloud or on-device) emits **structured
-JSON**; the mobile or web client validates it and calls **existing** REST
-endpoints. No LLM runs inside Django in this sketch.
+JSON**; the web client or a small server endpoint validates it and calls **existing**
+REST endpoints or service functions. No LLM runs inside Django in this sketch.
 
 ## Design rules
 
 1. **Models propose, code disposes** — the server never executes raw model text.
    Only validated JSON shapes and whitelisted `action` values are accepted when
-   you add a future `POST /api/mobile/agent/intent/` (optional).
-2. **Reuse current APIs** — mobile sync and DRF viewsets already enforce
-   ownership and validation. An agent layer should map intents to these calls
+   you add a future `POST /api/agent/intent/` (optional).
+2. **Reuse current code** — the DRF viewsets, the forms in `budgetapp/app/forms.py`
+   and the functions in `budgetapp/services/` already enforce ownership and validation. An agent layer should map intents to these calls
    rather than inventing parallel writes.
 3. **Confirm destructive work** — deletes and large transfers should set
    `requires_user_confirm` in a plan step (client shows UI before calling APIs).
@@ -30,7 +30,7 @@ sequenceDiagram
   participant U as User
   participant STT as Speech (OS or plugin)
   participant LLM as LLM (device or cloud)
-  participant App as Flutter / Web client
+  participant App as Web client (PWA)
   participant API as Django REST
 
   U->>STT: voice
@@ -39,7 +39,7 @@ sequenceDiagram
   LLM->>App: intent_response JSON (plan)
   App->>App: validate against schema + whitelist
   alt plan valid
-    App->>API: Token + existing mobile/DRF calls
+    App->>API: session or Token + REST calls / intent endpoint
     API->>App: 200 + bodies
   else needs disambiguation
     App->>U: pick option / rephrase
@@ -50,33 +50,31 @@ sequenceDiagram
 
 | Client | Obtain token | Use token |
 |--------|----------------|-----------|
-| Mobile (email) | `POST /api/mobile/auth/token/` JSON `email`, `password` | `Authorization: Token <key>` |
-| Generic | `POST /api-token-auth/` (username field holds **email** per project docs) | Same header |
+| Web (PWA) | The logged-in session cookie, with the CSRF token | — |
+| Generic | `POST /api-token-auth/` (username field holds **email** per project docs) | `Authorization: Token <key>` |
 
-## Action catalog → existing HTTP (v1 sketch)
+## Action catalog → existing code (v1 sketch)
 
-Base path for mobile sync: `/api/mobile/…`. Router: `/api/budgets/`, `/api/goals/`,
-`/api/goal-contributions/`.
+The Flutter app and its `/api/mobile/…` sync API were removed on 2026-10-15. The JSON API
+is now the DRF router: `/api/budgets/`, `/api/goals/`, `/api/goal-contributions/`.
+The other actions have no JSON endpoint yet. A future `POST /api/agent/intent/` runs them
+with the server code in the right column, the same code the web UI uses.
 
-| `action` (stable id) | HTTP | Notes |
+| `action` (stable id) | HTTP or server code | Notes |
 |----------------------|------|--------|
-| `budget.list` | `GET /api/mobile/budgets/pull/` | Optional `?updated_after=` ISO-8601 |
-| `budget.upsert` | `POST /api/mobile/budgets/push/` | Body `{ "budgets": [ { month, income, currency, id?, is_archived? } ] }` — see `MobileBudgetPushItemSerializer` |
-| `category.list` | `GET /api/mobile/categories/pull/` | Same `updated_after` pattern |
-| `category.upsert` | `POST /api/mobile/categories/push/` | Body `{ "categories": [ … ] }` |
-| `tag.list` | `GET /api/mobile/tags/pull/` | |
-| `tag.upsert` | `POST /api/mobile/tags/push/` | Body `{ "tags": [ … ] }` |
-| `expense.list` | `GET /api/mobile/expenses/pull/` | |
-| `expense.upsert` | `POST /api/mobile/expenses/push/` | Body `{ "expenses": [ … ] }` — requires `budget_id`, `name`, `amount` |
-| `sub_expense.list` | `GET /api/mobile/sub-expenses/pull/` | |
-| `sub_expense.upsert` | `POST /api/mobile/sub-expenses/push/` | Body `{ "sub_expenses": [ … ] }` |
+| `budget.list` | `GET /api/budgets/` | Each budget has its `expenses` with `sub_expenses` |
+| `budget.upsert` | `POST /api/budgets/`, `PATCH /api/budgets/{id}/` | 1 budget per month: a taken month answers 400 |
+| `category.upsert` | `CategoryForm` in `budgetapp/app/forms.py` | Unique name per user |
+| `tag.upsert` | `AccountForm` in `budgetapp/app/forms.py` | A tag is an "account" |
+| `expense.upsert` | `LineForm` in `budgetapp/app/forms.py` | Requires `budget_id`, `name`, `amount` |
+| `spend.add` | `parse_spend_text` + `match_lines` + `record_spend` in `budgetapp/services/quick_add.py` | The same text grammar as quick add: `groceries 2500 #cash` |
+| `spend.return` | `record_return` in `budgetapp/services/quick_add.py` | A refund on a line |
 | `goal.list` | `GET /api/goals/` | DRF list |
 | `goal.create` | `POST /api/goals/` | Body per `GoalSerializer` |
 | `goal.retrieve` | `GET /api/goals/{id}/` | |
 | `goal.update` | `PUT` / `PATCH /api/goals/{id}/` | |
 | `goal.delete` | `DELETE /api/goals/{id}/` | Set `requires_user_confirm` in plans |
 | `goal_contribution.create` | `POST /api/goal-contributions/` | |
-| `budget.drf_list` | `GET /api/budgets/` | Alternative to mobile pull |
 
 Implementers: keep this table as the **single whitelist** an LLM is allowed to
 emit; reject unknown `action` strings in the client (and again in a future server
@@ -111,12 +109,12 @@ validator).
 }
 ```
 
-The Flutter app would `POST /api/mobile/expenses/push/` with the inner
-`expenses` list after confirming `budget_id` belongs to the synced user data.
+The intent endpoint would check that `budget_id` belongs to the user, then save each item
+of the inner `expenses` list with `LineForm`.
 
 ## Optional next implementation steps
 
-1. Add `POST /api/mobile/agent/intent/` that accepts `intent_request`, runs **no**
+1. Add `POST /api/agent/intent/` that accepts `intent_request`, runs **no**
    model server-side, and returns `422` with hints — or later calls a hosted model
    and still validates output against `intent_response` schema.
 2. Check in a **golden-file** test: sample utterances → expected JSON plans
@@ -127,5 +125,5 @@ The Flutter app would `POST /api/mobile/expenses/push/` with the inner
 ## Related code
 
 - URL registration: `budgetapp/api_urls.py`
-- Mobile push serializers: `budgetapp/serializers_mobile.py`
-- Mobile sync views: `budgetapp/api_mobile_sync.py`, `budgetapp/api_mobile_catalog.py`
+- REST views and serializers: `budgetapp/api.py`, `budgetapp/api_goals.py`, `budgetapp/serializers.py`
+- Quick add grammar and spends: `budgetapp/services/quick_add.py`

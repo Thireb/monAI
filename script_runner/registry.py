@@ -119,7 +119,7 @@ def get_scripts_by_category() -> dict[str, list[Script]]:
 # =============================================================================
 
 # Build & Deploy
-# (no build scripts registered — use Flutter mobile for Android builds)
+# (no build scripts registered)
 
 # Data Management
 register_script(Script(

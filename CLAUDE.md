@@ -7,19 +7,19 @@ lint, test and build commands.
 
 ## What this project is
 
-monAI is a self-hosted personal budget tracker. It has 2 clients:
+monAI is a self-hosted personal budget tracker:
 
 - A Django web app (Django 5.1, DRF, allauth). The UI is at `/app/` (`/` opens it). It is a PWA
   that also works offline. The classic UI (`/minimal/`) was removed on 2026-10-15.
-- A Flutter Android app in `mobile/budget_mobile/`. It is offline-first. It
-  keeps data in SQLite (`sqflite`) and syncs with Django over HTTP.
+- The Flutter Android app was removed on 2026-10-15, with the `/api/mobile/*` sync.
+  Its last code is at the git tag `flutter-final`. The untracked `mobile/` folder on
+  this machine is leftover build output and signing keys: do not read or commit it.
 
 The owner uses it with PKR as the default currency.
 
 ## Current work
 
 Follow `docs/REDESIGN_PLAN.md`. Tick its boxes when work is merged.
-The Flutter app is being retired: do not improve it or the `/api/mobile/*` sync.
 
 ## Local machine (not Cursor Cloud)
 
@@ -41,14 +41,11 @@ The `AGENTS.md` paths (`/workspace/venv`) are for Cursor Cloud. On this machine:
 | `budgetapp/models.py` | All domain models. |
 | `budgetapp/app/` | **New UI** at `/app/` (namespace `app`): views, forms, urls. New UI work goes here. |
 | `budgetapp/services/` | Money logic for the new UI: `month.py` (month figures, Safe to spend today), `quick_add.py`, `months.py`, `goals.py` (goals, debt payoff), `bills.py` (bill timeline), `push.py` (Web Push bill alerts), `recap.py` (month recap), `report.py` (PDF report email), `home.py`. |
-| `budgetapp/api_urls.py` | REST and mobile sync routes under `/api/`. |
-| `budgetapp/api_mobile_*.py` | Mobile pull/push views. |
-| `budgetapp/serializers_mobile.py` | Mobile sync serializers and `save_*_for_user` helpers. |
+| `budgetapp/api_urls.py` | REST routes under `/api/` (budgets, goals) and `/api/health/`. |
 | `budgetapp/tests/` | Django tests. |
 | `script_runner/` | Versioned management scripts. `registry.py` lists them. |
 | `templates/app/`, `static/app/` | New UI templates (components, partials, `pdf/`) and its CSS tokens and JS. |
 | `static/js/service-worker.js`, `static/js/pwa-register.js` | The PWA service worker (offline pages, Web Push) and its registration. |
-| `mobile/budget_mobile/lib/` | Flutter: `database/`, `repositories/`, `services/`, `screens/`. |
 | `docs/` | Project docs. `docs/agent_intent/` has the LLM action schemas. |
 
 ## Domain model
@@ -65,7 +62,7 @@ The `AGENTS.md` paths (`/workspace/venv`) are for Cursor Cloud. On this machine:
 - `Goal` and `GoalContribution`, `Debt` and `DebtTransaction`: savings and debts.
 - `BudgetLog`, `RecentUpdate`, `IncomeHistory`, `ArchivedBudget`: history.
 
-**Money rules.** These rules are the same in the web UI, the PDF and the app:
+**Money rules.** These rules are the same in the web UI, the PDF and the REST API:
 
 - gross = the sum of the expense amounts
 - returns = the sum of the sub-expenses with `is_return=True`
@@ -74,7 +71,7 @@ The `AGENTS.md` paths (`/workspace/venv`) are for Cursor Cloud. On this machine:
 
 Use `Budget.get_summary_display_strings()` and
 `Budget.get_tag_account_breakdown()`. Do not calculate these values again in
-views, templates or Dart. Use `Decimal` for money in Python.
+views or templates. Use `Decimal` for money in Python.
 
 The new UI gets every figure from `build_month_snapshot()` in
 `budgetapp/services/month.py`. Its docstring defines a line's `left`
@@ -107,27 +104,6 @@ These rules come from `.cursorrules`, `.cursor/rules/*.mdc` and
 11. Use `blank=True` (not `null=True`) for `CharField` and `TextField`.
 12. Use the `TextChoices` enum values, not string literals.
 
-## Add a new entity to mobile sync
-
-Use `TagTransfer` as the model to copy. Commit `62f0a7e` shows the full change.
-
-1. Make sure that the Django model has `updated_at` (`auto_now=True`).
-2. In `serializers_mobile.py`, add a `Mobile<X>SyncSerializer` and a
-   `Mobile<X>PushItemSerializer`.
-3. In `api_mobile_catalog.py`, add a pull view and a push view. The pull view
-   accepts `?updated_after=`. The push view supports `"deleted": true`. It
-   returns `server_ids` in the same order as the request.
-4. Add the 2 routes to `budgetapp/api_urls.py`.
-5. In Flutter, add the table in `database/app_database.dart`. Increase
-   `_dbVersion` by 1 and add an `if (oldVersion < N)` step in `onUpgrade`.
-6. Add a repository in `lib/repositories/`. Add client methods in
-   `services/mobile_budget_api_client.dart`.
-7. Add the entity to `services/budget_sync_service.dart` in the correct order.
-   The order is: categories → tags → budgets → expenses → sub-expenses →
-   tag-transfers. The app pushes first, then pulls.
-8. Add tests to `budgetapp/tests/test_mobile_sync.py` or a new test module.
-9. Update the API table in `mobile/budget_mobile/README.md`.
-
 ## Tests
 
 Run all tests:
@@ -138,7 +114,7 @@ Run all tests:
 
 To run 1 module, give its name, for example `budgetapp.tests.test_services`.
 
-On 2026-10-15, all 186 tests passed (about 2 minutes).
+On 2026-10-15, all 150 tests passed (about 80 seconds).
 Logs with `🔴 400` or `🔥 EXCEPTION` (404) in the output are normal. Some tests check
 error responses.
 
@@ -147,11 +123,9 @@ The UI loads HTMX and anime.js from `static/app/vendor/`, so no network is neede
 These tests are skipped when Playwright is missing. To set it up: `uv sync --extra dev`, then
 `.venv/bin/python -m playwright install chromium`.
 
-For Flutter: `cd mobile/budget_mobile; and flutter analyze; and flutter test`.
-
 ## Before you finish a change
 
-1. Run the Django tests above. If you changed Dart code, run the Flutter checks.
+1. Run the Django tests above.
 2. Run black, flake8 and mypy on the files that you changed (see `AGENTS.md`).
 3. If you changed a model, run `.venv/bin/python manage.py makemigrations budgetapp`.
    Read the new migration before you keep it.

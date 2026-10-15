@@ -17,11 +17,8 @@
 6. [Budget PDF Email](#budget-pdf-email)
 7. [Script Runner](#script-runner)
 8. [API Reference](#api-reference)
-9. [Android APK Building](#android-apk-building)
-10. [Obtainium / GitHub Releases](OBTAINIUM.md)
-11. [Play Store / signing](PLAY_STORE.md)
-10. [Development Guidelines](#development-guidelines)
-11. [Database Schema](#database-schema)
+9. [Development Guidelines](#development-guidelines)
+10. [Database Schema](#database-schema)
 12. [Deployment](#deployment)
 
 ---
@@ -34,7 +31,7 @@ monAI is a personal budget tracking application built with Django. It features:
 - **Expense Tracking** - Categorize expenses with tags, sub-expenses, and recurring markers
 - **Debt Tracking** - Track borrowings and repayments
 - **Goal Setting** - Set and track financial goals
-- **Android App** - Flutter offline-first mobile companion (`mobile/budget_mobile/`)
+- **PWA** - install the web app on a phone; it works offline and sends bill alerts by Web Push
 - **Script Runner** - Centralized script management with version tracking
 
 ### Tech Stack
@@ -44,7 +41,6 @@ monAI is a personal budget tracking application built with Django. It features:
 | Backend | Django 5.1, Python 3.13 |
 | Database | SQLite (development), PostgreSQL (production) |
 | Frontend | Django Templates, HTMX, Anime.js (PWA with a service worker) |
-| Mobile | Flutter (Android) |
 | Task Queue | Celery + Redis |
 | Authentication | Django Allauth |
 
@@ -197,7 +193,6 @@ monAI/
 │       ├── create_default_categories.py
 │       └── ...
 │
-├── mobile/budget_mobile/    # Flutter Android companion app
 │
 ├── script_runner/           # Script management app
 │   ├── models.py            # ScriptExecution model
@@ -240,7 +235,7 @@ budget = Budget.objects.create(
 remaining = budget.get_remaining_budget()
 ```
 
-**Summary numbers (web UI, budget PDF, Flutter budget detail)** use the same `Budget` helpers in `budgetapp/models.py`:
+**Summary numbers (web UI, budget PDF)** use the same `Budget` helpers in `budgetapp/models.py`:
 
 | Concept | Method | Meaning |
 |---------|--------|---------|
@@ -393,7 +388,7 @@ register_script(Script(
 
 ## API Reference
 
-REST routes are mounted under **`/api/`** (see `budgetapp/api_urls.py`). Mobile sync uses **`/api/mobile/…`**; goals use the same DRF router as the web API.
+REST routes are mounted under **`/api/`** (see `budgetapp/api_urls.py`). `GET /api/health/` answers `{"status": "ok"}` for a monitor.
 
 ### Authentication
 
@@ -408,13 +403,11 @@ curl -H "Authorization: Token YOUR_TOKEN" \
   http://localhost:8000/api/budgets/
 ```
 
-Mobile clients typically use `POST /api/mobile/auth/token/` with JSON `email` and `password` (same token header). See **[mobile/budget_mobile/README.md](../mobile/budget_mobile/README.md)** for pull/push paths and sync order.
-
 ### Endpoints (DRF)
 
 | Endpoint | Methods | Description |
 |----------|---------|-------------|
-| `/api/budgets/` | GET, POST | List/create budgets (`BudgetSerializer` includes gross/net/returns/remaining fields) |
+| `/api/budgets/` | GET, POST | List/create budgets (`BudgetSerializer` includes gross/net/returns/remaining fields). 1 budget per month: a taken month answers 400. |
 | `/api/budgets/{id}/` | GET, PUT, PATCH, DELETE | Budget detail |
 | `/api/goals/` | GET, POST | List/create goals |
 | `/api/goals/{id}/` | GET, PUT, PATCH, DELETE | Goal detail |
@@ -423,33 +416,9 @@ Mobile clients typically use `POST /api/mobile/auth/token/` with JSON `email` an
 | `/api/goal-contributions/` | GET, POST | List/create contributions (`goal` must belong to the user) |
 | `/api/goal-contributions/{id}/` | GET, PUT, PATCH, DELETE | Contribution detail |
 
-### Mobile sync API (summary)
+### Agent / LLM mapping
 
-- **Registration:** `budgetapp/api_urls.py` — paths like `/api/mobile/budgets/pull/`, `/api/mobile/expenses/push/`, etc.
-- **Deletes:** push payloads may set **`deleted: true`** on an expense or sub-expense item (requires **`id`**). The server removes the row and still returns `server_ids` aligned with the request list (see `MobileExpensePushView` / `MobileSubExpensePushView` in `budgetapp/api_mobile_catalog.py`).
-- **Agent / LLM mapping:** stable `action` ids and JSON schemas are documented under **[docs/agent_intent/README.md](agent_intent/README.md)**.
-
----
-
-## Flutter Android App
-
-The mobile companion lives in `mobile/budget_mobile/`. See that directory's README.
-
-**FOSS release** (same pattern as [budget-notes](https://github.com/Thireb/budget-notes)):
-
-```fish
-set -x JAVA_HOME /usr/lib/jvm/java-21-openjdk
-set -x ANDROID_HOME $HOME/Android/Sdk
-cd mobile/budget_mobile
-flutter clean
-flutter build apk --release
-# → build/app/outputs/flutter-apk/app-release.apk
-# Attach as MonAIBudget-<version>.apk  (or ./scripts/release_mobile_apk.sh)
-```
-
-Setup signing once: [PLAY_STORE.md](PLAY_STORE.md). End-user install: [OBTAINIUM.md](OBTAINIUM.md).
-
-Never commit `.jks`, `keystore.properties`, or `key.properties`. See [SECURITY.md](../SECURITY.md).
+Stable `action` ids and JSON schemas are documented under **[docs/agent_intent/README.md](agent_intent/README.md)**.
 
 ---
 

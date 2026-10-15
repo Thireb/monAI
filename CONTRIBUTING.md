@@ -84,4 +84,4 @@ If secrets were ever committed, follow [SECURITY.md](SECURITY.md#if-secrets-were
 
 - Keep changes focused and minimal.
 - Update documentation when behavior changes.
-- Ensure CI passes (Python lint, type check, tests; Flutter if mobile code changed).
+- Ensure CI passes (Python lint, type check, tests).

@@ -32,9 +32,10 @@ Include:
 
 ## Android signing
 
-Release signing uses repo-root `keystore.properties` + `keystore/*.jks`
-(same layout as budget-notes). Never commit those files. Published APK
-SHA-256 is in [docs/OBTAINIUM.md](docs/OBTAINIUM.md).
+The Flutter Android app was removed on 2026-10-15 (git tag `flutter-final`), so no new
+APK is released. Its signing files, repo-root `keystore.properties` + `keystore/*.jks`,
+can still be on a local machine. Never commit those files; `.gitignore` excludes them
+and `/mobile/`.
 
 If an upload keystore was ever committed to git history, treat it as compromised: rotate the key, update any deploy secrets, and verify removal with:
 

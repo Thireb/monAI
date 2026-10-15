@@ -55,10 +55,10 @@ A well-built web app can do the app's job on its own. The web already holds all 
 ### Retire the Flutter app (after Phase 2)
 
 - [ ] Stop the APK releases. Add a note to the last GitHub release that points Obtainium users to the web app.
-- [ ] Move the agent intent mapping in `docs/agent_intent/README.md` off `/api/mobile/…`. It uses those endpoints today.
-- [ ] Remove `mobile/budget_mobile/`, `scripts/release_mobile_apk.sh`, `scripts/build_flutter_apk.sh`, `docs/OBTAINIUM.md` and `docs/PLAY_STORE.md`.
-- [ ] Remove the `/api/mobile/*` views, `serializers_mobile.py` and `test_mobile_sync.py`. Keep `/api/health/` if a monitor uses it.
-- [ ] Update `README.md`, `AGENTS.md` and `CLAUDE.md`.
+- [x] Move the agent intent mapping in `docs/agent_intent/README.md` off `/api/mobile/…`. It now maps to the REST API and to `budgetapp/services/`.
+- [x] Remove `mobile/budget_mobile/`, `scripts/release_mobile_apk.sh`, `scripts/build_flutter_apk.sh`, `docs/OBTAINIUM.md` and `docs/PLAY_STORE.md` (2026-10-15; the last code is at the git tag `flutter-final`).
+- [x] Remove the `/api/mobile/*` views, `serializers_mobile.py` and `test_mobile_sync.py`. `/api/health/` stays.
+- [x] Update `README.md`, `AGENTS.md` and `CLAUDE.md`.
 
 This removes about 5,900 lines of Dart and about 2,100 lines of mobile sync code and tests on the server.
 
@@ -171,4 +171,4 @@ The biggest gain is less typing: most budget apps lose users at data entry, not 
 | Remote access | Tailscale, with `tailscale serve` for HTTPS | Decided 2026-10-14 |
 | Who uses monAI | Only the owner and family (default), or public users | Open |
 | Bootstrap | Remove it in Phase 3 (default), or keep it and only restyle | Removed with the classic UI (2026-10-15) |
-| Flutter code | Delete it from the repo (default), or move it to an archive branch first | Open |
+| Flutter code | Delete it from the repo (default), or move it to an archive branch first | Deleted 2026-10-15; the git tag `flutter-final` keeps it |

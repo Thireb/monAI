@@ -33,7 +33,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-# Repo-root only; do not ignore Flutter app code (e.g. mobile/budget_mobile/lib/)
+# Repo-root only
 /lib/
 lib64/
 parts/
@@ -193,13 +193,9 @@ artifacts/
 # Local Android SDK (CI/agent tooling; use Android Studio path on your machine)
 android-sdk/
 
-# Flutter mobile build outputs
-mobile/budget_mobile/build/
-mobile/budget_mobile/android/.gradle/
-mobile/budget_mobile/android/local.properties
+# The Flutter app was removed (git tag flutter-final). Local leftovers can hold signing keys.
+/mobile/
 # Android upload keystore (repo root, budget-notes layout)
 /keystore/
-mobile/budget_mobile/keystore/
-mobile/budget_mobile/dist/
 *.apk
 *.aab

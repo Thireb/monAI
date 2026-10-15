@@ -427,7 +427,7 @@ else:
 # Budget PDF emails use per-user Resend credentials from the profile (accounts.CustomUser).
 
 # =============================================================================
-# Django REST framework (API + mobile sync)
+# Django REST framework (REST API)
 # =============================================================================
 
 REST_FRAMEWORK = {

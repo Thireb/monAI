@@ -1,8 +1,8 @@
 # monAI — Django Budget Tracker
 
-A self-hosted personal budget tracker built with Django. Manage monthly budgets, categorize expenses, track tags and debts, set savings goals, and optionally sync with a Flutter mobile companion.
+A self-hosted personal budget tracker built with Django. Manage monthly budgets, categorize expenses, track tags and debts, and set savings goals. Install it on a phone as a PWA; it also works offline.
 
-**Full documentation:** [docs/README.md](docs/README.md) (configuration, APIs, mobile sync, scripts).
+**Full documentation:** [docs/README.md](docs/README.md) (configuration, APIs, scripts).
 
 ## Features
 
@@ -10,7 +10,6 @@ A self-hosted personal budget tracker built with Django. Manage monthly budgets,
 - Categories, tags, debts, bill reminders, and savings goals
 - Web app and PWA at `/app/` (HTMX, anime.js): quick add, offline use, goals, bill alerts by Web Push
 - Budget PDF export and email (via your own [Resend](https://resend.com) account)
-- Flutter Android app with offline-first sync (`mobile/budget_mobile/`)
 
 ## Quick start (personal use)
 
@@ -70,32 +69,18 @@ Each user configures their **own** Resend credentials:
 
 1. Create a [Resend](https://resend.com) account and verify a sender domain or address.
 2. In the app: **Profile → Edit Profile** → set **Resend API key** and **from email**.
-3. On a budget page, use **Email PDF**.
+3. On a month page, open **Month settings** and use **Email me the PDF report**.
 
 Without Resend on your profile, PDF email is disabled (system mail still uses `console` or SMTP from `config.yaml`).
 
-### 6. Flutter mobile app (optional)
+### 6. Phone (PWA)
 
-See [mobile/budget_mobile/README.md](mobile/budget_mobile/README.md).
+Open the app on the phone over HTTPS (for example with `tailscale serve`) and use
+**Add to Home screen**. Bill alerts by Web Push need a daily timer: see
+[docs/WEB_PUSH.md](docs/WEB_PUSH.md).
 
-**FOSS release** (same pattern as [budget-notes](https://github.com/Thireb/budget-notes)):
-
-```fish
-# one-time: keystore.properties + keystore/*.jks at repo root — docs/PLAY_STORE.md
-set -x JAVA_HOME /usr/lib/jvm/java-21-openjdk
-set -x ANDROID_HOME $HOME/Android/Sdk
-cd mobile/budget_mobile
-flutter clean
-flutter build apk --release
-# → build/app/outputs/flutter-apk/app-release.apk
-# Attach to a GitHub Release as MonAIBudget-<version>.apk
-```
-
-Or `./scripts/release_mobile_apk.sh` (same build + copies to `dist/`).
-Obtainium: [docs/OBTAINIUM.md](docs/OBTAINIUM.md).
-
-Release cert **SHA-256:**
-`A7:E7:08:56:62:FA:D2:1B:BF:1F:A3:3B:CB:F3:1E:BA:CD:72:4D:C0:BC:50:A6:F4:BC:BB:E4:5C:F6:5D:74:ED`
+The Flutter Android app was removed on 2026-10-15. Its last code is at the git tag
+`flutter-final`.
 
 ## Docker (optional)
 
@@ -112,9 +97,8 @@ App at **http://localhost:8000**. Redis is started for calendar cache; SQLite is
 ```
 django_budget_tracker/
 ├── accounts/           # User model and profile (incl. per-user Resend)
-├── budgetapp/          # Models, the web UI (app/), services, REST + mobile APIs
+├── budgetapp/          # Models, the web UI (app/), services, REST API
 ├── budget_tracker/     # Django settings and config loader
-├── mobile/budget_mobile/   # Flutter companion app
 ├── script_runner/      # Versioned management scripts
 ├── static/ templates/  # Web assets
 ├── config.yaml.example # Copy to config.yaml (gitignored)

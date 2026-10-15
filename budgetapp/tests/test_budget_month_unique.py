@@ -20,7 +20,7 @@ User = get_user_model()
 
 
 class BudgetMonthUniqueTests(TestCase):
-    """The database, the web view and the mobile push all keep one budget per month."""
+    """The database, the web view and the REST API all keep one budget per month."""
 
     def setUp(self) -> None:
         self.user = User.objects.create_user(
@@ -49,40 +49,28 @@ class BudgetMonthUniqueTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Budget.objects.filter(user=self.user, month=self.month).count(), 1)
 
-    def test_mobile_push_without_id_updates_existing_month(self) -> None:
-        existing = Budget.objects.create(user=self.user, month=self.month, income=Decimal("10"))
-        api = APIClient()
-        api.credentials(HTTP_AUTHORIZATION=f"Token {Token.objects.create(user=self.user).key}")
-        response = api.post(
-            reverse("api-mobile-budget-push"),
-            {"budgets": [{"month": "2024-05-01", "income": "500.00", "currency": "PKR"}]},
-            format="json",
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["server_ids"], [existing.id])
-        self.assertEqual(response.data["updated_ids"], [existing.id])
-        existing.refresh_from_db()
-        self.assertEqual(existing.income, Decimal("500.00"))
-        self.assertEqual(Budget.objects.filter(user=self.user).count(), 1)
-
-    def test_mobile_push_cannot_move_budget_onto_taken_month(self) -> None:
+    def test_rest_api_refuses_second_budget_for_same_month(self) -> None:
         Budget.objects.create(user=self.user, month=self.month)
-        june = Budget.objects.create(user=self.user, month=date(2024, 6, 1))
         api = APIClient()
         api.credentials(HTTP_AUTHORIZATION=f"Token {Token.objects.create(user=self.user).key}")
         response = api.post(
-            reverse("api-mobile-budget-push"),
-            {
-                "budgets": [
-                    {"id": june.id, "month": "2024-05-01", "income": "1.00", "currency": "PKR"}
-                ]
-            },
+            reverse("api-budget-list"),
+            {"month": "2024-05-01", "income": "500.00", "currency": "PKR"},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["conflicting_ids"], [june.id])
-        june.refresh_from_db()
-        self.assertEqual(june.month, date(2024, 6, 1))
+        self.assertEqual(Budget.objects.filter(user=self.user).count(), 1)
+
+    def test_rest_api_saves_the_first_day_of_the_month(self) -> None:
+        api = APIClient()
+        api.credentials(HTTP_AUTHORIZATION=f"Token {Token.objects.create(user=self.user).key}")
+        response = api.post(
+            reverse("api-budget-list"),
+            {"month": "2024-05-15", "income": "500.00", "currency": "PKR"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Budget.objects.get(user=self.user).month, self.month)
 
 
 class MergeDuplicateMonthsMigrationTests(TransactionTestCase):
