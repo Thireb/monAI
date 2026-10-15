@@ -35,6 +35,7 @@ from .views.month import (
     MonthPanelView,
     MonthsView,
     MonthView,
+    RecapView,
 )
 from .views.month_settings import (
     IncomeUpdateView,
@@ -52,6 +53,7 @@ urlpatterns: list[URLPattern] = [
     path("", HomeView.as_view(), name="home"),
     path("months/", MonthsView.as_view(), name="months"),
     path("month/<int:year>/<int:month>/", MonthView.as_view(), name="month"),
+    path("month/<int:year>/<int:month>/recap/", RecapView.as_view(), name="recap"),
     path("month/<int:year>/<int:month>/panel/", MonthPanelView.as_view(), name="month_panel"),
     path("month/<int:year>/<int:month>/create/", MonthCreateView.as_view(), name="month_create"),
     path(

@@ -33,6 +33,7 @@ ZERO = Decimal("0")
 CENT = Decimal("0.01")
 NO_ACCOUNT_COLOR = "#9AA49E"
 NO_CATEGORY_COLOR = "#B9C4BD"
+NO_CATEGORY_NAME = "Uncategorized"
 
 # A line is "close" to its limit from this share of use.
 CLOSE_PERCENT = 75
@@ -185,7 +186,7 @@ def _line_rows(budget: Budget) -> list[LineView]:
                 status=use_status(e.amount, used),
                 is_daily=e.is_daily,
                 is_recurring=e.is_recurring,
-                category_name=e.category.name if e.category else "Uncategorized",
+                category_name=e.category.name if e.category else NO_CATEGORY_NAME,
                 category_color=e.category.color if e.category else NO_CATEGORY_COLOR,
                 account_id=tag.id if tag else None,
                 account_name=tag.name if tag else "No account",

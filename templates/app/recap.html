@@ -1,0 +1,11 @@
+{% extends "app/base.html" %}
+{% block title %}monAI · {{ recap.month|date:"F Y" }} recap{% endblock title %}
+{% block month_link %}{% url 'app:month' year=recap.month.year month=recap.month.month %}{% endblock month_link %}
+{% block content %}
+    {% include "app/partials/recap_card.html" with big=True %}
+    <div class="row row--start">
+        <a class="btn btn--primary"
+           href="{% url 'app:month' year=recap.month.year month=recap.month.month %}">Open {{ recap.month|date:"F" }}</a>
+        <a class="btn" href="{% url 'app:months' %}?year={{ recap.month.year }}">All months</a>
+    </div>
+{% endblock content %}

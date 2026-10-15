@@ -10,6 +10,7 @@ from budgetapp.models import Budget
 from budgetapp.services.bills import coming_up
 from budgetapp.services.home import goal_cards
 from budgetapp.services.month import build_month_snapshot
+from budgetapp.services.recap import last_month_recap
 
 from .base import AppTemplateView, month_url, quick_add_context
 
@@ -36,6 +37,7 @@ class HomeView(AppTemplateView):
                 "bills": coming_up(budget, snap, today) if budget and snap else [],
                 "goals": goal_cards(self.request.user),
                 "quick_add": quick_add_context(budget, snap),
+                "recap": last_month_recap(self.request.user, today),
             }
         )
         return context

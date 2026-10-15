@@ -75,7 +75,7 @@ This removes about 5,900 lines of Dart and about 2,100 lines of mobile sync code
 ### Phase 4 · Fun and reward
 
 - [x] Streaks (the "days under budget" badge on the home page, done in Phase 2)
-- [ ] Month recap on the 1st of the month
+- [x] Month recap: on the home page in the first 7 days of a month, and at `/app/month/<y>/<m>/recap/`
 - [x] Goal celebrations at 25 %, 50 %, 75 % and 100 %, and when a debt is paid off
 - [ ] Undo toast in place of confirm dialogs (the new UI uses Undo after a spend and "tap again" for deletes; the classic pages still use dialogs)
 - [x] "Copy last month?" on a new, empty month (done in Phase 2)

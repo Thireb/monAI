@@ -18,6 +18,7 @@ from budgetapp.services.bills import coming_up, month_bills
 from budgetapp.services.home import goal_cards
 from budgetapp.services.month import MonthSnapshot, build_month_snapshot
 from budgetapp.services.months import budget_years, create_month, year_overview
+from budgetapp.services.recap import month_recap
 
 from .base import AppTemplateView, month_date, month_url, quick_add_context, shift_month
 from .month_settings import settings_context
@@ -154,4 +155,19 @@ class MonthsView(AppTemplateView):
                 "month_url": month_url(today),
             }
         )
+        return context
+
+
+class RecapView(AppTemplateView):
+    """The recap of 1 month: what was kept, where most went and the best run of days."""
+
+    template_name = "app/recap.html"
+    nav = "months"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Build the recap of the user's month."""
+        context = super().get_context_data(**kwargs)
+        first_day = month_date(self.kwargs["year"], self.kwargs["month"])
+        budget = get_object_or_404(Budget, user=self.request.user, month=first_day)
+        context["recap"] = month_recap(budget, timezone.localdate())
         return context

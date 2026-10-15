@@ -388,3 +388,18 @@ class MonthBillsTests(AppViewTestBase):
                 self.assertContains(page, "Lines are over income by")
                 self.assertContains(page, "2,000")
                 self.assertNotContains(page, "Not yet given a job")
+
+
+class RecapPageTests(AppViewTestBase):
+    """The recap page."""
+
+    def test_recap_page(self) -> None:
+        SubExpense.objects.create(expense=self.groceries, name="x", amount=D("2000"))
+        page = self.client.get(reverse("app:recap", kwargs=self.month_kwargs))
+        self.assertContains(page, "in short")
+        self.assertContains(page, "You kept")
+        self.assertContains(page, "48,000")
+
+    def test_recap_of_missing_or_other_month_is_404(self) -> None:
+        response = self.client.get(reverse("app:recap", kwargs={"year": 2001, "month": 1}))
+        self.assertEqual(response.status_code, 404)

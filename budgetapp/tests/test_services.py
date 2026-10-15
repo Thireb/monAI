@@ -15,6 +15,8 @@ from budgetapp.models import (
     Budget,
     Category,
     Expense,
+    Goal,
+    GoalContribution,
     SubExpense,
     Tag,
     TagTransfer,
@@ -29,6 +31,7 @@ from budgetapp.services.quick_add import (
     parse_spend_text,
     parse_spent_at,
 )
+from budgetapp.services.recap import last_month_recap, month_recap
 
 User = get_user_model()
 D = Decimal
@@ -328,3 +331,40 @@ class BillsTests(TestCase):
         names = [b.name for b in coming_up(self.budget, snap, self.today)]
         self.assertEqual(names, ["Insurance", "Domain", "Car tax"])
         self.assertEqual(len(coming_up(self.budget, snap, self.today, limit=2)), 2)
+
+
+class RecapTests(TestCase):
+    """month_recap and last_month_recap."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user(
+            username="recap", email="recap@example.com", password="testpassword"
+        )
+        food = Category.objects.create(user=self.user, name="Food", slug="food")
+        self.budget = Budget.objects.create(
+            user=self.user, month=date(2026, 9, 1), income=D("10000")
+        )
+        # 30 days, daily limit 3000 / 30 = 100.
+        self.groceries = Expense.objects.create(
+            budget=self.budget, name="Groceries", amount=D("3000"), is_daily=True, category=food
+        )
+        self.fun = Expense.objects.create(budget=self.budget, name="Fun", amount=D("100"))
+
+    def test_recap_figures(self) -> None:
+        _spend(self.groceries, "500", date(2026, 9, 10))  # Over the limit.
+        _spend(self.groceries, "100", date(2026, 9, 11), is_return=True)
+        _spend(self.fun, "300", date(2026, 9, 12))
+        goal = Goal.objects.create(user=self.user, name="Trip", target_amount=D("1"))
+        GoalContribution.objects.create(goal=goal, amount=D("700"), date=date(2026, 9, 20))
+        GoalContribution.objects.create(goal=goal, amount=D("50"), date=date(2026, 10, 1))
+        recap = month_recap(self.budget, date(2026, 10, 2))
+        self.assertEqual((recap.net_spent, recap.kept), (D("700"), D("9300")))
+        self.assertEqual((recap.top_category, recap.top_category_spent), ("Food", D("500")))
+        self.assertEqual((recap.days_under, recap.days_counted, recap.best_run), (29, 30, 20))
+        self.assertEqual([line.name for line in recap.over_lines], ["Fun"])
+        self.assertEqual(recap.to_goals, D("700"))
+
+    def test_home_shows_last_month_only_in_the_first_week(self) -> None:
+        self.assertIsNotNone(last_month_recap(self.user, date(2026, 10, 7)))
+        self.assertIsNone(last_month_recap(self.user, date(2026, 10, 8)))
+        self.assertIsNone(last_month_recap(self.user, date(2026, 12, 3)))  # No November.

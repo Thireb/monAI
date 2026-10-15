@@ -2,6 +2,9 @@
 {% block title %}monAI · Home{% endblock title %}
 {% block month_link %}{{ month_url }}{% endblock month_link %}
 {% block content %}
+    {% if recap %}
+        {% include "app/partials/recap_card.html" %}
+    {% endif %}
     {% if snap %}
         {% include "app/partials/home_panel.html" %}
     {% else %}

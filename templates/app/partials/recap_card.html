@@ -1,0 +1,41 @@
+{% load app_format %}
+{# The month recap. Context: recap (Recap), optional big (on the recap page). #}
+<section class="card recap {% if recap.kept >= 0 %}card--soft{% else %}card--over{% endif %} stack"
+         aria-labelledby="recap-title">
+    <h2 id="recap-title" class="h-label">{{ recap.month|date:"F" }} in short</h2>
+    {% if recap.kept >= 0 %}
+        <p class="recap__headline">
+            You kept <span class="money">{{ recap.currency }} {{ recap.kept|money_whole }}</span>
+        </p>
+    {% else %}
+        <p class="recap__headline">
+            You spent <span class="money money--over">{{ recap.currency }} {{ recap.kept|absolute|money_whole:'up' }}</span> more than you earned
+        </p>
+    {% endif %}
+    <ul class="recap__facts">
+        <li>Spent {{ recap.net_spent|money }} of {{ recap.income|money }} income.</li>
+        {% if recap.top_category %}
+            <li>Most went to {{ recap.top_category }}: {{ recap.top_category_spent|money }}.</li>
+        {% endif %}
+        {% if recap.has_daily_lines %}
+            <li>
+                {{ recap.days_under }} of {{ recap.days_counted }} days stayed under your daily limit.
+                {% if recap.best_run > 1 %}Best run: {{ recap.best_run }} days.{% endif %}
+            </li>
+        {% endif %}
+        {% if recap.to_goals %}<li>You put {{ recap.to_goals|money }} into your goals.</li>{% endif %}
+        {% if recap.over_lines %}
+            <li>
+                Over:
+                {% for line in recap.over_lines %}
+                    {{ line.name }} by {{ line.left|absolute|money }}
+                    {% if not forloop.last %},{% endif %}
+                {% endfor %}
+            </li>
+        {% endif %}
+    </ul>
+    {% if not big %}
+        <a class="btn btn--small"
+           href="{% url 'app:recap' year=recap.month.year month=recap.month.month %}">See the recap</a>
+    {% endif %}
+</section>
