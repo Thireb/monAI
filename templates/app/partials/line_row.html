@@ -12,7 +12,7 @@
                 <button type="button"
                         class="line-row__name line-row__open"
                         hx-get="{% url 'app:line_sheet' pk=line.id %}"
-                        hx-target="#line-sheet-body"
+                        hx-target="#edit-sheet-body"
                         hx-swap="innerHTML"
                         aria-haspopup="dialog">{{ line.name }}</button>
             {% endif %}

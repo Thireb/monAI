@@ -6,7 +6,7 @@ from datetime import date
 from typing import Any
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views import View
@@ -17,9 +17,10 @@ from budgetapp.models import Budget
 from budgetapp.services.bills import coming_up, month_bills
 from budgetapp.services.home import goal_cards
 from budgetapp.services.month import MonthSnapshot, build_month_snapshot
-from budgetapp.services.months import create_month
+from budgetapp.services.months import budget_years, create_month, year_overview
 
 from .base import AppTemplateView, month_date, month_url, quick_add_context, shift_month
+from .month_settings import settings_context
 
 # Which page layout the refreshable panel renders.
 PANEL_TEMPLATES = {
@@ -69,6 +70,11 @@ class MonthView(AppTemplateView):
                 "previous_budget": previous,
                 "line_form": LineForm(user=self.request.user, prefix="line"),
                 **bill_context(budget, snap, today),
+                **(
+                    settings_context(self.request, budget)
+                    if budget and not budget.is_archived
+                    else {}
+                ),
                 "quick_add": quick_add_context(budget, snap),
             }
         )
@@ -122,3 +128,30 @@ class MonthBillsApplyView(LoginRequiredMixin, View):
         response = HttpResponse(status=204)
         response["HX-Trigger"] = "monthChanged"
         return response
+
+
+class MonthsView(AppTemplateView):
+    """All months of 1 year (``?year=``), with their figures. Missing months can be started."""
+
+    template_name = "app/months.html"
+    nav = "months"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """The year's 12 month cards and the years to switch to."""
+        context = super().get_context_data(**kwargs)
+        today = timezone.localdate()
+        try:
+            year = int(self.request.GET.get("year", today.year))
+        except ValueError:
+            year = today.year
+        if not 2000 <= year <= 2100:
+            raise Http404("No such year.")
+        context.update(
+            {
+                "year": year,
+                "years": budget_years(self.request.user, today),
+                "cards": year_overview(self.request.user, year, today),
+                "month_url": month_url(today),
+            }
+        )
+        return context

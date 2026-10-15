@@ -180,32 +180,32 @@ class AppBrowserTests(StaticLiveServerTestCase):
     def test_line_sheet_edit_spend_and_delete(self) -> None:
         page = self.open(self.month_url)
         page.click(f"[data-line-id='{self.gifts.pk}'] .line-row__open")
-        page.wait_for_selector("#line-sheet[open] >> text=Spends and returns")
+        page.wait_for_selector("#edit-sheet[open] >> text=Spends and returns")
 
-        page.fill("#line-sheet [name=amount]", "400")
-        page.fill("#line-sheet [name=note]", "Card")
-        page.click("#line-sheet .line-sheet__spend button[type=submit]")
-        page.wait_for_selector("#line-sheet >> text=Spend saved.")
+        page.fill("#edit-sheet [name=amount]", "400")
+        page.fill("#edit-sheet [name=note]", "Card")
+        page.click("#edit-sheet .line-sheet__spend button[type=submit]")
+        page.wait_for_selector("#edit-sheet >> text=Spend saved.")
         page.wait_for_selector("#month-panel >> text=2,600 left")
 
         # Delete needs 2 taps: the first one only changes the label.
-        delete = "#line-sheet .spend-row button"
+        delete = "#edit-sheet .spend-row button"
         page.click(delete)
         self.assertEqual(page.inner_text(delete), "Tap again")
         self.assertTrue(SubExpense.objects.exists())
         page.click(delete)
-        page.wait_for_selector("#line-sheet >> text=Deleted the spend.")
+        page.wait_for_selector("#edit-sheet >> text=Deleted the spend.")
         self.assertFalse(SubExpense.objects.exists())
 
-        page.click("#line-sheet summary")
+        page.click("#edit-sheet summary")
         page.fill("#id_edit-name", "Presents")
-        page.click("#line-sheet >> text=Save changes")
+        page.click("#edit-sheet >> text=Save changes")
         page.wait_for_selector("#month-panel >> text=Presents")
 
-        page.click("#line-sheet >> text=Delete line")
-        page.click("#line-sheet >> text=Tap again to delete")
+        page.click("#edit-sheet >> text=Delete line")
+        page.click("#edit-sheet >> text=Tap again to delete")
         page.wait_for_selector('text=Deleted the line "Presents"')
-        page.wait_for_selector("#line-sheet:not([open])", state="attached")
+        page.wait_for_selector("#edit-sheet:not([open])", state="attached")
         self.assertFalse(Expense.objects.filter(pk=self.gifts.pk).exists())
 
     def test_goals_page_contribute_and_repay(self) -> None:
@@ -247,3 +247,29 @@ class AppBrowserTests(StaticLiveServerTestCase):
         page.wait_for_function(
             "document.querySelector('#home-panel').innerText.includes('30,300 left')"
         )
+
+    def test_more_page_add_and_delete_account(self) -> None:
+        page = self.open(reverse("app:manage"))
+        page.click("#accounts-title >> xpath=.. >> text=+ New")
+        page.wait_for_selector("#edit-sheet[open] >> text=New account")
+        page.fill("#id_account-name", "Wallet")
+        page.click("#edit-sheet >> text=Save")
+        page.wait_for_selector('text=Saved the account "Wallet".')
+        page.wait_for_selector("#edit-sheet:not([open])", state="attached")
+        page.wait_for_selector("#manage-panel >> text=Wallet")
+
+        page.click("#manage-panel .item-row >> text=Wallet")
+        page.wait_for_selector("#edit-sheet[open]")
+        page.click("#edit-sheet >> text=Delete")
+        page.click("#edit-sheet >> text=Tap again to delete")
+        page.wait_for_selector('text=Deleted the account "Wallet".')
+        self.assertFalse(Tag.objects.filter(name="Wallet").exists())
+
+    def test_month_settings_income(self) -> None:
+        page = self.open(self.month_url)
+        page.fill("#id_income-income", "60000")
+        page.click("#month-settings >> text=Save income")
+        page.wait_for_selector("#month-settings >> text=Income saved")
+        page.wait_for_selector("#month-panel >> text=60,000")
+        self.budget.refresh_from_db()
+        self.assertEqual(self.budget.income, D("60000"))

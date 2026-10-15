@@ -292,8 +292,8 @@ class LineSheetTests(AppViewTestBase):
     def test_delete_line(self) -> None:
         SubExpense.objects.create(expense=self.rent, name="x", amount=D("1"))
         response = self.client.post(reverse("app:line_delete", kwargs={"pk": self.rent.pk}))
-        self.assertContains(response, 'Deleted the line "Rent"')
-        self.assertContains(response, "data-line-sheet-done")
+        self.assertContains(response, "Deleted the line &quot;Rent&quot;")
+        self.assertContains(response, "data-sheet-done")
         self.assertFalse(Expense.objects.filter(pk=self.rent.pk).exists())
         self.assertFalse(SubExpense.objects.exists())
 

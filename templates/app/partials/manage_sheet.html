@@ -1,0 +1,36 @@
+{# Edit sheet body for an account, category or bill. Context: kind, noun, form, item, delete_note, is_debt. #}
+<div class="stack">
+    <div class="row">
+        <h2 id="edit-sheet-title">
+            {% if item %}
+                {{ item.name }}
+            {% else %}
+                New {{ noun }}
+            {% endif %}
+        </h2>
+        <button type="button" class="icon-btn" data-close-edit-sheet aria-label="Close">✕</button>
+    </div>
+    <form class="stack"
+          {% if item %} hx-post="{% url 'app:manage_item' kind=kind pk=item.pk %}" {% else %} hx-post="{% url 'app:manage_new' kind=kind %}" {% endif %}
+          hx-target="#edit-sheet-body"
+          hx-swap="innerHTML"
+          hx-disabled-elt="find button[type='submit']">
+        {% include "app/components/form_fields.html" %}
+        {% if is_debt %}
+            <p class="small muted">
+                This account belongs to a debt. Lines that use it count as repayments.
+            </p>
+        {% endif %}
+        <div class="row">
+            <button type="submit" class="btn btn--primary">Save</button>
+            {% if item and not is_debt %}
+                <button type="button"
+                        class="btn btn--danger"
+                        hx-post="{% url 'app:manage_delete' kind=kind pk=item.pk %}"
+                        hx-target="#edit-sheet-body"
+                        hx-swap="innerHTML"
+                        data-confirm-tap="{{ delete_note }}">Delete</button>
+            {% endif %}
+        </div>
+    </form>
+</div>

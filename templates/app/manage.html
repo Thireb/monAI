@@ -1,0 +1,20 @@
+{% extends "app/base.html" %}
+{% block title %}monAI · More{% endblock title %}
+{% block month_link %}{{ month_url }}{% endblock month_link %}
+{% block content %}
+    <h1>More</h1>
+    {% include "app/partials/manage_panel.html" %}
+    <section class="card stack" aria-labelledby="links-title">
+        <h2 id="links-title">Other pages</h2>
+        <div class="chips">
+            <a class="btn btn--small" href="{% url 'app:months' %}">All months</a>
+            <a class="btn btn--small" href="{% url 'accounts:profile' %}">Profile and email</a>
+            <a class="btn btn--small" href="{% url 'minimal:home' %}">Classic view</a>
+            <button type="button" class="btn btn--small" data-theme-toggle>Light or dark theme</button>
+            <form method="post" action="{% url 'account_logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--small">Log out</button>
+            </form>
+        </div>
+    </section>
+{% endblock content %}

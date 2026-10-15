@@ -128,7 +128,9 @@ class LineDeleteView(LoginRequiredMixin, View):
         line = editable_line(request, pk)
         name = line.name
         line.delete()
-        response = render(request, "app/partials/line_deleted.html", {"line_name": name})
+        response = render(
+            request, "app/partials/sheet_done.html", {"message": f'Deleted the line "{name}".'}
+        )
         response["HX-Trigger"] = "monthChanged"
         return response
 

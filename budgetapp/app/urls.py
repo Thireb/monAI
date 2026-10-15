@@ -22,13 +22,28 @@ from .views.line import (
     LineSpendCreateView,
     SpendDeleteView,
 )
-from .views.month import MonthBillsApplyView, MonthCreateView, MonthPanelView, MonthView
+from .views.manage import ItemDeleteView, ItemSheetView, ManagePanelView, ManageView
+from .views.month import (
+    MonthBillsApplyView,
+    MonthCreateView,
+    MonthPanelView,
+    MonthsView,
+    MonthView,
+)
+from .views.month_settings import (
+    IncomeUpdateView,
+    MonthDeleteView,
+    MonthEmailView,
+    TransferCreateView,
+    TransferDeleteView,
+)
 from .views.spend import SpendCreateView, SpendUndoView
 
 app_name = "app"
 
 urlpatterns: list[URLPattern] = [
     path("", HomeView.as_view(), name="home"),
+    path("months/", MonthsView.as_view(), name="months"),
     path("month/<int:year>/<int:month>/", MonthView.as_view(), name="month"),
     path("month/<int:year>/<int:month>/panel/", MonthPanelView.as_view(), name="month_panel"),
     path("month/<int:year>/<int:month>/create/", MonthCreateView.as_view(), name="month_create"),
@@ -37,6 +52,15 @@ urlpatterns: list[URLPattern] = [
         MonthBillsApplyView.as_view(),
         name="month_bills_apply",
     ),
+    path("month/<int:year>/<int:month>/income/", IncomeUpdateView.as_view(), name="income_update"),
+    path(
+        "month/<int:year>/<int:month>/transfers/",
+        TransferCreateView.as_view(),
+        name="transfer_create",
+    ),
+    path("month/<int:year>/<int:month>/email/", MonthEmailView.as_view(), name="month_email"),
+    path("month/<int:year>/<int:month>/delete/", MonthDeleteView.as_view(), name="month_delete"),
+    path("transfers/<int:pk>/delete/", TransferDeleteView.as_view(), name="transfer_delete"),
     path("month/<int:year>/<int:month>/lines/", LineCreateView.as_view(), name="line_create"),
     path("lines/<int:pk>/", LineSheetView.as_view(), name="line_sheet"),
     path("lines/<int:pk>/daily/", LineDailyToggleView.as_view(), name="line_daily"),
@@ -49,6 +73,11 @@ urlpatterns: list[URLPattern] = [
     path("debts/new/", DebtCreateView.as_view(), name="debt_create"),
     path("debts/<int:pk>/repay/", DebtRepayView.as_view(), name="debt_repay"),
     path("debts/<int:pk>/borrow/", DebtBorrowView.as_view(), name="debt_borrow"),
+    path("more/", ManageView.as_view(), name="manage"),
+    path("more/panel/", ManagePanelView.as_view(), name="manage_panel"),
+    path("more/<str:kind>/new/", ItemSheetView.as_view(), name="manage_new"),
+    path("more/<str:kind>/<int:pk>/", ItemSheetView.as_view(), name="manage_item"),
+    path("more/<str:kind>/<int:pk>/delete/", ItemDeleteView.as_view(), name="manage_delete"),
     path("spends/", SpendCreateView.as_view(), name="spend_create"),
     path("spends/<int:pk>/undo/", SpendUndoView.as_view(), name="spend_undo"),
     path("spends/<int:pk>/delete/", SpendDeleteView.as_view(), name="spend_delete"),

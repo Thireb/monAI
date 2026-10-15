@@ -1,0 +1,89 @@
+{% load app_format %}
+{# Accounts, categories and bills. Refreshes after each change (manageChanged). Context: accounts, categories, bills. #}
+<div id="manage-panel"
+     class="grid grid--two"
+     hx-get="{% url 'app:manage_panel' %}"
+     hx-trigger="manageChanged from:body"
+     hx-swap="outerHTML">
+    <section class="card stack" aria-labelledby="accounts-title">
+        <div class="row">
+            <h2 id="accounts-title">Accounts</h2>
+            <button type="button"
+                    class="btn btn--small"
+                    hx-get="{% url 'app:manage_new' kind='account' %}"
+                    hx-target="#edit-sheet-body"
+                    hx-swap="innerHTML">+ New</button>
+        </div>
+        <p class="small muted">Where money sits: cash, a bank, a wallet.</p>
+        {% for account in accounts %}
+            <button type="button"
+                    class="item-row"
+                    hx-get="{% url 'app:manage_item' kind='account' pk=account.pk %}"
+                    hx-target="#edit-sheet-body"
+                    hx-swap="innerHTML">
+                <!-- djlint:off H021 -->
+                <span class="swatch" style="--swatch: {{ account.color }}"></span>
+                <!-- djlint:on -->
+                <span class="item-row__name">{{ account.name }}</span>
+                {% if account.is_debt %}<span class="badge">Debt</span>{% endif %}
+                {% if not account.is_active %}<span class="badge">Hidden</span>{% endif %}
+            </button>
+        {% empty %}
+            <p class="muted small">No accounts yet.</p>
+        {% endfor %}
+    </section>
+    <section class="card stack" aria-labelledby="categories-title">
+        <div class="row">
+            <h2 id="categories-title">Categories</h2>
+            <button type="button"
+                    class="btn btn--small"
+                    hx-get="{% url 'app:manage_new' kind='category' %}"
+                    hx-target="#edit-sheet-body"
+                    hx-swap="innerHTML">+ New</button>
+        </div>
+        <p class="small muted">Groups of lines: food, home, travel.</p>
+        {% for category in categories %}
+            <button type="button"
+                    class="item-row"
+                    hx-get="{% url 'app:manage_item' kind='category' pk=category.pk %}"
+                    hx-target="#edit-sheet-body"
+                    hx-swap="innerHTML">
+                <!-- djlint:off H021 -->
+                <span class="swatch" style="--swatch: {{ category.color }}"></span>
+                <!-- djlint:on -->
+                <span class="item-row__name">{{ category.name }}</span>
+            </button>
+        {% empty %}
+            <p class="muted small">No categories yet.</p>
+        {% endfor %}
+    </section>
+    <section class="card stack span-all" aria-labelledby="bills-title">
+        <div class="row">
+            <h2 id="bills-title">Bill reminders</h2>
+            <button type="button"
+                    class="btn btn--small"
+                    hx-get="{% url 'app:manage_new' kind='bill' %}"
+                    hx-target="#edit-sheet-body"
+                    hx-swap="innerHTML">+ New</button>
+        </div>
+        <p class="small muted">
+            Bills that do not come every month, like a yearly tax. monAI adds each one as a line in the month it is due.
+        </p>
+        {% for bill in bills %}
+            <button type="button"
+                    class="item-row"
+                    hx-get="{% url 'app:manage_item' kind='bill' pk=bill.pk %}"
+                    hx-target="#edit-sheet-body"
+                    hx-swap="innerHTML">
+                <span class="item-row__name">{{ bill.name }}</span>
+                <span class="small muted">
+                    {{ bill.next_bill_date|date:"j M Y" }} · every {{ bill.recurrence_months }} month{{ bill.recurrence_months|pluralize }}
+                </span>
+                {% if not bill.is_active %}<span class="badge">Off</span>{% endif %}
+                <span class="money item-row__end">{{ bill.amount|money }}</span>
+            </button>
+        {% empty %}
+            <p class="muted small">No bill reminders yet.</p>
+        {% endfor %}
+    </section>
+</div>

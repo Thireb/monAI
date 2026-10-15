@@ -1,0 +1,49 @@
+{% extends "app/base.html" %}
+{% load app_format %}
+{% block title %}monAI · {{ year }}{% endblock title %}
+{% block month_link %}{{ month_url }}{% endblock month_link %}
+{% block content %}
+    <div class="row">
+        <h1>{{ year }}</h1>
+        {% if years|length > 1 %}
+            <nav class="chips" aria-label="Year">
+                {% for y in years %}
+                    <a class="chip{% if y == year %} chip--on{% endif %}"
+                       href="?year={{ y }}"
+                       {% if y == year %}aria-current="page"{% endif %}>{{ y }}</a>
+                {% endfor %}
+            </nav>
+        {% endif %}
+    </div>
+    <section class="grid grid--months" aria-label="Months of {{ year }}">
+        {% for card in cards %}
+            <a class="card month-card{% if card.is_current %} month-card--current{% endif %}{% if not card.exists %} month-card--empty{% endif %}"
+               href="{% url 'app:month' year=card.month.year month=card.month.month %}">
+                <div class="row">
+                    <h2>{{ card.month|date:"F" }}</h2>
+                    {% if card.is_current %}
+                        <span class="badge badge--good">Now</span>
+                    {% elif card.is_archived %}
+                        <span class="badge">Archived</span>
+                    {% endif %}
+                </div>
+                {% if card.exists %}
+                    {% include "app/components/progress.html" with pct=card.spent_pct status=card.status label="Spent of the lines" %}
+                    <span class="small">
+                        Spent <strong>{{ card.spent|money }}</strong> of {{ card.gross|money }}
+                    </span>
+                    <span class="small muted">
+                        Income {{ card.income|money }}
+                        {% if card.unallocated < 0 %}
+                            · <span class="money--over">{{ card.unallocated|absolute|money }} over</span>
+                        {% elif card.unallocated %}
+                            · {{ card.unallocated|money }} free
+                        {% endif %}
+                    </span>
+                {% else %}
+                    <span class="small muted">No budget yet</span>
+                {% endif %}
+            </a>
+        {% endfor %}
+    </section>
+{% endblock content %}

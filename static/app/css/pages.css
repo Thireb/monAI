@@ -536,3 +536,81 @@ details[open] > .card__summary::after,
   background: var(--sun);
   color: var(--on-sun);
 }
+
+/* ---------- Months page ---------- */
+
+.grid--months {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+}
+
+.month-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.month-card h2 {
+  margin: 0;
+}
+
+.month-card--current {
+  outline: 2px solid var(--green);
+}
+
+.month-card--empty {
+  background: transparent;
+  border: 2px dashed var(--line);
+  box-shadow: none;
+}
+
+.chip--on {
+  background: var(--green-soft);
+  color: var(--green-soft-ink);
+}
+
+/* ---------- More page ---------- */
+
+.item-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 8px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item-row:hover .item-row__name,
+.item-row:focus-visible .item-row__name {
+  color: var(--green-ink);
+}
+
+.item-row:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 2px;
+}
+
+.item-row__name {
+  font-weight: 700;
+}
+
+.item-row__end {
+  margin-left: auto;
+}
+
+.span-all {
+  grid-column: 1 / -1;
+}
+
+a.chip {
+  text-decoration: none;
+}

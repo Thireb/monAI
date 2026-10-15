@@ -2,8 +2,8 @@
 {# Body of the line sheet. Context: line, line_view, budget, form, spends, message, spend_error, edit_open. #}
 <div class="stack" data-line-sheet="{{ line.pk }}">
     <div class="row">
-        <h2 id="line-sheet-title">{{ line.name }}</h2>
-        <button type="button" class="icon-btn" data-close-line-sheet aria-label="Close">✕</button>
+        <h2 id="edit-sheet-title">{{ line.name }}</h2>
+        <button type="button" class="icon-btn" data-close-edit-sheet aria-label="Close">✕</button>
     </div>
     {% if message %}<p class="form-ok" role="status">{{ message }}</p>{% endif %}
     {% if line_view %}
@@ -30,7 +30,7 @@
     {% endif %}
     <form class="stack line-sheet__spend"
           hx-post="{% url 'app:line_spend_create' pk=line.pk %}"
-          hx-target="#line-sheet-body"
+          hx-target="#edit-sheet-body"
           hx-disabled-elt="find button[type='submit']">
         <h3>Add to this line</h3>
         <div class="seg" role="radiogroup" aria-label="Kind">
@@ -69,7 +69,7 @@
                 <button type="button"
                         class="btn btn--small btn--ghost"
                         hx-post="{% url 'app:spend_delete' pk=spend.pk %}"
-                        hx-target="#line-sheet-body"
+                        hx-target="#edit-sheet-body"
                         data-confirm-tap="Tap again"
                         aria-label="Delete {{ spend.name }}">Delete</button>
             </div>
@@ -81,7 +81,7 @@
         <summary>Edit the line</summary>
         <form class="stack"
               hx-post="{% url 'app:line_sheet' pk=line.pk %}"
-              hx-target="#line-sheet-body"
+              hx-target="#edit-sheet-body"
               hx-disabled-elt="find button[type='submit']">
             <div class="line-form__fields">
                 {% for field in form %}
@@ -101,7 +101,7 @@
                 <button type="button"
                         class="btn btn--danger"
                         hx-post="{% url 'app:line_delete' pk=line.pk %}"
-                        hx-target="#line-sheet-body"
+                        hx-target="#edit-sheet-body"
                         data-confirm-tap="Tap again to delete">Delete line</button>
             </div>
         </form>

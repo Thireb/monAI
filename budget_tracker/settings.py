@@ -400,7 +400,7 @@ ACCOUNT_LOGOUT_ON_GET = True  # Allow logout via GET request
 ACCOUNT_SESSION_REMEMBER = True
 
 # Redirects
-LOGIN_REDIRECT_URL = "minimal:home"
+LOGIN_REDIRECT_URL = "app:home"
 LOGOUT_REDIRECT_URL = "account_login"
 LOGIN_URL = "account_login"
 

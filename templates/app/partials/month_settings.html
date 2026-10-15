@@ -1,0 +1,65 @@
+{% load app_format %}
+{# Month settings card. Context: budget, income_form, transfer_form, transfers, settings_message. #}
+<section id="month-settings"
+         class="card stack"
+         aria-labelledby="month-settings-title">
+    <h2 id="month-settings-title">Month settings</h2>
+    {% if settings_message %}<p class="form-ok" role="status">{{ settings_message }}</p>{% endif %}
+    <form class="line-form"
+          hx-post="{% url 'app:income_update' year=budget.month.year month=budget.month.month %}"
+          hx-target="#month-settings"
+          hx-swap="outerHTML"
+          hx-disabled-elt="find button[type='submit']">
+        {% include "app/components/form_fields.html" with form=income_form %}
+        <div>
+            <button type="submit" class="btn btn--primary">Save income</button>
+        </div>
+    </form>
+    <details class="stack" {% if transfer_form.errors %}open{% endif %}>
+        <summary class="card__summary">
+            <h3>Move money between accounts</h3>
+        </summary>
+        <p class="small muted">A move does not change what is left this month. It only changes where the money sits.</p>
+        <form class="line-form"
+              hx-post="{% url 'app:transfer_create' year=budget.month.year month=budget.month.month %}"
+              hx-target="#month-settings"
+              hx-swap="outerHTML"
+              hx-disabled-elt="find button[type='submit']">
+            {% include "app/components/form_fields.html" with form=transfer_form %}
+            <div>
+                <button type="submit" class="btn btn--primary">Move money</button>
+            </div>
+        </form>
+        {% for transfer in transfers %}
+            <div class="spend-row">
+                <div>
+                    <div class="spend-row__name">{{ transfer.from_tag.name }} → {{ transfer.to_tag.name }}</div>
+                    <div class="small muted">
+                        {{ transfer.date|date:"j M" }}
+                        {% if transfer.note %}· {{ transfer.note }}{% endif %}
+                    </div>
+                </div>
+                <span class="money">{{ transfer.amount|money }}</span>
+                <button type="button"
+                        class="btn btn--small btn--ghost"
+                        hx-post="{% url 'app:transfer_delete' pk=transfer.pk %}"
+                        hx-target="#month-settings"
+                        hx-swap="outerHTML"
+                        data-confirm-tap="Tap again"
+                        aria-label="Delete the transfer">Delete</button>
+            </div>
+        {% endfor %}
+    </details>
+    <div class="row row--start">
+        <button type="button"
+                class="btn btn--small"
+                hx-post="{% url 'app:month_email' year=budget.month.year month=budget.month.month %}"
+                hx-swap="none"
+                hx-disabled-elt="this">Email me the PDF report</button>
+        <button type="button"
+                class="btn btn--small btn--danger"
+                hx-post="{% url 'app:month_delete' year=budget.month.year month=budget.month.month %}"
+                hx-swap="none"
+                data-confirm-tap="Tap again: delete the month and all its lines">Delete this month</button>
+    </div>
+</section>

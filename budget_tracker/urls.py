@@ -17,9 +17,9 @@ from rest_framework.authtoken.views import obtain_auth_token
 from budgetapp.views import service_worker
 
 
-def redirect_to_minimal(request: HttpRequest) -> HttpResponseRedirect:
-    """Redirect root URL to the minimal theme home page."""
-    return redirect("minimal:home")
+def redirect_to_app(request: HttpRequest) -> HttpResponseRedirect:
+    """Redirect the root URL to the home page of the new UI (/app/)."""
+    return redirect("app:home")
 
 
 urlpatterns: list[URLPattern | URLResolver] = [
@@ -33,7 +33,7 @@ urlpatterns: list[URLPattern | URLResolver] = [
     # Profile URLs
     path("accounts/", include("accounts.urls", namespace="accounts")),
     # Redirect root to minimal theme
-    path("", redirect_to_minimal, name="root_redirect"),
+    path("", redirect_to_app, name="root_redirect"),
     path("minimal/", include("budgetapp.minimal.urls", namespace="minimal")),
     path("app/", include("budgetapp.app.urls", namespace="app")),
 ]

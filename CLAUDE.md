@@ -9,7 +9,7 @@ lint, test and build commands.
 
 monAI is a self-hosted personal budget tracker. It has 2 clients:
 
-- A Django web app (Django 5.1, DRF, allauth). The UI is at `/minimal/`.
+- A Django web app (Django 5.1, DRF, allauth). The new UI is at `/app/` (`/` opens it). The classic UI is at `/minimal/`.
 - A Flutter Android app in `mobile/budget_mobile/`. It is offline-first. It
   keeps data in SQLite (`sqflite`) and syncs with Django over HTTP.
 
@@ -141,10 +141,10 @@ Give each module by name:
   budgetapp.tests.test_budget_summary budgetapp.tests.test_user_resend_email \
   budgetapp.tests.test_budget_month_unique budgetapp.tests.test_budget_page_browser \
   budgetapp.tests.test_pwa_offline budgetapp.tests.test_services budgetapp.tests.test_app_views \
-  budgetapp.tests.test_app_goals budgetapp.tests.test_app_browser
+  budgetapp.tests.test_app_goals budgetapp.tests.test_app_manage budgetapp.tests.test_app_browser
 ```
 
-On 2026-10-14, all 156 tests passed (about 2 minutes).
+On 2026-10-15, all 173 tests passed (about 2 minutes).
 Logs with `🔴 400` in the output are normal. Some tests check error responses.
 
 `test_budget_page_browser`, `test_pwa_offline` and `test_app_browser` drive headless Chromium with Playwright. The classic pages need network

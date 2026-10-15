@@ -50,7 +50,12 @@
                     <a class="btn btn--small hide-phone"
                        href="{% url 'app:goals' %}"
                        {% if nav == 'goals' %}aria-current="page"{% endif %}>Goals</a>
-                    <a class="btn btn--small hide-phone" href="{% url 'minimal:home' %}">Classic view</a>
+                    <a class="btn btn--small hide-phone"
+                       href="{% url 'app:months' %}"
+                       {% if nav == 'months' %}aria-current="page"{% endif %}>Months</a>
+                    <a class="btn btn--small hide-phone"
+                       href="{% url 'app:manage' %}"
+                       {% if nav == 'more' %}aria-current="page"{% endif %}>More</a>
                 </div>
             </header>
             <main id="main" class="stack">
@@ -67,14 +72,14 @@
                 <span aria-hidden="true"></span>
             {% endif %}
             <a href="{% url 'app:goals' %}" {% if nav == 'goals' %}aria-current="page"{% endif %}>Goals</a>
-            <a href="{% url 'minimal:home' %}">Classic</a>
+            <a href="{% url 'app:manage' %}" {% if nav == 'more' %}aria-current="page"{% endif %}>More</a>
         </nav>
         {% if quick_add %}
             {% include "app/components/quick_add_sheet.html" %}
         {% endif %}
-        <dialog id="line-sheet" class="sheet" aria-labelledby="line-sheet-title">
+        <dialog id="edit-sheet" class="sheet" aria-labelledby="edit-sheet-title">
             <div class="sheet__grip" aria-hidden="true"></div>
-            <div id="line-sheet-body"></div>
+            <div id="edit-sheet-body"></div>
         </dialog>
         <div id="toasts" class="toasts" aria-live="polite"></div>
         <div id="outbox" class="outbox" role="status" hidden></div>

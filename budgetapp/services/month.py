@@ -38,7 +38,7 @@ NO_CATEGORY_COLOR = "#B9C4BD"
 CLOSE_PERCENT = 75
 
 
-def _pct(part: Decimal, whole: Decimal) -> int:
+def percent(part: Decimal, whole: Decimal) -> int:
     """Return ``part / whole`` as a whole percent, limited to 0..100."""
     if whole <= 0:
         return 100 if part > 0 else 0
@@ -46,13 +46,13 @@ def _pct(part: Decimal, whole: Decimal) -> int:
     return max(0, min(100, value))
 
 
-def _status(amount: Decimal, used: Decimal) -> str:
+def use_status(amount: Decimal, used: Decimal) -> str:
     """Classify use of an amount: ``ok``, ``close``, ``done`` or ``over``."""
     if used > amount:
         return "over"
     if amount > 0 and used == amount:
         return "done"
-    if _pct(used, amount) >= CLOSE_PERCENT:
+    if percent(used, amount) >= CLOSE_PERCENT:
         return "close"
     return "ok"
 
@@ -181,8 +181,8 @@ def _line_rows(budget: Budget) -> list[LineView]:
                 spent=spent,
                 returned=returned,
                 left=e.amount - used,
-                used_pct=_pct(used, e.amount),
-                status=_status(e.amount, used),
+                used_pct=percent(used, e.amount),
+                status=use_status(e.amount, used),
                 is_daily=e.is_daily,
                 is_recurring=e.is_recurring,
                 category_name=e.category.name if e.category else "Uncategorized",
@@ -232,8 +232,8 @@ def _accounts(budget: Budget, lines: list[LineView]) -> list[AccountView]:
                 color=data["color"],
                 total=total,
                 used=used,
-                used_pct=_pct(used, total),
-                status=_status(total, used),
+                used_pct=percent(used, total),
+                status=use_status(total, used),
             )
         )
     return sorted(accounts, key=lambda a: (-a.total, a.name))
@@ -308,7 +308,7 @@ def build_month_snapshot(budget: Budget, today: date | None = None) -> MonthSnap
             day=d,
             label=date(month.year, month.month, d).strftime("%a")[:2],
             spent=by_day.get(d, ZERO),
-            height_pct=_pct(by_day.get(d, ZERO), scale),
+            height_pct=percent(by_day.get(d, ZERO), scale),
             is_over=daily_limit > 0 and by_day.get(d, ZERO) > daily_limit,
             is_today=is_current and d == today.day,
             is_future=is_current and d > today.day,
@@ -323,7 +323,7 @@ def build_month_snapshot(budget: Budget, today: date | None = None) -> MonthSnap
         returns=returns,
         spent=spent,
         unallocated=unallocated,
-        allocated_pct=_pct(gross - returns, income),
+        allocated_pct=percent(gross - returns, income),
         lines=lines,
         categories=_category_groups(lines),
         accounts=_accounts(budget, lines),
@@ -338,7 +338,7 @@ def build_month_snapshot(budget: Budget, today: date | None = None) -> MonthSnap
         allowance_today=allowance_today,
         safe_today=safe_today,
         days=days,
-        limit_line_pct=_pct(daily_limit, scale),
+        limit_line_pct=percent(daily_limit, scale),
         streak=_streak(by_day, daily_limit, today.day) if is_current else 0,
         recent_days=[bar for bar in days if not bar.is_future][-7:] if is_current else [],
     )

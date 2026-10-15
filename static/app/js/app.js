@@ -141,18 +141,18 @@
       .catch(() => {});
   }
 
-  // ---------- Line sheet ----------
+  // ---------- Edit sheet (lines, accounts, categories, bills) ----------
 
-  function lineSheet() {
-    return document.getElementById('line-sheet');
+  function editSheet() {
+    return document.getElementById('edit-sheet');
   }
 
-  // The server sends the sheet body into #line-sheet-body. After a delete, the body holds
-  // [data-line-sheet-done] and the sheet closes.
-  function afterLineSheetSwap() {
-    const dialog = lineSheet();
+  // The server sends the sheet body into #edit-sheet-body. After a delete, the body holds
+  // [data-sheet-done] and the sheet closes.
+  function afterEditSheetSwap() {
+    const dialog = editSheet();
     if (!dialog) return;
-    if (dialog.querySelector('[data-line-sheet-done]')) {
+    if (dialog.querySelector('[data-sheet-done]')) {
       if (dialog.open) dialog.close();
       return;
     }
@@ -236,7 +236,7 @@
   document.addEventListener('click', event => {
     const target = event.target.closest(
       '[data-theme-toggle], [data-open-quick-add], [data-close-quick-add], [data-close-toast], ' +
-        '[data-close-line-sheet]'
+        '[data-close-edit-sheet]'
     );
     if (!target) return;
     if (target.hasAttribute('data-theme-toggle')) {
@@ -246,8 +246,8 @@
       openSheet();
     } else if (target.hasAttribute('data-close-quick-add')) {
       closeSheet();
-    } else if (target.hasAttribute('data-close-line-sheet')) {
-      const dialog = lineSheet();
+    } else if (target.hasAttribute('data-close-edit-sheet')) {
+      const dialog = editSheet();
       if (dialog && dialog.open) dialog.close();
     } else if (target.hasAttribute('data-close-toast')) {
       const toast = target.closest('.toast');
@@ -259,7 +259,7 @@
   document.addEventListener('keydown', event => {
     if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
     if ((event.key === '/' || event.key === '+') && !isTyping(event.target)) {
-      const other = lineSheet();
+      const other = editSheet();
       if (!sheet() || (other && other.open)) return;
       event.preventDefault();
       openSheet();
@@ -313,7 +313,7 @@
   });
 
   document.body.addEventListener('htmx:afterSwap', event => {
-    if (event.detail.target && event.detail.target.id === 'line-sheet-body') afterLineSheetSwap();
+    if (event.detail.target && event.detail.target.id === 'edit-sheet-body') afterEditSheetSwap();
   });
 
   // Toasts arrive out of band, so check the whole page after each swap.
