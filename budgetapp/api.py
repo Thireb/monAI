@@ -5,16 +5,20 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from budgetapp.models import Budget
+from budgetapp.services.export import build_budget_export
 
 from .serializers import BudgetSerializer
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet
+    from rest_framework.request import Request
 
 
 class BudgetViewSet(viewsets.ModelViewSet):
@@ -50,3 +54,9 @@ class BudgetViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer: BaseSerializer[Budget]) -> None:
         """Save the budget unless its new month is taken."""
         serializer.save(**self._free_month(serializer))
+
+    @action(detail=True, methods=["get"])
+    def export(self, request: Request, pk: str | None = None) -> Response:
+        """Return 1 budget, with its expenses and sub-expenses, as portable JSON."""
+        budget = self.get_object()
+        return Response(build_budget_export(budget))

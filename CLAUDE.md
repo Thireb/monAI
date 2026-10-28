@@ -42,14 +42,15 @@ The `AGENTS.md` paths (`/workspace/venv`) are for Cursor Cloud. On this machine:
 | `accounts/` | Custom user model and profile. Each user has a Resend key, encrypted in the database (`accounts/fields.py`). |
 | `budgetapp/models.py` | All domain models. |
 | `budgetapp/app/` | **New UI** at `/app/` (namespace `app`): views, forms, urls. New UI work goes here. |
-| `budgetapp/services/` | Money logic for the new UI: `month.py` (month figures, Safe to spend today), `quick_add.py`, `months.py`, `goals.py` (goals, debt payoff), `bills.py` (bill timeline), `push.py` (Web Push bill alerts), `recap.py` (month recap), `report.py` (PDF report email), `home.py`. |
-| `budgetapp/api_urls.py` | REST routes under `/api/` (budgets, goals) and `/api/health/`. |
+| `budgetapp/services/` | Money logic for the new UI: `month.py` (month figures, Safe to spend today), `quick_add.py`, `months.py`, `goals.py` (goals, debt payoff), `bills.py` (bill timeline), `push.py` (Web Push bill alerts), `recap.py` (month recap), `report.py` (PDF report email), `home.py`, `export.py` (portable JSON export of 1 budget), `mcp_tools.py` (the functions behind the MCP server). |
+| `budgetapp/api_urls.py` | REST routes under `/api/` (budgets, goals) and `/api/health/`. `GET /api/budgets/{id}/export/` returns the JSON export. |
+| `budgetapp/management/commands/mcp_server.py` | The MCP server (`manage.py mcp_server --email ...`). See `docs/mcp_server.md`. |
 | `budgetapp/tests/` | Django tests. |
 | `script_runner/` | Versioned management scripts. `registry.py` lists them. |
 | `templates/app/`, `static/app/` | New UI templates (components, partials, `pdf/`) and its CSS tokens and JS. |
 | `static/js/service-worker.js`, `static/js/pwa-register.js` | The PWA service worker (offline pages, Web Push) and its registration. |
 | `Dockerfile`, `docker-compose.yml`, `docker/`, `.env.example` | Self-host with Docker: web (gunicorn), MariaDB, daily bill alerts. Settings come from `.env`. |
-| `docs/` | Project docs. `docs/agent_intent/` has the LLM action schemas. |
+| `docs/` | Project docs. `docs/agent_intent/` has the LLM action schemas. `docs/mcp_server.md` covers the MCP server. |
 
 ## Domain model
 

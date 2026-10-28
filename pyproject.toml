@@ -61,6 +61,7 @@ dependencies = [
     "markdown-it-py==3.0.0",
     "markupsafe==3.0.2",
     "mccabe==0.7.0",
+    "mcp==1.30.0",
     "mdurl==0.1.2",
     "mypy-extensions==1.0.0",
     "mysqlclient>=2.2.8",
