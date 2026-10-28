@@ -112,6 +112,20 @@ validator).
 The intent endpoint would check that `budget_id` belongs to the user, then save each item
 of the inner `expenses` list with `LineForm`.
 
+## The MCP server (built)
+
+`manage.py mcp_server` runs an [MCP](https://modelcontextprotocol.io/) server over
+stdio for a local client such as LM Studio. See `docs/mcp_server.md` for how to run
+it and its tool list. It is a second, simpler implementation of this same design
+rule: each tool is a function in `budgetapp/services/mcp_tools.py` that calls the
+same form or service a REST action or the web UI would use, for 1 whitelisted
+action, for 1 user. It does not replace `POST /api/agent/intent/` below; that
+endpoint would still suit a model embedded in the web client itself.
+
+A budget can also be exported as portable JSON (`budget_export_json` tool, or
+`GET /api/budgets/{id}/export/`), for backup or for a companion app such as
+[budget-notes](https://github.com/Thireb/budget-notes). See `docs/mcp_server.md`.
+
 ## Optional next implementation steps
 
 1. Add `POST /api/agent/intent/` that accepts `intent_request`, runs **no**
@@ -127,3 +141,5 @@ of the inner `expenses` list with `LineForm`.
 - URL registration: `budgetapp/api_urls.py`
 - REST views and serializers: `budgetapp/api.py`, `budgetapp/api_goals.py`, `budgetapp/serializers.py`
 - Quick add grammar and spends: `budgetapp/services/quick_add.py`
+- MCP server: `budgetapp/management/commands/mcp_server.py`, `budgetapp/services/mcp_tools.py` (`docs/mcp_server.md`)
+- Budget JSON export: `budgetapp/services/export.py`
